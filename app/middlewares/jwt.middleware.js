@@ -1,43 +1,29 @@
-const jwt = require("../helper/auth.helper");
-const isAuth = async function (req, res, next) {
-  // console.log(123123);
-  // console.log('authorizationHeader', req.headers);
-  const authorizationHeader = req.headers.authorization;
-  const _token = authorizationHeader?.split(" ")[1];
-  // console.log('authorizationHeader', authorizationHeader);
-  if (_token) {
-    try {
-      await jwt
-        .checkToken(_token)
-        .then(({ data }) => {
-          console.log(data);
-          req.user_id = data?.comID;
-          req.level = data?.level;
-          next();
-        })
-        .catch((err) => {
-          return res.send({
-            result: false,
-            error: [{ msg: err.message }],
-          });
-        });
-      // console.log('au', authData);
-      // req.auth = authData;
-    } catch (error) {
-      // console.log(error);
-      return res.send({
-        result: false,
-        error: [{ msg: "Invalid token or token expired" }],
-      });
-    }
-  } else {
-    return res.send({
-      result: false,
-      error: [{ msg: "Token does not exist" }],
+const response = require("../core/core.response");
+const jwt = require("jsonwebtoken");
+
+const auth = {
+  token: function (req, res, next) {
+    const authorizationBody = req.headers["authentication"];
+    const NCC = req.headers["nc-name"];
+
+    if (!NCC || !authorizationBody) return response.error.notAuth(res);
+
+    const JWT_KEY = process.env.JWT_KEY;
+
+    const token = authorizationBody?.replace("Bearer ", "");
+
+    jwt.verify(token, JWT_KEY, (err, data) => {
+      if (!data?.id) {
+        return response.error.notAuth(res);
+      } else {
+        const body = req?.body || {};
+        const query = req?.query || {};
+        req.body = { ...body, userId: NCC + data?.id };
+        req.query = { ...query, userId: NCC + data?.id };
+        next();
+      }
     });
-  }
+  },
 };
 
-module.exports = {
-  isAuth: isAuth,
-};
+module.exports = auth;

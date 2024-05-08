@@ -25,6 +25,7 @@ const http = require("http");
 
 // body-parser config
 const bodyParser = require("body-parser");
+const route = require("./app/routes");
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
 
@@ -32,7 +33,7 @@ app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
 db.connect();
 
 // import routes
-// router(app);
+route(app);
 app.use(handleErrors);
 
 // const server = https.createServer(options, app);
