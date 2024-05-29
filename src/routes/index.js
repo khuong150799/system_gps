@@ -1,0 +1,23 @@
+const { isAuth } = require("../middlewares/jwt.middleware");
+
+module.exports = (app) => {
+  require("./users.route")(app);
+  app.use(isAuth);
+  require("./module.route")(app);
+  require("./level.route")(app);
+  require("./role.route")(app);
+  require("./customers.route")(app);
+  require("./licenseType.route")(app);
+  require("./driver.route")(app);
+  require("./vehicleIcon.route")(app);
+  require("./vehicleType.route")(app);
+  require("./deviceStatus.route")(app);
+  require("./connectionType.route")(app);
+  require("./disk.route")(app);
+  require("./modelType.route")(app);
+  require("./model.route")(app);
+  require("./servicePackage.route")(app);
+  require("./ordersStatus.route")(app);
+  require("./orders.route")(app);
+  require("./device.route")(app);
+};

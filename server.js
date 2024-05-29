@@ -1,43 +1,23 @@
-const express = require("express");
-const app = express();
-const cors = require("cors");
-
-const path = require("path");
-const helmet = require("helmet");
-const compression = require("compression");
-// const router = require("./app/routes");
-const handleErrors = require("./app/middlewares/handleErrors");
-const db = require("./app/models/db.model");
-
-// require env
-require("dotenv").config();
-const port = process.env.PORT;
-const base_url = process.env.BASE_URL;
-
-app.use(helmet({ crossOriginResourcePolicy: false }));
-app.use(compression({ level: 6, threshold: 100 * 1000 }));
-app.use(cors({ origin: true, credentials: true })); // origin: true cho phép client truy cập.
-// config uploads folder
-app.use(express.static(path.join(__dirname, "uploads")));
-
-// config sv non SSL
+const app = require("./src/app");
 const http = require("http");
+const configureEnvironment = require("./src/config/dotenv.config");
+const process = require("process");
 
-// body-parser config
-const bodyParser = require("body-parser");
-const route = require("./app/routes");
-app.use(bodyParser.json({ limit: "50mb" }));
-app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
+const { PORT: PORT_ENV, NODE_ENV, DOMAIN_NAME } = configureEnvironment();
+console.log("environment ::::", NODE_ENV);
 
-// app.use(express.json());
-db.connect();
+const PORT = PORT_ENV || 3055;
 
-// import routes
-route(app);
-app.use(handleErrors);
+// start server nodejs
+const server = http.createServer(app).listen(PORT, () => {
+  console.log(`Domain server :::: ${DOMAIN_NAME}:${PORT}`);
+});
 
-// const server = https.createServer(options, app);
-const server = http.createServer(app);
-server.listen(port, () => {
-  console.log(`app run at ${base_url}:${port}`);
+const task = require("./src/tasks/issure.task");
+process.on("SIGINT", () => {
+  task.checkOverload().stop();
+  server.close("Exit server express");
+  process.exit();
+
+  // notify send (ping....)
 });
