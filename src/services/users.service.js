@@ -36,6 +36,7 @@ const {
   checkToken,
 } = require("../helper/auth.helper");
 const { set: setRedis, expire: expireRedis } = require("./redis.service");
+const { BusinessLogicError } = require("../core/error.response");
 
 class UsersService extends DatabaseService {
   constructor() {
@@ -152,7 +153,7 @@ class UsersService extends DatabaseService {
       conn.release();
       return { data: res_, totalPage };
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -177,7 +178,7 @@ class UsersService extends DatabaseService {
       conn.release();
       return res_;
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -202,7 +203,7 @@ class UsersService extends DatabaseService {
       conn.release();
       return res_;
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
   //Register
@@ -262,12 +263,14 @@ class UsersService extends DatabaseService {
 
       await connPromise.commit();
       conn.release();
-      user.id = res_;
-      delete user.is_deleted;
-      return user;
+      // user.id = res_;
+      // delete user.is_deleted;
+      // delete user.is_deleted;
+      return [];
     } catch (error) {
       await connPromise.rollback();
-      throw error;
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
     } finally {
       conn.release();
     }
@@ -335,7 +338,7 @@ class UsersService extends DatabaseService {
       return user;
     } catch (error) {
       await connPromise.rollback();
-      throw error;
+      throw new BusinessLogicError(error.msg);
     } finally {
       conn.release();
     }
@@ -350,7 +353,7 @@ class UsersService extends DatabaseService {
       conn.release();
       return [];
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -372,7 +375,8 @@ class UsersService extends DatabaseService {
       conn.release();
       return [{ new_password: PASSWORD_DEFAULT }];
     } catch (error) {
-      throw error;
+      const { msg } = error;
+      throw new BusinessLogicError(msg);
     }
   }
 
@@ -383,7 +387,7 @@ class UsersService extends DatabaseService {
       const { new_password, old_password } = body;
       const { conn } = await db.getConnection();
 
-      const oldPassword = await this.select(
+      const dataInfo = await this.select(
         conn,
         tableName,
         "password,is_actived,is_deleted",
@@ -391,18 +395,18 @@ class UsersService extends DatabaseService {
         [id]
       );
 
-      if (oldPassword?.length <= 0)
+      if (dataInfo?.length <= 0)
         throw {
           msg: ERROR,
           errors: [
             {
-              value: old_password,
+              value: "",
               msg: `Tài khoản ${NOT_EXITS}`,
-              param: "old_password",
+              param: "",
             },
           ],
         };
-      if (oldPassword[0].is_actived === 0)
+      if (dataInfo[0].is_actived === 0)
         throw {
           msg: NOT_ACTIVE_ACCOUNT,
           errors: [
@@ -413,7 +417,7 @@ class UsersService extends DatabaseService {
             },
           ],
         };
-      if (oldPassword[0].is_deleted === 1)
+      if (dataInfo[0].is_deleted === 1)
         throw {
           msg: DELETED_ACCOUNT,
           errors: [
@@ -425,15 +429,15 @@ class UsersService extends DatabaseService {
           ],
         };
 
-      const match = await bcrypt.compare(old_password, oldPassword[0].password);
+      const match = await bcrypt.compare(old_password, dataInfo[0].password);
       if (!match)
         throw {
           msg: ERROR,
           errors: [
             {
-              value: "",
+              value: old_password,
               msg: PASS_OLD_FAILED,
-              param: "",
+              param: "old_password",
             },
           ],
         };
@@ -463,7 +467,8 @@ class UsersService extends DatabaseService {
       conn.release();
       return [];
     } catch (error) {
-      throw error;
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
     }
   }
 
@@ -496,6 +501,7 @@ class UsersService extends DatabaseService {
             },
           ],
         };
+
       const joinTable = `${tableName} INNER JOIN ${tableUsersRole} ON ${tableName}.id = ${tableUsersRole}.user_id INNER JOIN ${tableRole} ON ${tableUsersRole}.role_id = ${tableRole}.id INNER JOIN ${tableUsersCustomers} ON ${tableName}.id = ${tableUsersCustomers}.user_id INNER JOIN ${tableCustomers} ON ${tableUsersCustomers}.customer_id = ${tableCustomers}.id INNER JOIN ${tableLevel} ON ${tableCustomers}.level_id = ${tableLevel}.id`;
       const dataaUser = await this.select(
         conn,
@@ -504,7 +510,7 @@ class UsersService extends DatabaseService {
         "username = ?",
         [username]
       );
-
+      console.log({ dataaUser });
       if (dataaUser?.length <= 0)
         throw {
           msg: ERROR,
@@ -516,6 +522,7 @@ class UsersService extends DatabaseService {
             },
           ],
         };
+
       const {
         id,
         password: passwordDB,
@@ -528,24 +535,24 @@ class UsersService extends DatabaseService {
 
       if (is_actived === 0)
         throw {
-          msg: NOT_ACTIVE_ACCOUNT,
+          msg: ERROR,
           errors: [
             {
-              value: "",
+              value: username,
               msg: NOT_ACTIVE_ACCOUNT,
-              param: "",
+              param: "username",
             },
           ],
         };
 
       if (is_deleted === 1)
         throw {
-          msg: DELETED_ACCOUNT,
+          msg: ERROR,
           errors: [
             {
-              value: "",
+              value: username,
               msg: DELETED_ACCOUNT,
-              param: "",
+              param: "username",
             },
           ],
         };
@@ -617,7 +624,8 @@ class UsersService extends DatabaseService {
         },
       ];
     } catch (error) {
-      throw error;
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
     }
   }
 
@@ -625,7 +633,6 @@ class UsersService extends DatabaseService {
   async refreshToken(body) {
     try {
       const { refresh_token } = body;
-      console.log({ refresh_token });
       const { data, keyRefreshToken } = await checkToken(
         refresh_token,
         REFRESH_TOKEN_SECRET_KEY,
@@ -663,7 +670,7 @@ class UsersService extends DatabaseService {
 
       return [{ token }];
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -678,7 +685,7 @@ class UsersService extends DatabaseService {
 
       return [];
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 }

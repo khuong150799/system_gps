@@ -1,3 +1,4 @@
+const { BusinessLogicError } = require("../core/error.response");
 const { getRedis } = require("../dbs/init.redis");
 
 class RedisService {
@@ -47,7 +48,7 @@ class RedisService {
 
       return await client.expire(key, ttl);
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 

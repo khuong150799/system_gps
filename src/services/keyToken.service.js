@@ -1,6 +1,7 @@
 const DatabaseService = require("./query.service");
 const db = require("../dbs/init.mysql");
 const KeyTokenModel = require("../models/keyToken.model");
+const { BusinessLogicError } = require("../core/error.response");
 const tableName = "tbl_key_token";
 
 class KeyTokenService extends DatabaseService {
@@ -21,7 +22,7 @@ class KeyTokenService extends DatabaseService {
       conn.release();
       return res;
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -51,7 +52,7 @@ class KeyTokenService extends DatabaseService {
       delete keyToken.is_deleted;
       return keyToken;
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -77,7 +78,7 @@ class KeyTokenService extends DatabaseService {
       conn.release();
       return keyToken;
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -90,7 +91,7 @@ class KeyTokenService extends DatabaseService {
       conn.release();
       return [];
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 }

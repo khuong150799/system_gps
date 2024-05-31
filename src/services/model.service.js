@@ -2,6 +2,7 @@ const DatabaseService = require("./query.service");
 const db = require("../dbs/init.mysql");
 const ModelModel = require("../models/model.model");
 const { ERROR, ALREADY_EXITS, NOT_EMPTY } = require("../constants");
+const { BusinessLogicError } = require("../core/error.response");
 const tableName = "tbl_model";
 const tableDisk = "tbl_disk";
 const tableConnectType = "tbl_connection_type";
@@ -129,7 +130,7 @@ class ModelService extends DatabaseService {
       conn.release();
       return { data: res_, totalPage };
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -155,7 +156,7 @@ class ModelService extends DatabaseService {
       conn.release();
       return res_;
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -225,7 +226,8 @@ class ModelService extends DatabaseService {
       delete model.is_deleted;
       return model;
     } catch (error) {
-      throw error;
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
     } finally {
       conn.release();
     }
@@ -286,7 +288,7 @@ class ModelService extends DatabaseService {
         conn,
         tableModelConnectType,
         `model_id = ? AND connection_type_id NOT IN (?)`,
-        [id, connectionTypeIdParse.join(",")],
+        [id, connectionTypeIdParse],
         "ID",
         false
       );
@@ -310,7 +312,8 @@ class ModelService extends DatabaseService {
       model.connection_type_id = connection_type_id;
       return model;
     } catch (error) {
-      throw error;
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
     }
   }
 
@@ -323,7 +326,7 @@ class ModelService extends DatabaseService {
       conn.release();
       return [];
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -338,7 +341,7 @@ class ModelService extends DatabaseService {
       conn.release();
       return [];
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 }

@@ -2,6 +2,7 @@ const DatabaseService = require("./query.service");
 const db = require("../dbs/init.mysql");
 const ServicePackageModel = require("../models/servicePackage.model");
 const { ERROR, ALREADY_EXITS } = require("../constants");
+const { BusinessLogicError } = require("../core/error.response");
 const tableName = "tbl_service_package";
 
 class ServicePackageService extends DatabaseService {
@@ -100,7 +101,7 @@ class ServicePackageService extends DatabaseService {
       conn.release();
       return { data: res_, totalPage };
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -125,7 +126,7 @@ class ServicePackageService extends DatabaseService {
       conn.release();
       return res_;
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -174,7 +175,8 @@ class ServicePackageService extends DatabaseService {
       delete servicePackage.is_deleted;
       return servicePackage;
     } catch (error) {
-      throw error;
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
     }
   }
 
@@ -227,7 +229,8 @@ class ServicePackageService extends DatabaseService {
       servicePackage.id = id;
       return servicePackage;
     } catch (error) {
-      throw error;
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
     }
   }
 
@@ -240,7 +243,7 @@ class ServicePackageService extends DatabaseService {
       conn.release();
       return [];
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -255,7 +258,7 @@ class ServicePackageService extends DatabaseService {
       conn.release();
       return [];
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 }

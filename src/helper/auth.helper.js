@@ -2,7 +2,11 @@ const jwt = require("jsonwebtoken");
 const constants = require("../constants");
 
 const keyTokenService = require("../services/keyToken.service");
-const { Api401Error, Api403Error } = require("../core/error.response");
+const {
+  Api401Error,
+  Api403Error,
+  BusinessLogicError,
+} = require("../core/error.response");
 const {
   exists: existsRedis,
   get: getRedis,
@@ -26,7 +30,7 @@ class JWTService {
       const token = await makeToken(data, secret, ACCESS_TOKEN_TIME_LIFE);
       return token;
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
   async makeRefreshToken(data = {}, publishKey) {
@@ -39,7 +43,7 @@ class JWTService {
       );
       return refreshToken;
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
   async checkToken(token, privateKey, isAccess = true) {

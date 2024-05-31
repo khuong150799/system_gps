@@ -2,6 +2,7 @@ const DatabaseService = require("./query.service");
 const db = require("../dbs/init.mysql");
 const LevelModel = require("../models/level.model");
 const { ERROR, ALREADY_EXITS } = require("../constants");
+const { BusinessLogicError } = require("../core/error.response");
 const tableName = "tbl_role";
 
 class RoleService extends DatabaseService {
@@ -82,7 +83,7 @@ class RoleService extends DatabaseService {
       conn.release();
       return { data: res_, totalPage };
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -106,7 +107,7 @@ class RoleService extends DatabaseService {
       conn.release();
       return res_;
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -136,7 +137,8 @@ class RoleService extends DatabaseService {
       delete level.is_deleted;
       return level;
     } catch (error) {
-      throw error;
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
     }
   }
 
@@ -170,7 +172,8 @@ class RoleService extends DatabaseService {
       level.id = id;
       return level;
     } catch (error) {
-      throw error;
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
     }
   }
 
@@ -183,7 +186,7 @@ class RoleService extends DatabaseService {
       conn.release();
       return [];
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -198,7 +201,7 @@ class RoleService extends DatabaseService {
       conn.release();
       return [];
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -212,7 +215,7 @@ class RoleService extends DatabaseService {
       await this.update(conn, tableName, { sort }, "id", id);
       return [];
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 }

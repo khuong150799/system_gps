@@ -11,16 +11,17 @@ const catchAsync = (fn) => async (req, res, next) => {
     }
     return await Promise.resolve(fn(req, res, next));
   } catch (err) {
-    // console.log("err", err);
-    return next(
-      new BusinessLogicError(
-        err?.msg ||
-          ((err?.status === 401 || err?.status === 403) && err?.message) ||
-          constants.SERVER_ERROR,
-        err?.errors || [],
-        err?.status || statusCodes.INTERNAL_SERVER_ERROR
-      )
-    );
+    console.log("err", err);
+    // return next(
+    //   new BusinessLogicError(
+    //     err?.msg ||
+    //       ((err?.status === 401 || err?.status === 403) && err?.message) ||
+    //       constants.SERVER_ERROR,
+    //     err?.errors || [],
+    //     err?.status || statusCodes.INTERNAL_SERVER_ERROR
+    //   )
+    // );
+    return next(err);
   }
 };
 

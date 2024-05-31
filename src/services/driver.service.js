@@ -3,6 +3,7 @@ const DriverModel = require("../models/driver.model");
 const db = require("../dbs/init.mysql");
 const { ERROR, VALIDATE_PHONE, ALREADY_EXITS } = require("../constants");
 const { regexPhoneNumber } = require("../ultils/regex");
+const { BusinessLogicError } = require("../core/error.response");
 const tableName = "tbl_driver";
 const tableUsersRole = "tbl_users_role";
 const tableRole = "tbl_role";
@@ -144,7 +145,7 @@ class DriverService extends DatabaseService {
       conn.release();
       return { data: res_, totalPage };
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -179,7 +180,7 @@ class DriverService extends DatabaseService {
       conn.release();
       return res_;
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -235,7 +236,8 @@ class DriverService extends DatabaseService {
       delete driver.is_check;
       return driver;
     } catch (error) {
-      throw error;
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
     }
   }
 
@@ -292,7 +294,8 @@ class DriverService extends DatabaseService {
       driver.id = id;
       return driver;
     } catch (error) {
-      throw error;
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
     }
   }
 
@@ -305,7 +308,7 @@ class DriverService extends DatabaseService {
       conn.release();
       return [];
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -320,7 +323,7 @@ class DriverService extends DatabaseService {
       conn.release();
       return [];
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -335,7 +338,7 @@ class DriverService extends DatabaseService {
       conn.release();
       return [];
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 }

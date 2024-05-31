@@ -25,6 +25,21 @@ class OrdersController {
     CREATED(res, [data]);
   });
 
+  merge = catchAsync(async (req, res) => {
+    const userId = req?.userId;
+    const customerId = req?.customerId;
+    const body = req.body;
+    const data = await ordersService.merge(body, userId, customerId);
+    CREATED(res, [data]);
+  });
+
+  registerTree = catchAsync(async (req, res) => {
+    const userId = req?.userId;
+    const body = req.body;
+    const data = await ordersService.registerTree(body, userId);
+    CREATED(res, data);
+  });
+
   updateById = catchAsync(async (req, res) => {
     const body = req.body;
     const params = req.params;

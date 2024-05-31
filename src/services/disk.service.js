@@ -2,6 +2,7 @@ const DatabaseService = require("./query.service");
 const db = require("../dbs/init.mysql");
 const DiskModel = require("../models/disk.model");
 const { ERROR, ALREADY_EXITS } = require("../constants");
+const { BusinessLogicError } = require("../core/error.response");
 const tableName = "tbl_disk";
 
 class DiskService extends DatabaseService {
@@ -82,7 +83,7 @@ class DiskService extends DatabaseService {
       conn.release();
       return { data: res_, totalPage };
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -106,7 +107,7 @@ class DiskService extends DatabaseService {
       conn.release();
       return res_;
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -134,7 +135,8 @@ class DiskService extends DatabaseService {
       delete disk.is_deleted;
       return disk;
     } catch (error) {
-      throw error;
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
     }
   }
 
@@ -167,7 +169,8 @@ class DiskService extends DatabaseService {
       disk.id = id;
       return disk;
     } catch (error) {
-      throw error;
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
     }
   }
 
@@ -180,7 +183,7 @@ class DiskService extends DatabaseService {
       conn.release();
       return [];
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -195,7 +198,7 @@ class DiskService extends DatabaseService {
       conn.release();
       return [];
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 }

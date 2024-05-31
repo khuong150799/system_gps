@@ -283,6 +283,7 @@ class DatabaseService {
     tableName,
     select,
     where,
+    conditions,
     orderByField,
     orderBySort,
     selectDequy,
@@ -297,25 +298,29 @@ class DatabaseService {
           tableName,
           select,
           where,
+          conditions,
           orderByField,
           orderBySort,
           0,
           100000
         );
-        // console.log('dataRes', dataRes);
 
         const newArr = [];
-        for (let i = 0; i < dataRes.length; i++) {
-          newArr.push(dataRes[i]);
-          const id = dataRes[i].id;
+        const dequy = async (data) => {
+          for (let i = 0; i < data.length; i++) {
+            newArr.push(data[i]);
+            const id = data[i].id;
 
-          const childQuery = `SELECT ${selectDequy} FROM ${tableName} WHERE parent_id = ${id} ${whereDequy} ORDER BY ${orderByFieldDequy} ${orderBySortDequy}`;
-          const dataRess = await db.promise().query(childQuery);
+            const childQuery = `SELECT ${selectDequy} FROM ${tableName} WHERE parent_id = ${id} ${whereDequy} ORDER BY ${orderByFieldDequy} ${orderBySortDequy}`;
+            const dataRess = await db.promise().query(childQuery);
 
-          if (dataRess[0].length > 0) {
-            newArr.push(...dataRess[0]);
+            if (dataRess[0].length > 0) {
+              // newArr.push(...dataRess[0]);
+              await dequy(dataRess[0]);
+            }
           }
-        }
+        };
+        await dequy(dataRes);
         return resolve(newArr);
       } catch (error) {
         // console.log(error);

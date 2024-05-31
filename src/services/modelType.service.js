@@ -2,6 +2,7 @@ const DatabaseService = require("./query.service");
 const db = require("../dbs/init.mysql");
 const ModelTypeModel = require("../models/modelType.model");
 const { ERROR, ALREADY_EXITS } = require("../constants");
+const { BusinessLogicError } = require("../core/error.response");
 const tableName = "tbl_model_type";
 
 class ModelTypeService extends DatabaseService {
@@ -82,7 +83,7 @@ class ModelTypeService extends DatabaseService {
       conn.release();
       return { data: res_, totalPage };
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -106,7 +107,7 @@ class ModelTypeService extends DatabaseService {
       conn.release();
       return res_;
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -135,7 +136,8 @@ class ModelTypeService extends DatabaseService {
       delete modelType.is_deleted;
       return modelType;
     } catch (error) {
-      throw error;
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
     }
   }
 
@@ -169,7 +171,8 @@ class ModelTypeService extends DatabaseService {
       modelType.id = id;
       return modelType;
     } catch (error) {
-      throw error;
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
     }
   }
 
@@ -182,7 +185,7 @@ class ModelTypeService extends DatabaseService {
       conn.release();
       return [];
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -197,7 +200,7 @@ class ModelTypeService extends DatabaseService {
       conn.release();
       return [];
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 }

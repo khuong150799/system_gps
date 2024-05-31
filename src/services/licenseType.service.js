@@ -1,5 +1,6 @@
 const DatabaseService = require("./query.service");
 const db = require("../dbs/init.mysql");
+const { BusinessLogicError } = require("../core/error.response");
 const tableName = "tbl_license_type";
 
 class LicenseTypeService extends DatabaseService {
@@ -20,7 +21,7 @@ class LicenseTypeService extends DatabaseService {
       conn.release();
       return data;
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 }

@@ -7,8 +7,8 @@ const constants = {
   ACCESS_TOKEN_SECRET_KEY,
   REFRESH_TOKEN_SECRET_KEY,
   PASSWORD_DEFAULT,
-  ACCESS_TOKEN_TIME_LIFE: 20,
-  REFRESH_TOKEN_TIME_LIFE: 30,
+  ACCESS_TOKEN_TIME_LIFE: "30d",
+  REFRESH_TOKEN_TIME_LIFE: "60d",
 
   ADD_DATA_SUCCESS: "Thêm thành công",
   GET_DATA_SUCCESS: "Tải dữ liệu thành công",
@@ -20,13 +20,15 @@ const constants = {
   DELETE_DATA_SUCCESS: "Xóa thành công",
   ERROR: "Đã xảy ra lỗi",
   // EXPIRED_ON_PASS: "Mật khẩu do hệ thống cấp đã hết hạn",
+  DIFFERENT_RECIVER_ORDERS: "Không thể gộp do đơn hàng không cùng người nhận",
   ALREADY_EXITS_ORDERS: "đã có đơn hàng",
+  STRUCTURE_ORDERS_FAIL: "Cấu trúc đơn hàng không hợp lệ",
   ALREADY_EXITS: "đã tồn tại",
   NOT_ACTIVE_ACCOUNT: "Tài khoản đã vị vô hiệu",
   DELETED_ACCOUNT: "Tài khoản đã bị xóa",
   NOT_EXITS: "không tồn tại",
   NOT_DELETE_IMAGE: "Không thể xoá hình ảnh này",
-
+  IS_ACTIVED: "đã kích hoạt trước đó",
   VALIDATE_ACCOUNT: "Tài khoản chỉ chứa kí tự thường và số",
   VALIDATE_PASS:
     "Mật khẩu bao gồm ít nhất 1 kí tự in hoa, chữ, số và không chứa kí tự đặc biệt",

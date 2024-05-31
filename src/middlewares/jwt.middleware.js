@@ -23,7 +23,7 @@ const isAuth = async function (req, res, next) {
       return next(new Api403Error());
     }
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     return next(new Api401Error(error.message));
   }
 };

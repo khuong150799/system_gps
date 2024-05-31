@@ -1,6 +1,7 @@
 const DatabaseService = require("../services/query.service");
 const db = require("../dbs/init.mysql");
 const ModuleModel = require("../models/module.model");
+const { BusinessLogicError } = require("../core/error.response");
 const tableName = "tbl_module";
 
 class ModuleService extends DatabaseService {
@@ -33,7 +34,7 @@ class ModuleService extends DatabaseService {
       conn.release();
       return res_;
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -41,7 +42,8 @@ class ModuleService extends DatabaseService {
   async getallrows(query) {
     try {
       const isDeleted = query.is_deleted || 0;
-      const where = `parent_id = 0 AND is_deleted = ${isDeleted}`;
+      const where = `parent_id = ? AND is_deleted = ?`;
+      const conditions = [0, isDeleted];
       const whereDequy = `AND is_deleted = ${isDeleted}`;
 
       const { conn } = await db.getConnection();
@@ -50,6 +52,7 @@ class ModuleService extends DatabaseService {
         tableName,
         "*",
         where,
+        conditions,
         "sort",
         "ASC",
         "*",
@@ -60,7 +63,7 @@ class ModuleService extends DatabaseService {
       conn.release();
       return res_;
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -84,7 +87,7 @@ class ModuleService extends DatabaseService {
       conn.release();
       return res_;
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -113,7 +116,7 @@ class ModuleService extends DatabaseService {
       delete module.is_deleted;
       return module;
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -145,7 +148,7 @@ class ModuleService extends DatabaseService {
       module.id = id;
       return module;
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -158,7 +161,7 @@ class ModuleService extends DatabaseService {
       conn.release();
       return [];
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -173,7 +176,7 @@ class ModuleService extends DatabaseService {
       conn.release();
       return [];
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -187,7 +190,7 @@ class ModuleService extends DatabaseService {
       await this.update(conn, tableName, { sort }, "id", id);
       return [];
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 }

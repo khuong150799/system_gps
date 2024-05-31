@@ -9,6 +9,7 @@ const {
 } = require("../constants");
 const { makeCode } = require("../ultils/makeCode");
 const { regexEmail, regexPhoneNumber } = require("../ultils/regex");
+const { BusinessLogicError } = require("../core/error.response");
 const tableName = "tbl_customers";
 const tableUsers = "tbl_users";
 const tableLevel = "tbl_level";
@@ -21,7 +22,7 @@ class CustomersService extends DatabaseService {
   }
 
   async validate(conn, company = "", email = "", phone = "", id = null) {
-    // console.log({ company, email, phone });
+    console.log({ company, email, phone });
 
     const errors = [];
 
@@ -67,7 +68,7 @@ class CustomersService extends DatabaseService {
     if (email && company) {
       where += ` OR email = ?`;
       conditions.push(email);
-    } else {
+    } else if (email) {
       where += `email = ?`;
       conditions.push(email);
     }
@@ -75,7 +76,7 @@ class CustomersService extends DatabaseService {
     if ((company && phone) || (email && phone)) {
       where += ` OR phone = ?`;
       conditions.push(phone);
-    } else {
+    } else if (phone) {
       where += `phone = ?`;
       conditions.push(phone);
     }
@@ -171,7 +172,7 @@ class CustomersService extends DatabaseService {
       conn.release();
       return { data: res_, totalPage };
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -196,7 +197,7 @@ class CustomersService extends DatabaseService {
       conn.release();
       return res_;
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -252,8 +253,10 @@ class CustomersService extends DatabaseService {
       delete customer.is_deleted;
       return customer;
     } catch (error) {
+      // console.log("error", error.msg);
       await connPromise.rollback();
-      throw error;
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
     } finally {
       conn.release();
     }
@@ -308,7 +311,8 @@ class CustomersService extends DatabaseService {
       return customer;
     } catch (error) {
       await connPromise.rollback();
-      throw error;
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
     } finally {
       conn.release();
     }
@@ -323,7 +327,7 @@ class CustomersService extends DatabaseService {
       conn.release();
       return [];
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -338,7 +342,7 @@ class CustomersService extends DatabaseService {
       conn.release();
       return [];
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 }

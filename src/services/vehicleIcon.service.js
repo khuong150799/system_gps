@@ -2,6 +2,7 @@ const DatabaseService = require("./query.service");
 const db = require("../dbs/init.mysql");
 const VehicleIconModel = require("../models/vehicleIcon.model");
 const { ERROR, ALREADY_EXITS } = require("../constants");
+const { BusinessLogicError } = require("../core/error.response");
 const tableName = "tbl_vehicle_icon";
 
 class VehicleIconService extends DatabaseService {
@@ -83,7 +84,7 @@ class VehicleIconService extends DatabaseService {
       conn.release();
       return { data: res_, totalPage };
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -107,7 +108,7 @@ class VehicleIconService extends DatabaseService {
       conn.release();
       return res_;
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -136,7 +137,8 @@ class VehicleIconService extends DatabaseService {
       delete verhicleIcon.is_deleted;
       return verhicleIcon;
     } catch (error) {
-      throw error;
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
     }
   }
 
@@ -169,7 +171,8 @@ class VehicleIconService extends DatabaseService {
       vehicleIcon.id = id;
       return vehicleIcon;
     } catch (error) {
-      throw error;
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
     }
   }
 
@@ -182,7 +185,7 @@ class VehicleIconService extends DatabaseService {
       conn.release();
       return [];
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -197,7 +200,7 @@ class VehicleIconService extends DatabaseService {
       conn.release();
       return [];
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 }

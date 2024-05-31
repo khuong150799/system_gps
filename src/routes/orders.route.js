@@ -31,7 +31,7 @@ module.exports = (app) => {
         .isNumeric()
         .withMessage(VALIDATE_DATA)
         .escape(),
-      body("device_id", NOT_EMPTY)
+      body("devices_id", NOT_EMPTY)
         .notEmpty()
         .isString()
         .withMessage(VALIDATE_DATA)
@@ -41,6 +41,55 @@ module.exports = (app) => {
 
     ordersController.register
   );
+
+  router.post(
+    "/merge",
+    [
+      body("code", NOT_EMPTY)
+        .notEmpty()
+        .isString()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+      body("reciver", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+      body("orders_code", NOT_EMPTY)
+        .notEmpty()
+        .isString()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+      body("note").escape(),
+    ],
+
+    ordersController.merge
+  );
+
+  router.post(
+    "/register-tree",
+    [
+      body("code", NOT_EMPTY)
+        .notEmpty()
+        .isString()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+      body("recivers", NOT_EMPTY)
+        .notEmpty()
+        .isString()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+      body("devices_id", NOT_EMPTY)
+        .notEmpty()
+        .isString()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+      body("note").escape(),
+    ],
+
+    ordersController.registerTree
+  );
+
   router.put(
     "/update/:id",
     [
@@ -55,7 +104,7 @@ module.exports = (app) => {
         .isNumeric()
         .withMessage(VALIDATE_DATA)
         .escape(),
-      body("device_id", NOT_EMPTY)
+      body("devices_id", NOT_EMPTY)
         .notEmpty()
         .isString()
         .withMessage(VALIDATE_DATA)

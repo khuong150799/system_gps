@@ -2,6 +2,7 @@ const DatabaseService = require("./query.service");
 const db = require("../dbs/init.mysql");
 const ConnectionTypeModel = require("../models/connectionType.model");
 const { ERROR, ALREADY_EXITS } = require("../constants");
+const { BusinessLogicError } = require("../core/error.response");
 const tableName = "tbl_connection_type";
 
 class ConnectionTypeService extends DatabaseService {
@@ -83,7 +84,7 @@ class ConnectionTypeService extends DatabaseService {
       conn.release();
       return { data: res_, totalPage };
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -107,7 +108,7 @@ class ConnectionTypeService extends DatabaseService {
       conn.release();
       return res_;
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -136,7 +137,8 @@ class ConnectionTypeService extends DatabaseService {
       delete connectionType.is_deleted;
       return connectionType;
     } catch (error) {
-      throw error;
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
     }
   }
 
@@ -170,7 +172,8 @@ class ConnectionTypeService extends DatabaseService {
       connectionType.id = id;
       return connectionType;
     } catch (error) {
-      throw error;
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
     }
   }
 
@@ -183,7 +186,7 @@ class ConnectionTypeService extends DatabaseService {
       conn.release();
       return [];
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -198,7 +201,7 @@ class ConnectionTypeService extends DatabaseService {
       conn.release();
       return [];
     } catch (error) {
-      throw error;
+      throw new BusinessLogicError(error.msg);
     }
   }
 }
