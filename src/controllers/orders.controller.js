@@ -34,22 +34,32 @@ class OrdersController {
   });
 
   registerTree = catchAsync(async (req, res) => {
+    const customerId = req?.customerId;
     const userId = req?.userId;
     const body = req.body;
-    const data = await ordersService.registerTree(body, userId);
+    const data = await ordersService.registerTree(body, userId, customerId);
     CREATED(res, data);
   });
 
   updateById = catchAsync(async (req, res) => {
+    const customerId = req?.customerId;
     const body = req.body;
     const params = req.params;
-    const data = await ordersService.updateById(body, params);
+    const data = await ordersService.updateById(body, params, customerId);
     UPDATE(res, [data]);
   });
 
   deleteById = catchAsync(async (req, res) => {
     const params = req.params;
     const data = await ordersService.deleteById(params);
+    DELETE(res, data);
+  });
+
+  deleteDevice = catchAsync(async (req, res) => {
+    const customerId = req?.customerId;
+    const body = req.body;
+    const params = req.params;
+    const data = await ordersService.deleteDevice(body, params, customerId);
     DELETE(res, data);
   });
 }

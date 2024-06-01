@@ -100,18 +100,29 @@ class DatabaseService {
     checkExit = true
   ) {
     return await new Promise((resolve, reject) => {
-      const query = `UPDATE ${tableName} SET ? WHERE ${field} IN (?)`;
-      db.query(query, [data, condition], (err, dataRes) => {
-        if (err) {
-          console.log(err);
-          return reject({ msg: ERROR });
+      const query =
+        typeof data === "string"
+          ? `UPDATE ${tableName} SET ${data} WHERE ${field} IN (?)`
+          : `UPDATE ${tableName} SET ? WHERE ${field} IN (?)`;
+      db.query(
+        query,
+        typeof data === "string"
+          ? condition
+          : Array.isArray(condition)
+          ? [data, ...condition]
+          : [data, condition],
+        (err, dataRes) => {
+          if (err) {
+            console.log(err);
+            return reject({ msg: ERROR });
+          }
+          if (dataRes.affectedRows === 0 && checkExit) {
+            return reject({ msg: `${fieldNameError} ${NOT_EXITS}` });
+          }
+          // console.log('dataRes.insertId', dataRes.insertId);
+          return resolve(dataRes);
         }
-        if (dataRes.affectedRows === 0 && checkExit) {
-          return reject({ msg: `${fieldNameError} ${NOT_EXITS}` });
-        }
-        // console.log('dataRes.insertId', dataRes.insertId);
-        return resolve(dataRes);
-      });
+      );
     });
   }
 
@@ -121,7 +132,8 @@ class DatabaseService {
     tableName,
     updates = [],
     dataSendNextPromise = "",
-    fieldNameError = "ID"
+    fieldNameError = "ID",
+    operator = "AND"
   ) {
     return await new Promise((resolve, reject) => {
       if (updates.length === 0) {
@@ -132,10 +144,16 @@ class DatabaseService {
 
         const caseStatements = conditions.map((condition) => {
           const { conditionField, conditionValue, updateValue } = condition;
-
-          return `
-                    WHEN ${conditionField} = ${conditionValue} THEN ${updateValue}
-                `;
+          if (Array.isArray(conditionField) && Array.isArray(conditionValue)) {
+            const resultConditon = conditionField.map(
+              (item, i) => `${item} = ${conditionValue[i]}`
+            );
+            return `WHEN ${resultConditon.join(
+              ` ${operator} `
+            )} THEN ${updateValue}`;
+          } else {
+            return `WHEN ${conditionField} = ${conditionValue} THEN ${updateValue}`;
+          }
         });
 
         return `

@@ -62,7 +62,7 @@ class ConnectionTypeService extends DatabaseService {
         conditions.push(query.publish);
       }
 
-      const select = "id,name,publish,created_at,updated_at";
+      const select = "id,name,note,publish,created_at,updated_at";
       const { conn } = await db.getConnection();
       const [res_, count] = await Promise.all([
         this.select(

@@ -74,7 +74,7 @@ class ModuleService extends DatabaseService {
       const isDeleted = query.is_deleted || 0;
       const where = `is_deleted = ? AND id = ?`;
       const conditions = [isDeleted, id];
-      const selectData = `id,parent_id,name,link,component,publish,icon,sort,created_at`;
+      const selectData = `id,parent_id,name,link,component,publish,icon,sort,type,created_at`;
 
       const { conn } = await db.getConnection();
       const res_ = await this.select(
@@ -94,7 +94,7 @@ class ModuleService extends DatabaseService {
   //Register
   async register(body) {
     try {
-      const { parent_id, name, link, component, icon, publish } = body;
+      const { parent_id, name, link, component, type, icon, publish } = body;
       // console.log(req.body);
       const module = new ModuleModel({
         parent_id: parent_id === "" ? 0 : parent_id,
@@ -102,6 +102,7 @@ class ModuleService extends DatabaseService {
         link: link ? link : null,
         component: component ? component : null,
         icon: icon ? icon : null,
+        type: type || null,
         publish,
         sort: 0,
         is_deleted: 0,
@@ -123,7 +124,7 @@ class ModuleService extends DatabaseService {
   //update
   async updateById(body, params) {
     try {
-      const { parent_id, name, link, component, icon, publish } = body;
+      const { parent_id, name, link, component, icon, type, publish } = body;
       // , agent
       const { id } = params;
       const module = new ModuleModel({
@@ -132,6 +133,7 @@ class ModuleService extends DatabaseService {
         link: link ? link : null,
         component: component ? component : null,
         icon: icon ? icon : null,
+        type,
         publish,
 
         updated_at: Date.now(),

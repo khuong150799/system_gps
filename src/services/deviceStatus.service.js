@@ -61,7 +61,7 @@ class DeviceStatusService extends DatabaseService {
         conditions.push(query.publish);
       }
 
-      const select = `${tableName}.id,${tableName}.title,${tableName}.publish,${tableName}.created_at,${tableName}.updated_at`;
+      const select = `${tableName}.id,${tableName}.title,${tableName}.des,${tableName}.publish,${tableName}.created_at,${tableName}.updated_at`;
       const { conn } = await db.getConnection();
       const [res_, count] = await Promise.all([
         this.select(

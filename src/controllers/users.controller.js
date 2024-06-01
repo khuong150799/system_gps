@@ -29,14 +29,16 @@ class CustomersController {
   });
 
   register = catchAsync(async (req, res) => {
+    const customerId = req.customerId;
     const body = req.body;
-    const data = await usersSrevice.register(body);
+    const data = await usersSrevice.register(body, customerId);
     CREATED(res, [data]);
   });
 
   updateById = catchAsync(async (req, res) => {
     const body = req.body;
     const params = req.params;
+
     const data = await usersSrevice.updateById(body, params);
     UPDATE(res, [data]);
   });

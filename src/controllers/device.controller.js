@@ -5,7 +5,11 @@ const deviceService = require("../services/device.service");
 class DeviceController {
   getAllRows = catchAsync(async (req, res) => {
     const query = req.query;
-    const { data, totalPage } = await deviceService.getallrows(query);
+    const customerId = req.customerId;
+    const { data, totalPage } = await deviceService.getallrows(
+      query,
+      customerId
+    );
 
     GET(res, data, totalPage);
   });
@@ -13,13 +17,15 @@ class DeviceController {
   getById = catchAsync(async (req, res) => {
     const params = req.params;
     const query = req.query;
-    const data = await deviceService.getById(params, query);
+    const customerId = req.customerId;
+    const data = await deviceService.getById(params, query, customerId);
     GET(res, data);
   });
 
   register = catchAsync(async (req, res) => {
     const body = req.body;
-    const data = await deviceService.register(body);
+    const userId = req.userId;
+    const data = await deviceService.register(body, userId);
     CREATED(res, [data]);
   });
 

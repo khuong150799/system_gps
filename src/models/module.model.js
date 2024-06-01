@@ -8,6 +8,7 @@ class ModuleModel {
     publish,
     is_deleted,
     sort,
+    type,
     created_at,
     updated_at,
   }) {
@@ -19,6 +20,7 @@ class ModuleModel {
     this.publish = publish;
     this.is_deleted = is_deleted;
     this.sort = sort;
+    this.type = type;
     this.created_at = created_at;
     this.updated_at = updated_at;
   }

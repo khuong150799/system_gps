@@ -4,7 +4,6 @@ const OrdersModel = require("../models/orders.model");
 const {
   ERROR,
   ALREADY_EXITS,
-  ALREADY_EXITS_ORDERS,
   NOT_EXITS,
   DIFFERENT_RECIVER_ORDERS,
   NOT_EMPTY,
@@ -12,11 +11,15 @@ const {
   NOT_ACTIVE_ACCOUNT,
   DELETED_ACCOUNT,
   IS_ACTIVED,
+  NOT_ACTIVE_CUSTOMER,
+  DELETED_CUSTOMER,
+  NOT_PERMISSION,
+  MERGE_ORDER_FAIL,
 } = require("../constants");
 const { BusinessLogicError } = require("../core/error.response");
 const { makeCode } = require("../ultils/makeCode");
 const tableName = "tbl_orders";
-const tabbleOrdersDevice = "tbl_orders_device";
+const tableOrdersDevice = "tbl_orders_device";
 const tableDevice = "tbl_device";
 const tableUsers = "tbl_users";
 const tableRole = "tbl_role";
@@ -30,107 +33,124 @@ class OrdersService extends DatabaseService {
     super();
   }
 
-  async validate(conn, code, listDevice = [], reciver = null, id = null) {
+  async validate(
+    conn,
+    code,
+    listDevice = [],
+    reciver = null,
+    customerId,
+    id = null
+  ) {
     const errors = [];
-
-    if (listDevice.length <= 0) {
-      errors.push({ value: listDevice, msg: NOT_EMPTY, param: "devices_id" });
-    }
-
-    if (errors.length) return { result: false, errors: { msg: ERROR, errors } };
 
     let where = `code = ? AND ${tableName}.is_deleted = ?`;
     const conditions = [code, 0];
 
-    // const joinTable = `${tableName} INNER JOIN ${tabbleOrdersDevice} ON ${tableName}.id = ${tabbleOrdersDevice}.orders_id INNER JOIN ${tableDevice} ON ${tabbleOrdersDevice}.device_id = ${tableDevice}.id`;
-    // let whereDeviceInOrders = `${tabbleOrdersDevice}.device_id IN (?) AND ${tableName}.is_deleted = ?`;
-    // const conditionsDeviceInOrders = [listDevice, 0];
-
+    const joinTableUsersDevice = `${tableDevice} INNER JOIN ${tableUsersDevice} ON ${tableDevice}.id = ${tableUsersDevice}.device_id 
+      INNER JOIN ${tableUsersCustomers} ON ${tableUsersDevice}.user_id = ${tableUsersCustomers}.user_id`;
     const selectDevice = `${tableDevice}.id,${tableDevice}.imei,${tableDevice}.activation_date`;
-    const whereDevice = `${tableDevice}.id IN (?) AND ${tableDevice}.is_deleted = ?`;
-    const conditionsDevice = [listDevice, 0];
+    let whereDevice = `${tableDevice}.id IN (?) AND ${tableDevice}.is_deleted = ? AND ${tableUsersCustomers}.customer_id = ?`;
+    const conditionsDevice = [listDevice, 0, customerId];
 
     if (id) {
       where += ` AND ${tableName}.id <> ?`;
       conditions.push(id);
 
-      // whereDeviceInOrders += ` AND ${tableName}.id <> ?`;
-      // conditionsDeviceInOrders.push(id);
+      const ordersInfo = await this.select(
+        conn,
+        tableName,
+        "creator_customer_id",
+        "id = ? AND is_deleted = ?",
+        [id, 0]
+      );
+      if (ordersInfo?.length <= 0) {
+        return { result: false, errors: { msg: `Đơn hàng ${NOT_EXITS}` } };
+      } else if (
+        ordersInfo?.length &&
+        ordersInfo[0].creator_customer_id.toString() !== customerId.toString()
+      ) {
+        return { result: false, errors: { msg: NOT_PERMISSION } };
+      }
+    } else {
+      if (listDevice.length <= 0) {
+        errors.push({ value: listDevice, msg: NOT_EMPTY, param: "devices_id" });
+      }
+
+      if (errors.length)
+        return { result: false, errors: { msg: ERROR, errors } };
+
+      whereDevice += ` AND ${tableUsersDevice}.is_moved = ?`;
+      conditionsDevice.push(0);
     }
 
-    const [
-      dataCheckCode,
-      dataUserOfDevice,
-      //  dataCheckDeviceInOrders,
-      dataDevice,
-    ] = await Promise.all([
+    const [dataCheckCode, dataDevice] = await Promise.all([
       this.select(conn, tableName, `id`, where, conditions),
+
       this.select(
         conn,
-        tableUsersDevice,
-        "id",
-        "device_id IN (?) AND is_main = ?",
-        [listDevice, 1]
-      ),
-      // this.select(
-      //   conn,
-      //   joinTable,
-      //   `${tableDevice}.imei`,
-      //   `${whereDeviceInOrders} GROUP BY ${tableName}.id`,
-      //   conditionsDeviceInOrders,
-      //   `${tableName}.id`
-      // ),
-      this.select(
-        conn,
-        tableDevice,
+        joinTableUsersDevice,
         selectDevice,
         whereDevice,
         conditionsDevice,
         `${tableDevice}.id`
       ),
     ]);
+
     let dataInfo = [];
     if (reciver) {
-      const joinTable = `${tableUsersCustomers} INNER JOIN ${tableUsers} ON ${tableUsersCustomers}.user_id = ${tableUsers}.id`;
-      dataInfo = await this.select(
+      const joinTableUsersCustomers = `${tableUsersCustomers} INNER JOIN ${tableUsers} ON ${tableUsersCustomers}.user_id = ${tableUsers}.id`;
+      console.log({ reciver });
+      const info = await this.select(
         conn,
-        joinTable,
-        `${tableUsers}.id,${tableUsers}.is_actived,${tableUsers}.is_deleted`,
-        `${tableUsersCustomers}.customer_id = ?`,
-        [reciver],
+        joinTableUsersCustomers,
+        `${tableUsers}.id,${tableUsers}.parent_id,${tableUsers}.is_actived,${tableUsers}.is_deleted`,
+        `${tableUsersCustomers}.customer_id = ? AND ${tableUsers}.is_main = ?`,
+        [reciver, 1],
         `${tableUsersCustomers}.id`
       );
+      console.log({ info });
+      if (info?.length <= 0) {
+        errors.push({
+          value: reciver,
+          msg: `Khách hàng ${NOT_EXITS}`,
+          param: "reciver",
+        });
+      } else if (info[0].is_actived === 0) {
+        errors.push({
+          value: reciver,
+          msg: NOT_ACTIVE_CUSTOMER,
+          param: "reciver",
+        });
+      } else if (info[0].is_deleted === 1) {
+        errors.push({
+          value: reciver,
+          msg: DELETED_CUSTOMER,
+          param: "reciver",
+        });
+      } else {
+        const dataReciverParent = await this.select(
+          conn,
+          joinTableUsersCustomers,
+          `${tableUsersCustomers}.customer_id as id`,
+          `${tableUsers}.id = ?`,
+          info[0].parent_id,
+          `${tableUsersCustomers}.id`
+        );
 
-      if (dataInfo.length <= 0) {
-        errors.push({
-          value: reciver,
-          msg: `Tài khoản ${NOT_EXITS}`,
-          param: "reciver",
-        });
-      } else if (dataInfo[0].is_actived === 0) {
-        errors.push({
-          value: reciver,
-          msg: NOT_ACTIVE_ACCOUNT,
-          param: "reciver",
-        });
-      } else if (dataInfo[0].is_deleted === 1) {
-        errors.push({
-          value: reciver,
-          msg: DELETED_ACCOUNT,
-          param: "reciver",
-        });
+        if (
+          !dataReciverParent[0]?.id ||
+          dataReciverParent[0]?.id != customerId
+        ) {
+          errors.push({
+            value: reciver,
+            msg: STRUCTURE_ORDERS_FAIL,
+            param: "reciver",
+          });
+        } else {
+          dataInfo = info;
+        }
       }
     }
-
-    if (errors.length) return { result: false, errors: { msg: ERROR, errors } };
-
-    if (
-      dataCheckCode.length <= 0 &&
-      // dataCheckDeviceInOrders.length <= 0 &&
-      dataDevice.length > 0 &&
-      dataDevice.length === listDevice.length
-    )
-      return { result: true, data: { dataInfo, dataUserOfDevice } };
 
     if (dataDevice.length <= 0) {
       errors.push({
@@ -138,7 +158,7 @@ class OrdersService extends DatabaseService {
         msg: `Tất cả thiết bị ${NOT_EXITS}`,
         param: "devices_id",
       });
-    } else if (dataDevice.length && dataDevice.length !== listDevice.length) {
+    } else {
       const deviceNotExit = [];
       const deviceActived = [];
       listDevice.forEach((item, i) => {
@@ -155,7 +175,6 @@ class OrdersService extends DatabaseService {
           deviceNotExit.push(item);
         }
       });
-
       if (deviceNotExit.length) {
         errors.push({
           value: listDevice,
@@ -178,24 +197,20 @@ class OrdersService extends DatabaseService {
         param: "code",
       });
     }
+    if (errors.length) return { result: false, errors: { msg: ERROR, errors } };
 
-    // if (dataCheckDeviceInOrders.length) {
-    //   const listDeviceExit = dataCheckDeviceInOrders.map((item) => item.imei);
-    //   errors.push({
-    //     value: listDevice,
-    //     msg: `IMEI ${listDeviceExit.join(",")} ${ALREADY_EXITS_ORDERS}`,
-    //     param: "devices_id",
-    //   });
-    // }
-
-    return { result: false, errors: { msg: ERROR, errors } };
+    return { result: true, data: { dataInfo } };
   }
 
   async validateMerge(conn, listOrders = [], reciver) {
     const errors = [];
 
-    if (listOrders.length <= 0) {
-      errors.push({ value: listOrders, msg: NOT_EMPTY, param: "orders_code" });
+    if (listOrders.length <= 1) {
+      errors.push({
+        value: listOrders,
+        msg: MERGE_ORDER_FAIL,
+        param: "orders_code",
+      });
     }
 
     if (errors.length) return { result: false, errors: { msg: ERROR, errors } };
@@ -205,27 +220,27 @@ class OrdersService extends DatabaseService {
       conn,
       joinTable,
       `${tableUsers}.id,${tableUsers}.is_actived,${tableUsers}.is_deleted`,
-      `${tableUsersCustomers}.customer_id = ?`,
-      [reciver],
+      `${tableUsersCustomers}.customer_id = ? AND ${tableUsers}.is_main = ?`,
+      [reciver, 1],
       `${tableUsersCustomers}.id`
     );
 
     if (dataInfo?.length <= 0) {
       errors.push({
         value: reciver,
-        msg: `Tài khoản ${NOT_EXITS}`,
+        msg: `Khách hàng ${NOT_EXITS}`,
         param: "reciver",
       });
     } else if (dataInfo[0].is_actived === 0) {
       errors.push({
         value: reciver,
-        msg: NOT_ACTIVE_ACCOUNT,
+        msg: NOT_ACTIVE_CUSTOMER,
         param: "reciver",
       });
     } else if (dataInfo[0].is_deleted === 1) {
       errors.push({
         value: reciver,
-        msg: DELETED_ACCOUNT,
+        msg: DELETED_CUSTOMER,
         param: "reciver",
       });
     }
@@ -299,8 +314,8 @@ class OrdersService extends DatabaseService {
     if (errors.length) return { result: false, errors: { msg: ERROR, errors } };
 
     const joinTable = `${tableCustomers} INNER JOIN ${tableUsersCustomers} ON ${tableCustomers}.id = ${tableUsersCustomers}.customer_id INNER JOIN ${tableUsers} ON ${tableUsersCustomers}.user_id = ${tableUsers}.id`;
-    const select = `${tableUsers}.parent_id`;
-    const where = `${tableCustomers}.id = ?`;
+    const select = `${tableUsers}.parent_id,${tableUsers}.id`;
+    const where = `${tableCustomers}.id = ? AND ${tableUsers}.is_main = ?`;
 
     const arrayPromise = listCustomer.reduce((result, item, i) => {
       if (i > 0) {
@@ -311,7 +326,7 @@ class OrdersService extends DatabaseService {
             joinTable,
             select,
             where,
-            item,
+            [item, 1],
             `${tableCustomers}.id`
           ),
         ];
@@ -353,7 +368,46 @@ class OrdersService extends DatabaseService {
         },
       };
     }
-    return { result: true };
+    return { result: true, data: dataInfo };
+  }
+
+  async validateDeleteDevice(conn, deviceId, id, customerId) {
+    const errors = [];
+
+    const joinTableUsersDeviceWithUsersCustomers = `
+      ${tableUsersDevice} INNER JOIN ${tableUsersCustomers} ON ${tableUsersDevice}.user_id = ${tableUsersCustomers}.user_id`;
+
+    const joinTableOdersUsersWithUsersCustomersWithUsers = `
+      ${tableName} INNER JOIN ${tableUsersCustomers} ON ${tableName}.creator_customer_id = ${tableUsersCustomers}.customer_id 
+      INNER JOIN ${tableUsers} ON ${tableUsersCustomers}.user_id = ${tableUsers}.id`;
+    const [dataOwnerDevice, dataOwnerOrders] = await Promise.all([
+      this.select(
+        conn,
+        joinTableUsersDeviceWithUsersCustomers,
+        `${tableUsersDevice}.user_id ,${tableUsersCustomers}.customer_id`,
+        `${tableUsersDevice}.is_moved = ? AND ${tableUsersDevice}.device_id = ?`,
+        [0, deviceId, id],
+        `${tableUsersDevice}.id`
+      ),
+      this.select(
+        conn,
+        joinTableOdersUsersWithUsersCustomersWithUsers,
+        `${tableUsersCustomers}.user_id ,${tableName}.creator_customer_id as customer_id,${tableName}.quantity`,
+        `${tableUsers}.is_main = ? AND ${tableName}.id = ?`,
+        [1, id],
+        `${tableUsers}.id`
+      ),
+    ]);
+
+    if (dataOwnerDevice?.length <= 0) {
+      errors.push({ msg: `Thiết bị ${NOT_EXITS}` });
+    } else if (Number(customerId) !== Number(dataOwnerOrders[0].customer_id)) {
+      errors.push({ msg: NOT_PERMISSION });
+    }
+
+    if (errors.length) return { result: false, errors: { msg: ERROR, errors } };
+
+    return { result: true, data: { dataOwnerDevice, dataOwnerOrders } };
   }
 
   //getallrow
@@ -433,8 +487,8 @@ class OrdersService extends DatabaseService {
       const where = `${tableName}.is_deleted = ? AND ${tableName}.id = ?`;
       const conditions = [isDeleted, id];
 
-      const joinTable = `${tableName} INNER JOIN ${tabbleOrdersDevice} ON ${tableName}.id = ${tabbleOrdersDevice}.orders_id 
-        INNER JOIN ${tableDevice} ON ${tabbleOrdersDevice}.device_id = ${tableDevice}.id`;
+      const joinTable = `${tableName} INNER JOIN ${tableOrdersDevice} ON ${tableName}.id = ${tableOrdersDevice}.orders_id 
+        INNER JOIN ${tableDevice} ON ${tableOrdersDevice}.device_id = ${tableDevice}.id`;
 
       const selectData = `${tableName}.id,${tableName}.code,${tableName}.reciver,${tableName}.note,${tableName}.orders_status_id,
         JSON_ARRAYAGG(JSON_OBJECT('id', ${tableDevice}.id,'imei', ${tableDevice}.imei)) AS devices`;
@@ -457,105 +511,148 @@ class OrdersService extends DatabaseService {
 
   //Register
   async register(body, userId, customerId) {
-    const { conn, connPromise } = await db.getConnection();
     try {
-      const { code, devices_id, reciver, note } = body;
+      const { conn, connPromise } = await db.getConnection();
+      try {
+        const { code, devices_id, reciver, note } = body;
 
-      const listDevice = JSON.parse(devices_id);
-      const orders = new OrdersModel({
-        code,
-        creator_user_id: userId,
-        creator_customer_id: customerId,
-        reciver,
-        quantity: listDevice?.length,
-        orders_status_id: 1,
-        note: note || null,
-        is_deleted: 0,
-        created_at: Date.now(),
-      });
-      delete orders.updated_at;
+        const listDevice = JSON.parse(devices_id);
 
-      const isCheck = await this.validate(conn, code, listDevice, reciver);
-      if (!isCheck.result) {
-        conn.release();
-        throw isCheck.errors;
-      }
+        const orders = new OrdersModel({
+          code,
+          creator_user_id: userId,
+          creator_customer_id: customerId,
+          reciver,
+          quantity: listDevice?.length,
+          orders_status_id: 1,
+          note: note || null,
+          is_deleted: 0,
+          created_at: Date.now(),
+        });
+        delete orders.updated_at;
 
-      await connPromise.beginTransaction();
+        const isCheck = await this.validate(
+          conn,
+          code,
+          listDevice,
+          reciver,
+          customerId
+        );
+        if (!isCheck.result) {
+          conn.release();
+          throw isCheck.errors;
+        }
 
-      const res_ = await this.insert(conn, tableName, orders);
+        await connPromise.beginTransaction();
 
-      const { dataInfo, dataUserOfDevice } = isCheck.data;
-      const { id: userIdReciver } = dataInfo[0];
+        const res_ = await this.insertDuplicate(
+          conn,
+          tableName,
+          `code,
+          creator_user_id,
+          creator_customer_id,
+          reciver,
+          quantity,
+          orders_status_id,
+          note,
+          is_deleted,
+          created_at`,
+          [
+            [
+              code,
+              userId,
+              customerId,
+              reciver,
+              listDevice?.length,
+              1,
+              note || null,
+              0,
+              Date.now(),
+            ],
+          ],
+          `code=VALUES(code),creator_user_id=VALUES(creator_user_id),creator_customer_id=VALUES(creator_customer_id),reciver=VALUES(reciver),quantity=VALUES(quantity),
+          orders_status_id=VALUES(orders_status_id),note=VALUES(note),is_deleted=VALUES(is_deleted),created_at=VALUES(created_at)`
+        );
 
-      let dataUserOfDeviceId = [];
-      if (dataUserOfDevice.length) {
-        dataUserOfDeviceId = dataUserOfDevice.map((item) => item.id);
-      }
+        const { dataInfo } = isCheck.data;
+        const { id: userIdReciver } = dataInfo[0];
 
-      const dataInsert = listDevice.reduce(
-        (result, item) => {
-          result.ordersDevices = [...result.ordersDevices, [res_, item]];
-          if (dataUserOfDeviceId.includes(item)) {
-            const dataUpdate = {
-              conditionField: "device_id",
-              conditionValue: item,
-              updateValue: userId,
+        const dataInsert = listDevice.reduce(
+          (result, item) => {
+            result.ordersDevices = [
+              ...result.ordersDevices,
+              [res_, item, 0, Date.now()],
+            ];
+
+            result.usersDevicesInsert = [
+              ...result.usersDevicesInsert,
+              [userIdReciver, item, 1, 0, 0, Date.now()],
+            ];
+
+            const dateeUpdate = {
+              conditionField: ["is_moved", "device_id"],
+              conditionValue: [0, item],
+              updateValue: 1,
             };
             result.usersDevicesUpdate = [
               ...result.usersDevicesUpdate,
-              dataUpdate,
+              dateeUpdate,
             ];
-          } else {
-            result.usersDevicesInsert = [
-              ...result.usersDevicesInsert,
-              [userIdReciver, item, Date.now()],
-            ];
-          }
-          return result;
-        },
-        { ordersDevices: [], usersDevicesInsert: [], usersDevicesUpdate: [] }
-      );
 
-      const conditionUpdateQuantityProduct = Object.keys(calc.warehouse).map(
-        (item, i) => {
-          const calcWarehouse =
-            Number(calc.warehouse[item]) - Number(parseQuanity[item]);
+            return result;
+          },
+          { ordersDevices: [], usersDevicesInsert: [], usersDevicesUpdate: [] }
+        );
 
-          return {
-            conditionField: "id",
-            conditionValue: item,
-            updateValue: calcWarehouse,
-          };
-        }
-      );
-      const dataUpdateQuantityProduct = [
-        {
-          field: "warehouse",
-          conditions: conditionUpdateQuantityProduct,
-        },
-      ];
+        const { ordersDevices, usersDevicesInsert, usersDevicesUpdate } =
+          dataInsert;
 
-      const { ordersDevices, usersDevices } = dataInsert;
-      await this.insertMulti(
-        conn,
-        tabbleOrdersDevice,
-        "orders_id,device_id",
-        ordersDevices
-      );
+        await this.insertDuplicate(
+          conn,
+          tableOrdersDevice,
+          "orders_id,device_id,is_deleted,created_at",
+          ordersDevices,
+          "is_deleted=VALUES(is_deleted)"
+        );
 
-      await connPromise.commit();
+        const dataUpdate = [
+          {
+            field: "is_moved",
+            conditions: usersDevicesUpdate,
+          },
+        ];
+        await this.updatMultiRowsWithMultiConditions(
+          conn,
+          tableUsersDevice,
+          dataUpdate,
+          "",
+          "ID",
+          "AND"
+        );
 
-      conn.release();
-      orders.id = res_;
-      delete orders.is_deleted;
-      return orders;
+        await this.insertDuplicate(
+          conn,
+          tableUsersDevice,
+          "user_id,device_id,is_main,is_deleted,is_moved,created_at",
+          usersDevicesInsert,
+          `is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved)`
+        );
+
+        await connPromise.commit();
+
+        conn.release();
+        orders.id = res_;
+        delete orders.is_deleted;
+        return orders;
+      } catch (error) {
+        await connPromise.rollback();
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
-      await connPromise.rollback();
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
-    } finally {
-      conn.release();
     }
   }
 
@@ -575,16 +672,22 @@ class OrdersService extends DatabaseService {
 
       const dataOrdersDb = isCheck.data;
 
-      const { quantity, listOrdersId } = dataOrdersDb.reduce(
+      const { quantity, listOrdersId, ordersIdKeep } = dataOrdersDb.reduce(
         (result, item) => {
           result.quantity += item.quantity;
-          result.listOrdersId = [...result.listOrdersId, item.id];
+
+          if (item.code.toString() === code.toString()) {
+            result.ordersIdKeep = item.id;
+          } else {
+            result.listOrdersId = [...result.listOrdersId, item.id];
+          }
           return result;
         },
-        { quantity: 0, listOrdersId: [] }
+        { quantity: 0, listOrdersId: [], ordersIdKeep: null }
       );
 
-      if (quantity === 0 || listOrdersId.length === 0) throw { msg: ERROR };
+      if (quantity === 0 || listOrdersId.length === 0 || !ordersIdKeep)
+        throw { msg: ERROR };
 
       await connPromise.beginTransaction();
 
@@ -598,8 +701,8 @@ class OrdersService extends DatabaseService {
         note: note || null,
         is_deleted: 0,
         created_at: Date.now(),
+        updated_at: null,
       });
-      delete orders.updated_at;
 
       await this.update(
         conn,
@@ -608,15 +711,15 @@ class OrdersService extends DatabaseService {
           is_deleted: 1,
           note: `Đơn hàng được merge vào đơn hàng mới có mã ${code}`,
         },
-        "code",
-        listOrdersCode
+        "id",
+        listOrdersId
       );
 
-      const res_ = await this.insert(conn, tableName, orders);
+      await this.update(conn, tableName, orders, "id", ordersIdKeep);
       await this.update(
         conn,
-        tabbleOrdersDevice,
-        { orders_id: res_ },
+        tableOrdersDevice,
+        { orders_id: ordersIdKeep },
         "orders_id",
         listOrdersId
       );
@@ -624,12 +727,13 @@ class OrdersService extends DatabaseService {
       await connPromise.commit();
 
       conn.release();
-      orders.id = res_;
+      orders.id = ordersIdKeep;
       delete orders.is_deleted;
       return orders;
     } catch (error) {
       await connPromise.rollback();
       const { msg, errors } = error;
+      console.log("error", error);
       throw new BusinessLogicError(msg, errors);
     } finally {
       conn.release();
@@ -637,96 +741,164 @@ class OrdersService extends DatabaseService {
   }
 
   //Register tree
-  async registerTree(body, userId) {
-    const { conn, connPromise } = await db.getConnection();
+  async registerTree(body, userId, customerId) {
     try {
-      const { code, devices_id, recivers, note } = body;
+      const { conn, connPromise } = await db.getConnection();
+      try {
+        const { code, devices_id, recivers, note } = body;
 
-      const listDevice = JSON.parse(devices_id);
-      const listReciver = JSON.parse(recivers);
-      const createdAt = Date.now();
+        const listDevice = JSON.parse(devices_id);
+        const listReciver = JSON.parse(recivers);
+        const createdAt = Date.now();
 
-      const isCheck = await this.validate(conn, code, listDevice);
-      if (!isCheck.result) {
-        conn.release();
-        throw isCheck.errors;
-      }
-
-      const isCheckRecivers = await this.validateRecivers(conn, listReciver);
-      if (!isCheckRecivers.result) {
-        conn.release();
-        throw isCheckRecivers.errors;
-      }
-
-      await connPromise.beginTransaction();
-
-      const dataInsertOrders = listReciver.reduce((result, item, i) => {
-        if (i !== listReciver.length - 1) {
-          const data = [
-            i === 0 ? code : makeCode(),
-            userId,
-            item,
-            listReciver[i + 1],
-            listDevice?.length,
-            1,
-            note || null,
-            0,
-            createdAt,
-          ];
-          result = [...result, data];
+        const isCheck = await this.validate(
+          conn,
+          code,
+          listDevice,
+          null,
+          customerId
+        );
+        if (!isCheck.result) {
+          conn.release();
+          throw isCheck.errors;
         }
 
-        return result;
-      }, []);
+        const isCheckRecivers = await this.validateRecivers(conn, listReciver);
+        if (!isCheckRecivers.result) {
+          conn.release();
+          throw isCheckRecivers.errors;
+        }
 
-      const res_ = await this.insertMulti(
-        conn,
-        tableName,
-        "code,creator_user_id,creator_customer_id,reciver,quantity,orders_status_id,note,is_deleted,created_at",
-        dataInsertOrders
-      );
-      const dataInsertDevice = listReciver.reduce((result, item, i) => {
-        if (i !== listReciver.length - 1) {
-          const orders_id = res_ + i;
+        const { data: dataInfo } = isCheckRecivers;
+
+        await connPromise.beginTransaction();
+
+        const dataInsertOrders = listReciver.reduce((result, item, i) => {
+          if (i !== listReciver.length - 1) {
+            const data = [
+              i === 0 ? code : makeCode(),
+              userId,
+              item,
+              listReciver[i + 1],
+              listDevice?.length,
+              1,
+              note || null,
+              0,
+              createdAt,
+            ];
+            result = [...result, data];
+          }
+
+          return result;
+        }, []);
+
+        const res_ = await this.insertDuplicate(
+          conn,
+          tableName,
+          "code,creator_user_id,creator_customer_id,reciver,quantity,orders_status_id,note,is_deleted,created_at",
+          dataInsertOrders,
+          `code=VALUES(code),creator_user_id=VALUES(creator_user_id),creator_customer_id=VALUES(creator_customer_id),
+          reciver=VALUES(reciver),quantity=VALUES(quantity),orders_status_id=VALUES(orders_status_id),note=VALUES(note),
+          is_deleted=VALUES(is_deleted),updated_at=VALUES(created_at)`
+        );
+        const dataInsertOrdersDevice = listReciver.reduce((result, item, i) => {
+          if (i !== listReciver.length - 1) {
+            const orders_id = res_ + i;
+            result = [
+              ...result,
+              ...listDevice.map((item1) => [orders_id, item1, 0, Date.now()]),
+            ];
+          }
+          return result;
+        }, []);
+        // console.log("dataInsertOrdersDevice", dataInsertOrdersDevice);
+        await this.insertDuplicate(
+          conn,
+          tableOrdersDevice,
+          "orders_id,device_id,is_deleted,created_at",
+          dataInsertOrdersDevice,
+          `orders_id=VALUES(orders_id),device_id=VALUES(device_id),is_deleted=VALUES(is_deleted),updated_at=VALUES(created_at)`
+        );
+
+        const usersDevicesUpdate = listDevice.map((item) => ({
+          conditionField: ["is_moved", "device_id"],
+          conditionValue: [0, item],
+          updateValue: 1,
+        }));
+        const dataUpdate = [
+          {
+            field: "is_moved",
+            conditions: usersDevicesUpdate,
+          },
+        ];
+        await this.updatMultiRowsWithMultiConditions(
+          conn,
+          tableUsersDevice,
+          dataUpdate,
+          "",
+          "ID",
+          "AND"
+        );
+
+        const usersDevicesInsert = dataInfo.reduce((result, item, i) => {
           result = [
             ...result,
-            ...listDevice.map((item1) => [orders_id, item1]),
+            ...listDevice.map((item1) => [
+              item[0].id,
+              item1,
+              1,
+              0,
+              i === dataInfo.length - 1 ? 0 : 1,
+              Date.now(),
+            ]),
           ];
-        }
-        return result;
-      }, []);
-      console.log("dataInsertDevice", dataInsertDevice);
-      await this.insertMulti(
-        conn,
-        tabbleOrdersDevice,
-        "orders_id,device_id",
-        dataInsertDevice
-      );
+          return result;
+        }, []);
 
-      await connPromise.commit();
+        await this.insertDuplicate(
+          conn,
+          tableUsersDevice,
+          "user_id,device_id,is_main,is_deleted,is_moved,created_at",
+          usersDevicesInsert,
+          `is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved)`
+        );
 
-      conn.release();
+        await connPromise.commit();
 
-      return [];
+        conn.release();
+
+        return [];
+      } catch (error) {
+        await connPromise.rollback();
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
-      await connPromise.rollback();
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
-    } finally {
-      conn.release();
     }
   }
 
   //update
-  async updateById(body, params) {
+  async updateById(body, params, customerId) {
     const { conn, connPromise } = await db.getConnection();
     try {
       const { code, devices_id, reciver, note } = body;
 
+      if (devices_id === "") return [];
+
       const listDevice = JSON.parse(devices_id);
       const { id } = params;
 
-      const isCheck = await this.validate(conn, code, listDevice, reciver, id);
+      const isCheck = await this.validate(
+        conn,
+        code,
+        listDevice,
+        reciver,
+        customerId,
+        id
+      );
       if (!isCheck.result) {
         conn.release();
         throw isCheck.errors;
@@ -746,24 +918,66 @@ class OrdersService extends DatabaseService {
       delete orders.is_deleted;
 
       await connPromise.beginTransaction();
+      const dataUpdateOrders = `code = "${code}", reciver = ${reciver}, quantity = quantity + ${
+        listDevice?.length
+      }, note = "${note || null}", updated_at = ${Date.now()}`;
+      await this.update(conn, tableName, dataUpdateOrders, "id", id);
 
-      await this.update(conn, tableName, orders, "id", id);
-
-      await this.delete(
+      const dataInsert = listDevice?.map((item) => [id, item, 0, Date.now()]);
+      await this.insertDuplicate(
         conn,
-        tabbleOrdersDevice,
-        `orders_id = ? AND device_id NOT IN (?)`,
-        [id, listDevice],
-        "ID",
-        false
+        tableOrdersDevice,
+        "orders_id,device_id,is_deleted,created_at",
+        dataInsert,
+        `orders_id=VALUES(orders_id),device_id=VALUES(device_id),is_deleted=VALUES(is_deleted),updated_at=VALUES(created_at)`
       );
 
-      const dataInsert = listDevice?.map((item) => [id, item]);
-      await this.insertIgnore(
+      const { dataInfo } = isCheck.data;
+
+      const { usersDevicesUpdate, usersDevicesInsert } = listDevice.reduce(
+        (result, item) => {
+          result.usersDevicesUpdate = [
+            ...result.usersDevicesUpdate,
+            {
+              conditionField: ["is_moved", "device_id"],
+              conditionValue: [0, item],
+              updateValue: 1,
+            },
+          ];
+
+          result.usersDevicesInsert = [
+            ...result.usersDevicesInsert,
+            [dataInfo[0].id, item, 1, 0, 0, Date.now()],
+          ];
+          return result;
+        },
+        { usersDevicesUpdate: [], usersDevicesInsert: [] }
+      );
+
+      if (usersDevicesUpdate?.length <= 0 || usersDevicesInsert.length <= 0)
+        throw { msg: ERROR };
+
+      const dataUpdate = [
+        {
+          field: "is_moved",
+          conditions: usersDevicesUpdate,
+        },
+      ];
+      await this.updatMultiRowsWithMultiConditions(
         conn,
-        tabbleOrdersDevice,
-        "orders_id,device_id",
-        dataInsert
+        tableUsersDevice,
+        dataUpdate,
+        "",
+        "ID",
+        "AND"
+      );
+
+      await this.insertDuplicate(
+        conn,
+        tableUsersDevice,
+        "user_id,device_id,is_main,is_deleted,is_moved,created_at",
+        usersDevicesInsert,
+        `is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved)`
       );
 
       await connPromise.commit();
@@ -772,6 +986,7 @@ class OrdersService extends DatabaseService {
       orders.id = id;
       return orders;
     } catch (error) {
+      console.log(error);
       await connPromise.rollback();
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
@@ -790,6 +1005,126 @@ class OrdersService extends DatabaseService {
       return [];
     } catch (error) {
       throw new BusinessLogicError(error.msg);
+    }
+  }
+
+  //delete
+  async deleteDevice(body, params, customerId) {
+    try {
+      const { conn, connPromise } = await db.getConnection();
+      try {
+        const { id } = params;
+        const { device_id } = body;
+
+        const isCheck = await this.validateDeleteDevice(
+          conn,
+          device_id,
+          id,
+          customerId
+        );
+        if (!isCheck.result) {
+          conn.release();
+          throw isCheck.errors;
+        }
+
+        const { dataOwnerDevice, dataOwnerOrders } = isCheck.data;
+
+        const joinTableUserWithUsersCustomersWithUsersDevice = `
+          ${tableUsers} INNER JOIN ${tableUsersCustomers} On ${tableUsers}.id = ${tableUsersCustomers}.user_id 
+          INNER JOIN ${tableUsersDevice} On ${tableUsers}.id = ${tableUsersDevice}.user_id
+          LEFT JOIN ${tableName} On ${tableUsersCustomers}.customer_id = ${tableName}.creator_customer_id
+          `;
+
+        const dataUserAndCustomerDelete = [];
+        const dequy = async (data) => {
+          dataUserAndCustomerDelete.push(data[0]);
+          const id = data[0].user_id;
+
+          const dataRes = await connPromise.query(
+            `SELECT ${tableUsers}.id as user_id,${tableUsersCustomers}.customer_id,${tableName}.quantity FROM ${joinTableUserWithUsersCustomersWithUsersDevice} WHERE ${tableUsers}.parent_id = ? AND ${tableUsers}.is_deleted = ? AND ${tableUsersDevice}.device_id = ? `,
+            [id, 0, device_id]
+          );
+
+          if (
+            dataRes[0].length > 0 &&
+            dataRes[0][0].id !== dataOwnerDevice[0].user_id
+          ) {
+            await dequy(dataRes[0]);
+          }
+        };
+        await dequy(dataOwnerOrders);
+
+        const formatData = dataUserAndCustomerDelete.reduce(
+          (result, item) => {
+            result.listUserId = [...result.listUserId, item.user_id];
+            result.listCustomerId = [
+              ...result.listCustomerId,
+              item.customer_id,
+            ];
+            if (item.quantity > 0) {
+              const dateeUpdate = {
+                conditionField: [
+                  `${tableName}.creator_customer_id`,
+                  `${tableOrdersDevice}.device_id`,
+                ],
+                conditionValue: [item.customer_id, device_id],
+                updateValue: item.quantity - 1,
+              };
+              result.dataOrdersUpdateMulti = [
+                ...result.dataOrdersUpdateMulti,
+                dateeUpdate,
+              ];
+            }
+            return result;
+          },
+          { listUserId: [], listCustomerId: [], dataOrdersUpdateMulti: [] }
+        );
+
+        const { listUserId, listCustomerId, dataOrdersUpdateMulti } =
+          formatData;
+        await connPromise.beginTransaction();
+
+        await this.update(
+          conn,
+          tableUsersDevice,
+          { is_deleted: 1 },
+          `${tableUsersDevice}.user_id IN (?) AND ${tableUsersDevice}.device_id`,
+          [listUserId, device_id]
+        );
+
+        const joinTableOrdersWithOrdersDevice = `${tableName} INNER JOIN ${tableOrdersDevice} ON ${tableName}.id = ${tableOrdersDevice}.orders_id`;
+        await this.update(
+          conn,
+          joinTableOrdersWithOrdersDevice,
+          `${tableOrdersDevice}.is_deleted = 1`,
+          `${tableName}.creator_customer_id IN (?) AND ${tableOrdersDevice}.device_id`,
+          [listCustomerId, device_id]
+        );
+        if (dataOrdersUpdateMulti?.length) {
+          await this.updatMultiRowsWithMultiConditions(
+            conn,
+            joinTableOrdersWithOrdersDevice,
+            [
+              {
+                field: "quantity",
+                conditions: dataOrdersUpdateMulti,
+              },
+            ]
+          );
+        }
+        await connPromise.commit();
+        conn.release();
+        return dataUserAndCustomerDelete;
+      } catch (error) {
+        console.log(error);
+        await connPromise.rollback();
+        throw error;
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
     }
   }
 }

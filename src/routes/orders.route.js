@@ -104,15 +104,25 @@ module.exports = (app) => {
         .isNumeric()
         .withMessage(VALIDATE_DATA)
         .escape(),
-      body("devices_id", NOT_EMPTY)
-        .notEmpty()
-        .isString()
-        .withMessage(VALIDATE_DATA)
-        .escape(),
+      body("devices_id").isString().withMessage(VALIDATE_DATA).escape(),
       body("note").escape(),
     ],
     ordersController.updateById
   );
+  router.delete(
+    "/delete-device/:id",
+    [
+      param("id", VALIDATE_DATA).isNumeric(),
+      body("device_id", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+    ],
+
+    ordersController.deleteDevice
+  );
+
   router.delete(
     "/delete/:id",
     [param("id", VALIDATE_DATA).isNumeric()],

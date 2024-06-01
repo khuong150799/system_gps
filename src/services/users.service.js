@@ -207,7 +207,7 @@ class UsersService extends DatabaseService {
     }
   }
   //Register
-  async register(body) {
+  async register(body, customerId) {
     const { conn, connPromise } = await db.getConnection();
     try {
       const {
@@ -235,6 +235,7 @@ class UsersService extends DatabaseService {
         text_pass: password,
         is_actived,
         is_deleted: 0,
+        is_main: Number(customerId) === Number(customer_id) ? 0 : 1,
         created_at: createdAt,
       });
       delete user.expired_on;
@@ -263,10 +264,11 @@ class UsersService extends DatabaseService {
 
       await connPromise.commit();
       conn.release();
-      // user.id = res_;
-      // delete user.is_deleted;
-      // delete user.is_deleted;
-      return [];
+      user.id = res_;
+      delete user.is_deleted;
+      delete user.password;
+      delete user.text_pass;
+      return [user];
     } catch (error) {
       await connPromise.rollback();
       const { msg, errors } = error;
@@ -510,7 +512,6 @@ class UsersService extends DatabaseService {
         "username = ?",
         [username]
       );
-      console.log({ dataaUser });
       if (dataaUser?.length <= 0)
         throw {
           msg: ERROR,

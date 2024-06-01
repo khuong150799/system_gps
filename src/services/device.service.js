@@ -1,6 +1,7 @@
 const DatabaseService = require("./query.service");
 const db = require("../dbs/init.mysql");
 const DeviceModel = require("../models/device.model");
+const UsersDevices = require("../models/usersDevices.model");
 const { ERROR, ALREADY_EXITS } = require("../constants");
 const { BusinessLogicError } = require("../core/error.response");
 const tableName = "tbl_device";
@@ -9,6 +10,8 @@ const tableOrders = "tbl_orders";
 const tableOrdersDevice = "tbl_orders_device";
 const tableCustomers = "tbl_customers";
 const tableModelType = "tbl_model_type";
+const tableUsersDevice = "tbl_users_devices";
+const tableUsersCustomers = "tbl_users_customers";
 
 class DeviceService extends DatabaseService {
   constructor() {
@@ -59,7 +62,7 @@ class DeviceService extends DatabaseService {
   }
 
   //getallrow
-  async getallrows(query) {
+  async getallrows(query, customerId) {
     try {
       const offset = query.offset || 0;
       const limit = query.limit || 10;
@@ -75,8 +78,8 @@ class DeviceService extends DatabaseService {
       } = query;
 
       const isDeleted = is_deleted || 0;
-      let where = `${tableName}.is_deleted = ?`;
-      const conditions = [isDeleted];
+      let where = `${tableName}.is_deleted = ? AND c.id = ?`;
+      const conditions = [isDeleted, customerId];
 
       if (keyword) {
         where += ` AND (${tableName}.dev_id LIKE ? OR ${tableName}.imei LIKE ? OR ${tableOrders}.code LIKE ? OR ${tableCustomers}.name LIKE ?)`;
@@ -104,6 +107,9 @@ class DeviceService extends DatabaseService {
       }
 
       const joinTable = `${tableName} INNER JOIN ${tableModel} ON ${tableName}.model_id = ${tableModel}.id 
+        INNER JOIN ${tableUsersDevice} ON ${tableName}.id = ${tableUsersDevice}.device_id 
+        INNER JOIN ${tableUsersCustomers} ON ${tableUsersDevice}.user_id = ${tableUsersCustomers}.user_id 
+        INNER JOIN ${tableCustomers} c ON ${tableUsersCustomers}.customer_id = c.id 
         LEFT JOIN ${tableOrdersDevice} ON ${tableName}.id = ${tableOrdersDevice}.device_id 
         LEFT JOIN ${tableOrders} ON ${tableOrdersDevice}.orders_id = ${tableOrders}.id 
         LEFT JOIN ${tableCustomers} ON ${tableOrders}.reciver = ${tableCustomers}.id`;
@@ -138,18 +144,27 @@ class DeviceService extends DatabaseService {
   }
 
   //getbyid
-  async getById(params, query) {
+  async getById(params, query, customerId) {
+    console.log("customerId", customerId);
     try {
       const { id } = params;
       const isDeleted = query.is_deleted || 0;
-      const where = `is_deleted = ? AND id = ?`;
-      const conditions = [isDeleted, id];
-      const selectData = `id,dev_id,imei,model_id,serial,device_name,version_hardware,version_software,device_status_id,package_service_id,expired_on,vehicle_type_id,note`;
+      const where = `${tableName}.is_deleted = ? AND ${tableName}.id = ? AND c.id = ?`;
+      const conditions = [isDeleted, id, customerId];
+
+      const joinTable = `${tableName} INNER JOIN ${tableModel} ON ${tableName}.model_id = ${tableModel}.id 
+        INNER JOIN ${tableUsersDevice} ON ${tableName}.id = ${tableUsersDevice}.device_id 
+        INNER JOIN ${tableUsersCustomers} ON ${tableUsersDevice}.user_id = ${tableUsersCustomers}.user_id 
+        INNER JOIN ${tableCustomers} c ON ${tableUsersCustomers}.customer_id = c.id `;
+
+      const selectData = `${tableName}.id,${tableName}.dev_id,${tableName}.imei,${tableName}.model_id,
+        ${tableName}.serial,${tableName}.device_name,${tableName}.version_hardware,${tableName}.version_software,
+        ${tableName}.device_status_id,${tableName}.package_service_id,${tableName}.expired_on,${tableName}.vehicle_type_id,${tableName}.note`;
 
       const { conn } = await db.getConnection();
       const res_ = await this.select(
         conn,
-        tableName,
+        joinTable,
         selectData,
         where,
         conditions
@@ -162,40 +177,85 @@ class DeviceService extends DatabaseService {
   }
 
   //Register
-  async register(body) {
+  async register(body, userId) {
     try {
-      const { dev_id, imei, model_id, serial, note } = body;
-      const device = new DeviceModel({
-        dev_id,
-        imei,
-        model_id,
-        serial: serial || null,
-        note: note || null,
-        device_status_id: 1,
-        is_deleted: 0,
-        created_at: Date.now(),
-      });
-      delete device.device_name;
-      delete device.version_hardware;
-      delete device.version_software;
-      delete device.package_service_id;
-      delete device.expired_on;
-      delete device.activation_date;
-      delete device.warranty_expired_on;
-      delete device.vehicle_type_id;
-      delete device.updated_at;
+      const { conn, connPromise } = await db.getConnection();
+      try {
+        const { dev_id, imei, model_id, serial, note } = body;
 
-      const { conn } = await db.getConnection();
-      const isCheck = await this.validate(conn, dev_id, imei);
-      if (!isCheck.result) {
+        const isCheck = await this.validate(conn, dev_id, imei);
+        if (!isCheck.result) {
+          conn.release();
+          throw isCheck.errors;
+        }
+
+        await connPromise.beginTransaction();
+
+        const device = new DeviceModel({
+          dev_id,
+          imei,
+          model_id,
+          serial: serial || null,
+          note: note || null,
+          device_status_id: 1,
+          is_deleted: 0,
+          created_at: Date.now(),
+        });
+        delete device.device_name;
+        delete device.version_hardware;
+        delete device.version_software;
+        delete device.package_service_id;
+        delete device.expired_on;
+        delete device.activation_date;
+        delete device.warranty_expired_on;
+        delete device.vehicle_type_id;
+        delete device.updated_at;
+        const res_ = await this.insertDuplicate(
+          conn,
+          tableName,
+          ` dev_id,
+          imei,
+          model_id,
+          serial,
+          note,
+          device_status_id,
+          is_deleted,
+          created_at`,
+          [
+            [
+              dev_id,
+              imei,
+              model_id,
+              serial || null,
+              note || null,
+              1,
+              0,
+              Date.now(),
+            ],
+          ],
+          "is_deleted=VALUES(is_deleted)"
+        );
+
+        await this.insertDuplicate(
+          conn,
+          tableUsersDevice,
+          "user_id,device_id,is_deleted,is_main,is_moved,created_at",
+          [[userId, res_, 0, 1, 0, Date.now()]],
+          "is_deleted=VALUES(is_deleted)"
+        );
+
+        await connPromise.commit();
+
         conn.release();
-        throw isCheck.errors;
+        device.id = res_;
+        delete device.is_deleted;
+        return device;
+      } catch (error) {
+        await connPromise.rollback();
+        throw error;
+      } finally {
+        conn.release();
       }
-      const res_ = await this.insert(conn, tableName, device);
-      conn.release();
-      device.id = res_;
-      delete device.is_deleted;
-      return device;
     } catch (error) {
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
@@ -250,11 +310,28 @@ class DeviceService extends DatabaseService {
   //delete
   async deleteById(params) {
     try {
-      const { id } = params;
-      const { conn } = await db.getConnection();
-      await this.update(conn, tableName, { is_deleted: 1 }, "id", id);
-      conn.release();
-      return [];
+      const { conn, connPromise } = await db.getConnection();
+      try {
+        const { id } = params;
+        await connPromise.beginTransaction();
+
+        await this.update(conn, tableName, { is_deleted: 1 }, "id", id);
+        await this.update(
+          conn,
+          tableUsersDevice,
+          { is_deleted: 1 },
+          "device_id",
+          id
+        );
+        await connPromise.commit();
+        conn.release();
+        return [];
+      } catch (error) {
+        connPromise.rollback();
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }

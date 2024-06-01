@@ -7,6 +7,7 @@ class UsersModel {
     expired_on,
     is_actived,
     is_deleted,
+    is_main,
     created_at,
     updated_at,
   }) {
@@ -17,6 +18,7 @@ class UsersModel {
     this.expired_on = expired_on;
     this.is_actived = is_actived;
     this.is_deleted = is_deleted;
+    this.is_main = is_main;
     this.created_at = created_at;
     this.updated_at = updated_at;
   }
