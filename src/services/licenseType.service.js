@@ -14,7 +14,8 @@ class LicenseTypeService extends DatabaseService {
         conn,
         tableName,
         "id,title",
-        "1 = 1",
+        "1 = ?",
+        [1],
         "id",
         "ASC"
       );
