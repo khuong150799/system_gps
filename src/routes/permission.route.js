@@ -35,7 +35,10 @@ module.exports = (app) => {
         .notEmpty()
         .isString()
         .withMessage(VALIDATE_DATA),
-      body("group", NOT_EMPTY).notEmpty().isString().withMessage(VALIDATE_DATA),
+      body("group_", NOT_EMPTY)
+        .notEmpty()
+        .isString()
+        .withMessage(VALIDATE_DATA),
       body("publish", NOT_EMPTY)
         .notEmpty()
         .isNumeric()
@@ -63,7 +66,10 @@ module.exports = (app) => {
         .notEmpty()
         .isString()
         .withMessage(VALIDATE_DATA),
-      body("group", NOT_EMPTY).notEmpty().isString().withMessage(VALIDATE_DATA),
+      body("group_", NOT_EMPTY)
+        .notEmpty()
+        .isString()
+        .withMessage(VALIDATE_DATA),
       body("publish", NOT_EMPTY)
         .notEmpty()
         .isNumeric()

@@ -43,6 +43,14 @@ class PermissionService extends DatabaseService {
     return { result: true };
   }
 
+  async init() {
+    try {
+      const { conn } = await db.getConnection();
+      try {
+      } catch (error) {}
+    } catch (error) {}
+  }
+
   //getallrow
   async getallrows(query) {
     try {
@@ -62,8 +70,8 @@ class PermissionService extends DatabaseService {
         conditions.push(query.publish);
       }
 
-      const select =
-        "id,name,method, group,router,publish,created_at,updated_at";
+      const select = `id,name,method,group_,router,publish,created_at,updated_at`;
+
       const { conn } = await db.getConnection();
       const [res_, count] = await Promise.all([
         this.select(
@@ -96,7 +104,7 @@ class PermissionService extends DatabaseService {
       const isDeleted = query.is_deleted || 0;
       const where = `is_deleted = ? AND id = ?`;
       const conditions = [isDeleted, id];
-      const selectData = `id,name,method,router,group,publish`;
+      const selectData = `id,name,method,router,group_,publish`;
 
       const { conn } = await db.getConnection();
       const res_ = await this.select(
@@ -116,12 +124,12 @@ class PermissionService extends DatabaseService {
   //Register
   async register(body) {
     try {
-      const { name, method, router, group, publish } = body;
+      const { name, method, router, group_, publish } = body;
       const permission = new PermissionModel({
         name,
         method,
         router,
-        group,
+        group_,
         publish,
         is_deleted: 0,
         created_at: Date.now(),
@@ -148,7 +156,7 @@ class PermissionService extends DatabaseService {
   //update
   async updateById(body, params) {
     try {
-      const { name, method, router, group, publish } = body;
+      const { name, method, router, group_, publish } = body;
       const { id } = params;
 
       const { conn } = await db.getConnection();
@@ -163,7 +171,7 @@ class PermissionService extends DatabaseService {
         name,
         method,
         router,
-        group,
+        group_,
         publish,
         updated_at: Date.now(),
       });
