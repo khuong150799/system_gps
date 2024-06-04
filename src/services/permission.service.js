@@ -148,7 +148,7 @@ class PermissionService extends DatabaseService {
   //update
   async updateById(body, params) {
     try {
-      const { name, method, router, publish } = body;
+      const { name, method, router, group, publish } = body;
       const { id } = params;
 
       const { conn } = await db.getConnection();
