@@ -35,6 +35,7 @@ module.exports = (app) => {
         .notEmpty()
         .isString()
         .withMessage(VALIDATE_DATA),
+      body("group", NOT_EMPTY).notEmpty().isString().withMessage(VALIDATE_DATA),
       body("publish", NOT_EMPTY)
         .notEmpty()
         .isNumeric()
@@ -51,6 +52,21 @@ module.exports = (app) => {
       body("name", NOT_EMPTY)
         .notEmpty()
         .isString()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+      body("method", NOT_EMPTY)
+        .notEmpty()
+        .isString()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+      body("router", NOT_EMPTY)
+        .notEmpty()
+        .isString()
+        .withMessage(VALIDATE_DATA),
+      body("group", NOT_EMPTY).notEmpty().isString().withMessage(VALIDATE_DATA),
+      body("publish", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
         .withMessage(VALIDATE_DATA)
         .escape(),
     ],

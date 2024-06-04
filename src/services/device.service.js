@@ -305,6 +305,11 @@ class DeviceService extends DatabaseService {
     }
   }
 
+  //check
+  async check(params) {
+    const { imei } = params;
+  }
+
   //update
   async updateById(body, params) {
     try {
