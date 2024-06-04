@@ -22,6 +22,12 @@ module.exports = (app) => {
     [param("id", VALIDATE_DATA).isNumeric()],
     deviceController.getById
   );
+
+  router.get(
+    "/reference/:id",
+    [param("id", VALIDATE_DATA).isNumeric()],
+    deviceController.reference
+  );
   router.post(
     "/register",
     [

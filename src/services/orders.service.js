@@ -1046,7 +1046,7 @@ class OrdersService extends DatabaseService {
           );
 
           if (
-            dataRes[0].length > 0 &&
+            dataRes?.[0]?.[0].length > 0 &&
             dataRes[0][0].id !== dataOwnerDevice[0].user_id
           ) {
             await dequy(dataRes[0]);

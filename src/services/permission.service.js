@@ -1,18 +1,18 @@
 const DatabaseService = require("./query.service");
 const db = require("../dbs/init.mysql");
-const OrdersStatusModel = require("../models/ordersStatus.model");
+const PermissionModel = require("../models/permission.model");
 const { ERROR, ALREADY_EXITS } = require("../constants");
 const { BusinessLogicError } = require("../core/error.response");
-const tableName = "tbl_orders_status";
+const tableName = "tbl_permission";
 
-class OrdersStatusService extends DatabaseService {
+class PermissionService extends DatabaseService {
   constructor() {
     super();
   }
 
-  async validate(conn, title, id = null) {
-    let where = `title = ? AND is_deleted = ?`;
-    const conditions = [title, 0];
+  async validate(conn, name, id = null) {
+    let where = `name = ? AND is_deleted = ?`;
+    const conditions = [name, 0];
     if (id) {
       where += ` AND id <> ?`;
       conditions.push(id);
@@ -25,21 +25,22 @@ class OrdersStatusService extends DatabaseService {
       where,
       conditions
     );
-    if (dataCheck.length <= 0) return { result: true };
-
-    return {
-      result: false,
-      errors: {
-        msg: ERROR,
-        errors: [
-          {
-            value: title,
-            msg: `Tiêu đề ${ALREADY_EXITS}`,
-            param: "title",
-          },
-        ],
-      },
-    };
+    if (dataCheck.length > 0) {
+      return {
+        result: false,
+        errors: {
+          msg: ERROR,
+          errors: [
+            {
+              value: name,
+              msg: `Tên ${ALREADY_EXITS}`,
+              param: "name",
+            },
+          ],
+        },
+      };
+    }
+    return { result: true };
   }
 
   //getallrow
@@ -52,7 +53,7 @@ class OrdersStatusService extends DatabaseService {
       const conditions = [isDeleted];
 
       if (query.keyword) {
-        where += ` AND title LIKE ?`;
+        where += ` AND name LIKE ?`;
         conditions.push(`%${query.keyword}%`);
       }
 
@@ -61,7 +62,7 @@ class OrdersStatusService extends DatabaseService {
         conditions.push(query.publish);
       }
 
-      const select = "id,title,des,publish,created_at,updated_at";
+      const select = "id,name,method, router,publish,created_at,updated_at";
       const { conn } = await db.getConnection();
       const [res_, count] = await Promise.all([
         this.select(
@@ -94,7 +95,7 @@ class OrdersStatusService extends DatabaseService {
       const isDeleted = query.is_deleted || 0;
       const where = `is_deleted = ? AND id = ?`;
       const conditions = [isDeleted, id];
-      const selectData = `id,title,des,publish`;
+      const selectData = `id,name,method,router,publish`;
 
       const { conn } = await db.getConnection();
       const res_ = await this.select(
@@ -114,27 +115,28 @@ class OrdersStatusService extends DatabaseService {
   //Register
   async register(body) {
     try {
-      const { title, des, publish } = body;
-      const ordersStatus = new OrdersStatusModel({
-        title,
-        des: des || null,
+      const { name, method, router, publish } = body;
+      const permission = new PermissionModel({
+        name,
+        method,
+        router,
         publish,
         is_deleted: 0,
         created_at: Date.now(),
       });
-      delete ordersStatus.updated_at;
+      delete permission.updated_at;
 
       const { conn } = await db.getConnection();
-      const isCheck = await this.validate(conn, title);
+      const isCheck = await this.validate(conn, name);
       if (!isCheck.result) {
         conn.release();
         throw isCheck.errors;
       }
-      const res_ = await this.insert(conn, tableName, ordersStatus);
+      const res_ = await this.insert(conn, tableName, permission);
       conn.release();
-      ordersStatus.id = res_;
-      delete ordersStatus.is_deleted;
-      return ordersStatus;
+      permission.id = res_;
+      delete permission.is_deleted;
+      return permission;
     } catch (error) {
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
@@ -144,32 +146,32 @@ class OrdersStatusService extends DatabaseService {
   //update
   async updateById(body, params) {
     try {
-      const { title, des, publish } = body;
+      const { name, method, router, publish } = body;
       const { id } = params;
 
       const { conn } = await db.getConnection();
 
-      const isCheck = await this.validate(conn, title, id);
+      const isCheck = await this.validate(conn, name, id);
       if (!isCheck.result) {
         conn.release();
         throw isCheck.errors;
       }
 
-      const ordersStatus = new OrdersStatusModel({
-        title,
-        des: des || null,
+      const perission = new PermissionModel({
+        name,
+        method,
+        router,
         publish,
         updated_at: Date.now(),
       });
       // console.log(id)
-      delete ordersStatus.created_at;
-      delete ordersStatus.sort;
-      delete ordersStatus.is_deleted;
+      delete perission.created_at;
+      delete perission.is_deleted;
 
-      await this.update(conn, tableName, ordersStatus, "id", id);
+      await this.update(conn, tableName, perission, "id", id);
       conn.release();
-      ordersStatus.id = id;
-      return ordersStatus;
+      perission.id = id;
+      return perission;
     } catch (error) {
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
@@ -205,4 +207,4 @@ class OrdersStatusService extends DatabaseService {
   }
 }
 
-module.exports = new OrdersStatusService();
+module.exports = new PermissionService();

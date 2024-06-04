@@ -5,8 +5,6 @@ class DeviceModel {
     model_id,
     serial,
     device_name,
-    version_hardware,
-    version_software,
     device_status_id,
     package_service_id,
     expired_on,
@@ -23,8 +21,6 @@ class DeviceModel {
     this.model_id = model_id;
     this.serial = serial;
     this.device_name = device_name;
-    this.version_hardware = version_hardware;
-    this.version_software = version_software;
     this.device_status_id = device_status_id;
     this.package_service_id = package_service_id;
     this.expired_on = expired_on;

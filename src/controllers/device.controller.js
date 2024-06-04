@@ -29,6 +29,13 @@ class DeviceController {
     CREATED(res, [data]);
   });
 
+  reference = catchAsync(async (req, res) => {
+    const params = req.params;
+    const parentId = req.parentId;
+    const data = await deviceService.reference(params, parentId);
+    GET(res, data);
+  });
+
   updateById = catchAsync(async (req, res) => {
     const body = req.body;
     const params = req.params;

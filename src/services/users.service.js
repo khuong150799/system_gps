@@ -20,6 +20,7 @@ const {
   ACCOUNT_FAILED,
   PASS_FAILED,
   REFRESH_TOKEN_SECRET_KEY,
+  ADD_CHILD_ERROR,
 } = require("../constants");
 const { regexAccount, regexPass } = require("../ultils/regex");
 const tableName = "tbl_users";
@@ -37,6 +38,9 @@ const {
 } = require("../helper/auth.helper");
 const { set: setRedis, expire: expireRedis } = require("./redis.service");
 const { BusinessLogicError } = require("../core/error.response");
+const makeUsername = require("../ultils/makeUsername");
+const CustomersModel = require("../models/customers.model");
+const { makeCode } = require("../ultils/makeCode");
 
 class UsersService extends DatabaseService {
   constructor() {
@@ -102,6 +106,42 @@ class UsersService extends DatabaseService {
         ],
       },
     };
+  }
+
+  async validateIsChild(connPromise, userId, id) {
+    const dataReturn = [];
+    const dequy = async (data) => {
+      dataReturn.push(data[0]);
+      const id = data[0].id;
+
+      if (id.toString() === userId.toString()) {
+        return true;
+      }
+
+      const dataRes = await connPromise.query(
+        `SELECT ${tableName}.id,${tableName}.parent_id FROM ${tableName} WHERE ${tableName}.parent_id = ? AND ${tableName}.is_deleted = ?`,
+        [id, 0]
+      );
+
+      if (
+        dataRes?.[0]?.[0].length > 0 &&
+        dataRes?.[0]?.[0].id.toString() !== userId.toString()
+      ) {
+        await dequy(dataRes[0]);
+      }
+      return false;
+    };
+    const result = await dequy([{ id }]);
+
+    if (!result)
+      return {
+        result: false,
+        errors: {
+          msg: ERROR,
+          errors: [{ value: id, msg: ADD_CHILD_ERROR, param: "parent_id" }],
+        },
+      };
+    return { result: true };
   }
 
   //getallrow
@@ -207,7 +247,7 @@ class UsersService extends DatabaseService {
     }
   }
   //Register
-  async register(body, customerId) {
+  async register(body, userId, customerId) {
     const { conn, connPromise } = await db.getConnection();
     try {
       const {
@@ -219,6 +259,16 @@ class UsersService extends DatabaseService {
         is_actived,
       } = body;
       const createdAt = Date.now();
+
+      const isCheckChild = await this.validateIsChild(
+        connPromise,
+        userId,
+        parent_id
+      );
+      if (!isCheckChild.result) {
+        conn.release();
+        throw isCheckChild.errors;
+      }
 
       const isCheck = await this.validate(conn, username, password);
       if (!isCheck.result) {
@@ -236,6 +286,7 @@ class UsersService extends DatabaseService {
         is_actived,
         is_deleted: 0,
         is_main: Number(customerId) === Number(customer_id) ? 0 : 1,
+        is_team: 0,
         created_at: createdAt,
       });
       delete user.expired_on;
@@ -278,13 +329,124 @@ class UsersService extends DatabaseService {
     }
   }
 
+  //RegisterTeam
+  async registerTeam(body, userId) {
+    const { conn, connPromise } = await db.getConnection();
+    try {
+      const { parent_id, name } = body;
+      const createdAt = Date.now();
+
+      const isCheckChild = await this.validateIsChild(
+        connPromise,
+        userId,
+        parent_id
+      );
+      if (!isCheckChild.result) {
+        conn.release();
+        throw isCheckChild.errors;
+      }
+
+      const username = `${makeUsername(name)}${Date.now()}`;
+      const password = `Mv${Date.now()}`;
+
+      const isCheck = await this.validate(conn, username, password);
+      if (!isCheck.result) {
+        conn.release();
+        throw isCheck.errors;
+      }
+
+      const salt = await bcrypt.genSalt(12);
+      const hashPass = await bcrypt.hash(password, salt);
+      const user = new UsersModel({
+        parent_id,
+        username,
+        password: hashPass,
+        text_pass: password,
+        is_actived: 1,
+        is_deleted: 0,
+        is_main: 0,
+        is_team: 1,
+        created_at: createdAt,
+      });
+      delete user.expired_on;
+      delete user.updated_at;
+
+      await connPromise.beginTransaction();
+      const res_ = await this.insert(conn, tableName, user);
+
+      const usersRole = new UsersRoleModel({
+        user_id: res_,
+        role_id: 1,
+        created_at: createdAt,
+      });
+
+      delete usersRole.updated_at;
+      await this.insert(conn, tableUsersRole, usersRole);
+
+      const code = makeCode();
+      const customer = new CustomersModel({
+        level_id: 6,
+        code,
+        name,
+        company: null,
+        email: null,
+        phone: null,
+        address: null,
+        tax_code: null,
+        website: null,
+        publish: 1,
+        is_deleted: 0,
+        created_at: Date.now(),
+      });
+      delete customer.updated_at;
+
+      const customerId = await this.insert(conn, tableCustomers, customer);
+
+      const usersCustomers = new UsersCustomersModel({
+        user_id: res_,
+        customer_id: customerId,
+        created_at: createdAt,
+      });
+
+      delete usersCustomers.updated_at;
+      await this.insert(conn, tableUsersCustomers, usersCustomers);
+
+      await connPromise.commit();
+      conn.release();
+      user.id = res_;
+      delete user.is_deleted;
+      delete user.password;
+      delete user.text_pass;
+      return [user];
+    } catch (error) {
+      console.log(error);
+      await connPromise.rollback();
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
+    } finally {
+      conn.release();
+    }
+  }
+
   //update
-  async updateById(body, params) {
+  async updateById(body, params, userId) {
     const { conn, connPromise } = await db.getConnection();
     try {
       const { parent_id, role_id, customer_id, is_actived } = body;
       const { id } = params;
       const updatedAt = Date.now();
+
+      const isCheckChild = await this.validateIsChild(
+        connPromise,
+        userId,
+        parent_id
+      );
+
+      if (!isCheckChild.result) {
+        conn.release();
+        throw isCheckChild.errors;
+      }
+
       await connPromise.beginTransaction();
 
       const user = new UsersModel({
@@ -294,6 +456,7 @@ class UsersService extends DatabaseService {
       });
       delete user.username;
       delete user.password;
+      delete user.is_team;
       delete user.text_pass;
       delete user.expired_on;
       delete user.is_deleted;
@@ -508,7 +671,7 @@ class UsersService extends DatabaseService {
       const dataaUser = await this.select(
         conn,
         joinTable,
-        `${tableName}.id,${tableName}.password,${tableName}.is_actived,${tableName}.is_deleted,${tableRole}.sort as role,${tableCustomers}.id as customer_id,${tableLevel}.sort as level`,
+        `${tableName}.id,${tableName}.parent_id,${tableName}.password,${tableName}.is_actived,${tableName}.is_deleted,${tableRole}.sort as role,${tableCustomers}.id as customer_id,${tableLevel}.sort as level`,
         "username = ?",
         [username]
       );
@@ -526,6 +689,7 @@ class UsersService extends DatabaseService {
 
       const {
         id,
+        parent_id: parentId,
         password: passwordDB,
         is_actived,
         is_deleted,
@@ -578,6 +742,7 @@ class UsersService extends DatabaseService {
       const token = await makeAccessToken(
         {
           userId: id,
+          parentId,
           clientId,
           role,
           level,
@@ -589,6 +754,7 @@ class UsersService extends DatabaseService {
       const refreshToken = await makeRefreshToken(
         {
           userId: id,
+          parentId,
           clientId,
           role,
           level,
@@ -618,6 +784,7 @@ class UsersService extends DatabaseService {
         {
           token,
           refreshToken,
+          parentId,
           userId: id,
           role,
           level,

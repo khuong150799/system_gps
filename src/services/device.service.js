@@ -12,6 +12,8 @@ const tableCustomers = "tbl_customers";
 const tableModelType = "tbl_model_type";
 const tableUsersDevice = "tbl_users_devices";
 const tableUsersCustomers = "tbl_users_customers";
+const tableFirmware = "tbl_firmware";
+const tableLevel = "tbl_level";
 
 class DeviceService extends DatabaseService {
   constructor() {
@@ -112,10 +114,11 @@ class DeviceService extends DatabaseService {
         INNER JOIN ${tableCustomers} c ON ${tableUsersCustomers}.customer_id = c.id 
         LEFT JOIN ${tableOrdersDevice} ON ${tableName}.id = ${tableOrdersDevice}.device_id 
         LEFT JOIN ${tableOrders} ON ${tableOrdersDevice}.orders_id = ${tableOrders}.id 
-        LEFT JOIN ${tableCustomers} ON ${tableOrders}.reciver = ${tableCustomers}.id`;
+        LEFT JOIN ${tableCustomers} ON ${tableOrders}.reciver = ${tableCustomers}.id 
+        LEFT JOIN ${tableFirmware} ON ${tableModel}.id = ${tableFirmware}.model_id`;
 
       const select = `${tableName}.id,${tableName}.dev_id,${tableName}.imei,${tableModel}.name as model_name,
-      ${tableName}.version_hardware,${tableName}.version_software,${tableName}.times_update_version,${tableOrders}.code,
+      ${tableFirmware}.version_hardware,${tableFirmware}.version_software,COALESCE(${tableFirmware}.updated_at,${tableFirmware}.created_at) as time_update_version,${tableOrders}.code,
       ${tableCustomers}.name as customer_name,${tableName}.warranty_expired_on,${tableName}.activation_date,${tableName}.created_at,${tableName}.updated_at`;
 
       const { conn } = await db.getConnection();
@@ -145,7 +148,7 @@ class DeviceService extends DatabaseService {
 
   //getbyid
   async getById(params, query, customerId) {
-    console.log("customerId", customerId);
+    // console.log("customerId", customerId);
     try {
       const { id } = params;
       const isDeleted = query.is_deleted || 0;
@@ -153,12 +156,13 @@ class DeviceService extends DatabaseService {
       const conditions = [isDeleted, id, customerId];
 
       const joinTable = `${tableName} INNER JOIN ${tableModel} ON ${tableName}.model_id = ${tableModel}.id 
-        INNER JOIN ${tableUsersDevice} ON ${tableName}.id = ${tableUsersDevice}.device_id 
-        INNER JOIN ${tableUsersCustomers} ON ${tableUsersDevice}.user_id = ${tableUsersCustomers}.user_id 
-        INNER JOIN ${tableCustomers} c ON ${tableUsersCustomers}.customer_id = c.id `;
+      INNER JOIN ${tableUsersDevice} ON ${tableName}.id = ${tableUsersDevice}.device_id 
+      INNER JOIN ${tableUsersCustomers} ON ${tableUsersDevice}.user_id = ${tableUsersCustomers}.user_id 
+      INNER JOIN ${tableCustomers} c ON ${tableUsersCustomers}.customer_id = c.id 
+      LEFT JOIN ${tableFirmware} ON ${tableModel}.id = ${tableFirmware}.model_id`;
 
       const selectData = `${tableName}.id,${tableName}.dev_id,${tableName}.imei,${tableName}.model_id,
-        ${tableName}.serial,${tableName}.device_name,${tableName}.version_hardware,${tableName}.version_software,
+        ${tableName}.serial,${tableName}.device_name,${tableFirmware}.version_hardware,${tableFirmware}.version_software,
         ${tableName}.device_status_id,${tableName}.package_service_id,${tableName}.expired_on,${tableName}.vehicle_type_id,${tableName}.note`;
 
       const { conn } = await db.getConnection();
@@ -202,8 +206,6 @@ class DeviceService extends DatabaseService {
           created_at: Date.now(),
         });
         delete device.device_name;
-        delete device.version_hardware;
-        delete device.version_software;
         delete device.package_service_id;
         delete device.expired_on;
         delete device.activation_date;
@@ -262,6 +264,47 @@ class DeviceService extends DatabaseService {
     }
   }
 
+  async reference(params, parentId) {
+    try {
+      const { conn } = await db.getConnection();
+      try {
+        const { id } = params;
+
+        const joinTable = `${tableUsersDevice} INNER JOIN ${tableUsersCustomers} ON ${tableUsersDevice}.user_id = ${tableUsersCustomers}.user_id 
+          INNER JOIN ${tableCustomers} ON ${tableUsersCustomers}.customer_id = ${tableCustomers}.id 
+          INNER JOIN ${tableLevel} ON ${tableCustomers}.level_id = ${tableLevel}.id`;
+
+        const data = await this.select(
+          conn,
+          joinTable,
+          `${tableUsersDevice}.user_id,COALESCE(${tableCustomers}.company,${tableCustomers}.name) as customer_name,${tableLevel}.name as level_name`,
+          `${tableUsersDevice}.device_id = ? AND ${tableUsersDevice}.is_deleted = ?`,
+          [id, 0],
+          `${tableUsersDevice}.id`,
+          "ASC",
+          0,
+          10000
+        );
+
+        if (parentId === null) return data;
+        if (data.length) {
+          const index = data.findIndex((item) => item.user_id === parentId);
+          if (index !== -1) return data.splice(index, data.length);
+          return [];
+        }
+        return [];
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      console.log(error);
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
+    }
+  }
+
   //update
   async updateById(body, params) {
     try {
@@ -287,8 +330,6 @@ class DeviceService extends DatabaseService {
       });
       // console.log(id)
       delete device.device_name;
-      delete device.version_hardware;
-      delete device.version_software;
       delete device.package_service_id;
       delete device.expired_on;
       delete device.activation_date;

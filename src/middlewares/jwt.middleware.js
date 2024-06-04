@@ -11,12 +11,13 @@ const isAuth = async function (req, res, next) {
   try {
     if (token) {
       const { data } = await checkToken(token, ACCESS_TOKEN_SECRET_KEY);
-      const { userId, role, clientId, level, customerId } = data;
+      const { userId, parentId, role, clientId, level, customerId } = data;
       req.userId = userId;
       req.role = role;
       req.level = level;
       req.customerId = customerId;
       req.clientId = clientId;
+      req.parentId = parentId;
       // console.log(data);
       next();
     } else {

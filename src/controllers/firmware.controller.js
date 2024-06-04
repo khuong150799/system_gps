@@ -1,11 +1,11 @@
 const { GET, CREATED, UPDATE, DELETE } = require("../core/success.response");
 const catchAsync = require("../helper/catch.async");
-const roleService = require("../services/role.service");
+const firmwareService = require("../services/firmware.service");
 
-class RoleController {
+class FirmwareController {
   getAllRows = catchAsync(async (req, res) => {
     const query = req.query;
-    const { data, totalPage } = await roleService.getallrows(query);
+    const { data, totalPage } = await firmwareService.getallrows(query);
 
     GET(res, data, totalPage);
   });
@@ -13,48 +13,37 @@ class RoleController {
   getById = catchAsync(async (req, res) => {
     const params = req.params;
     const query = req.query;
-    const data = await roleService.getById(params, query);
+    const data = await firmwareService.getById(params, query);
     GET(res, data);
   });
 
   register = catchAsync(async (req, res) => {
     const body = req.body;
-    const data = await roleService.register(body);
-    CREATED(res, [data]);
-  });
-
-  registerPermission = catchAsync(async (req, res) => {
-    const body = req.body;
-    const data = await roleService.registerPermission(body);
+    const files = req.files;
+    const data = await firmwareService.register(body, files);
     CREATED(res, [data]);
   });
 
   updateById = catchAsync(async (req, res) => {
     const body = req.body;
     const params = req.params;
-    const data = await roleService.updateById(body, params);
+    const files = req.files;
+    const data = await firmwareService.updateById(body, params, files);
     UPDATE(res, [data]);
   });
 
   deleteById = catchAsync(async (req, res) => {
     const params = req.params;
-    const data = await roleService.deleteById(params);
+    const data = await firmwareService.deleteById(params);
     DELETE(res, data);
   });
 
   updatePublish = catchAsync(async (req, res) => {
     const body = req.body;
     const params = req.params;
-    const data = await roleService.updatePublish(body, params);
-    UPDATE(res, data);
-  });
-
-  updateSort = catchAsync(async (req, res) => {
-    const body = req.body;
-    const params = req.params;
-    const data = await roleService.updateSort(body, params);
+    const data = await firmwareService.updatePublish(body, params);
     UPDATE(res, data);
   });
 }
 
-module.exports = new RoleController();
+module.exports = new FirmwareController();

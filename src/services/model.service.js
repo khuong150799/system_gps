@@ -102,7 +102,7 @@ class ModelService extends DatabaseService {
 
       const joinTable = `${tableName} INNER JOIN ${tableDisk} ON ${tableName}.disk_id = ${tableDisk}.id INNER JOIN ${tableModelConnectType} ON ${tableName}.id = ${tableModelConnectType}.model_id INNER JOIN ${tableConnectType} ON ${tableModelConnectType}.connection_type_id = ${tableConnectType}.id`;
 
-      const select = `${tableName}.id,${tableName}.name,${tableName}.made_in,${tableName}.type,${tableDisk}.name as disk_name,${tableName}.quantity_channel,${tableName}.note,${tableName}.publish,${tableName}.is_gps,GROUP_CONCAT(${tableConnectType}.name) as connection_type_name`;
+      const select = `${tableName}.id,${tableName}.name,${tableName}.des,${tableName}.made_in,${tableName}.type,${tableDisk}.name as disk_name,${tableName}.quantity_channel,${tableName}.note,${tableName}.publish,${tableName}.is_gps,GROUP_CONCAT(${tableConnectType}.name) as connection_type_name`;
       const { conn } = await db.getConnection();
       const [res_, count] = await Promise.all([
         this.select(

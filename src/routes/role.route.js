@@ -18,6 +18,24 @@ module.exports = (app) => {
     [param("id", VALIDATE_DATA).isNumeric()],
     roleController.getById
   );
+
+  router.post(
+    "/register-permission",
+    [
+      body("id", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+      body("permissions", NOT_EMPTY)
+        .notEmpty()
+        .isString()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+    ],
+
+    roleController.registerPermission
+  );
   router.post(
     "/register",
     [

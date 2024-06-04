@@ -4,6 +4,7 @@ const LevelModel = require("../models/level.model");
 const { ERROR, ALREADY_EXITS } = require("../constants");
 const { BusinessLogicError } = require("../core/error.response");
 const tableName = "tbl_level";
+const tableLevelPermission = "tbl_level_permission";
 
 class LevelService extends DatabaseService {
   constructor() {
@@ -61,7 +62,7 @@ class LevelService extends DatabaseService {
         conditions.push(query.publish);
       }
 
-      const select = "id,name,publish,sort,created_at,updated_at";
+      const select = "id,name,des,publish,sort,created_at,updated_at";
 
       const { conn } = await db.getConnection();
 
@@ -138,6 +139,32 @@ class LevelService extends DatabaseService {
       level.id = res_;
       delete level.is_deleted;
       return level;
+    } catch (error) {
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
+    }
+  }
+
+  //Register permission
+  async registerPermission(body) {
+    try {
+      const { id, permissions } = body;
+
+      const listPermissionId = JSON.parse(permissions);
+      if (listPermissionId?.length <= 0) return [];
+      const dataInsert = listPermissionId.map((item) => [id, item, Date.now()]);
+
+      const { conn } = await db.getConnection();
+
+      await this.insertIgnore(
+        conn,
+        tableLevelPermission,
+        "level_id,permission_id,created_at",
+        dataInsert
+      );
+      conn.release();
+
+      return [];
     } catch (error) {
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);

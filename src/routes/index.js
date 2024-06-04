@@ -20,4 +20,6 @@ module.exports = (app) => {
   require("./ordersStatus.route")(app);
   require("./orders.route")(app);
   require("./device.route")(app);
+  require("./firmware.route")(app);
+  require("./permission.route")(app);
 };

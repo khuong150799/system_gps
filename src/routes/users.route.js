@@ -23,6 +23,25 @@ module.exports = (app) => {
   );
 
   router.get("/info", isAuth, usersController.getInfo);
+
+  router.post(
+    "/register-team",
+    isAuth,
+    [
+      body("parent_id", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA),
+      body("name", NOT_EMPTY)
+        .notEmpty()
+        .isString()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+    ],
+
+    usersController.registerTeam
+  );
+
   router.post(
     "/register",
     isAuth,

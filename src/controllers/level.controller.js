@@ -22,6 +22,12 @@ class LevelController {
     CREATED(res, [data]);
   });
 
+  registerPermission = catchAsync(async (req, res) => {
+    const body = req.body;
+    const data = await levelService.registerPermission(body);
+    CREATED(res, [data]);
+  });
+
   updateById = catchAsync(async (req, res) => {
     const body = req.body;
     const params = req.params;

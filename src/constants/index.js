@@ -7,7 +7,7 @@ const constants = {
   ACCESS_TOKEN_SECRET_KEY,
   REFRESH_TOKEN_SECRET_KEY,
   PASSWORD_DEFAULT,
-  ACCESS_TOKEN_TIME_LIFE: "30d",
+  ACCESS_TOKEN_TIME_LIFE: 300,
   REFRESH_TOKEN_TIME_LIFE: "60d",
 
   ADD_DATA_SUCCESS: "Thêm thành công",
@@ -31,6 +31,7 @@ const constants = {
   DELETED_ACCOUNT: "Tài khoản đã bị xóa",
   NOT_EXITS: "không tồn tại",
   NOT_PERMISSION: "Không có quyền với dữ liệu này",
+  ADD_CHILD_ERROR: "Không có quyền với với người dùng này",
   NOT_DELETE_IMAGE: "Không thể xoá hình ảnh này",
   IS_ACTIVED: "đã kích hoạt trước đó",
   VALIDATE_ACCOUNT: "Tài khoản chỉ chứa kí tự thường và số",

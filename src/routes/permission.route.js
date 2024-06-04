@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const { VALIDATE_DATA, NOT_EMPTY } = require("../constants");
-const levelController = require("../controllers/level.controller");
+const permissionController = require("../controllers/permission.controller");
 const { body, query, param } = require("express-validator");
 
 module.exports = (app) => {
@@ -11,31 +11,13 @@ module.exports = (app) => {
       query("is_deleted").escape(),
       query("publish").escape(),
     ],
-    levelController.getAllRows
+    permissionController.getAllRows
   );
   router.get(
     "/detail/:id",
     [param("id", VALIDATE_DATA).isNumeric()],
-    levelController.getById
+    permissionController.getById
   );
-  router.post(
-    "/register-permission",
-    [
-      body("id", NOT_EMPTY)
-        .notEmpty()
-        .isNumeric()
-        .withMessage(VALIDATE_DATA)
-        .escape(),
-      body("permissions", NOT_EMPTY)
-        .notEmpty()
-        .isString()
-        .withMessage(VALIDATE_DATA)
-        .escape(),
-    ],
-
-    levelController.registerPermission
-  );
-
   router.post(
     "/register",
     [
@@ -44,9 +26,23 @@ module.exports = (app) => {
         .isString()
         .withMessage(VALIDATE_DATA)
         .escape(),
+      body("method", NOT_EMPTY)
+        .notEmpty()
+        .isString()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+      body("router", NOT_EMPTY)
+        .notEmpty()
+        .isString()
+        .withMessage(VALIDATE_DATA),
+      body("publish", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
     ],
 
-    levelController.register
+    permissionController.register
   );
   router.put(
     "/update/:id",
@@ -58,12 +54,12 @@ module.exports = (app) => {
         .withMessage(VALIDATE_DATA)
         .escape(),
     ],
-    levelController.updateById
+    permissionController.updateById
   );
   router.delete(
     "/delete/:id",
     [param("id", VALIDATE_DATA).isNumeric()],
-    levelController.deleteById
+    permissionController.deleteById
   );
   router.patch(
     "/update-publish/:id",
@@ -71,15 +67,8 @@ module.exports = (app) => {
       param("id", VALIDATE_DATA).isNumeric(),
       body("publish", VALIDATE_DATA).isNumeric(),
     ],
-    levelController.updatePublish
+    permissionController.updatePublish
   );
-  router.patch(
-    "/update-sort/:id",
-    [
-      param("id", VALIDATE_DATA).isNumeric(),
-      body("sort", VALIDATE_DATA).isNumeric(),
-    ],
-    levelController.updateSort
-  );
-  app.use("/api/v1/level", router);
+
+  app.use("/api/v1/permission", router);
 };

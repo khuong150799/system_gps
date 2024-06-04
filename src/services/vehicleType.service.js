@@ -69,7 +69,7 @@ class VehicleTypeService extends DatabaseService {
       }
       const joinTable = `${tableName} INNER JOIN ${tableVehicleIcon} ON ${tableName}.vehicle_icon_id = ${tableVehicleIcon}.id`;
 
-      const select = `${tableName}.id,${tableName}.name,${tableName}.max_speed,${tableName}.rule,${tableName}.created_at,${tableName}.updated_at,${tableVehicleIcon}.name as vehicle_icon_name`;
+      const select = `${tableName}.id,${tableName}.name,${tableName}.max_speed,${tableName}.rule,${tableName}.publish,${tableName}.created_at,${tableName}.updated_at,${tableVehicleIcon}.name as vehicle_icon_name`;
       const { conn } = await db.getConnection();
       const [res_, count] = await Promise.all([
         this.select(
