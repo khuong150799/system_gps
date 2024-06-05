@@ -7,7 +7,7 @@ const constants = {
   ACCESS_TOKEN_SECRET_KEY,
   REFRESH_TOKEN_SECRET_KEY,
   PASSWORD_DEFAULT,
-  ACCESS_TOKEN_TIME_LIFE: 300,
+  ACCESS_TOKEN_TIME_LIFE: "30d",
   REFRESH_TOKEN_TIME_LIFE: "60d",
 
   ADD_DATA_SUCCESS: "Thêm thành công",
@@ -55,6 +55,9 @@ const constants = {
   LOGIN_SUCCESS: "Đăng nhập thành công",
   LOGOUT_SUCCESS: "Đăng xuất thành công",
   REFRESH_TOKEN_SUCCESS: "Lấy token thành công",
+  REDIS_PROPERTY_PERMISSION: "permission",
+  DEVICE_IS_READY: "Thiết bị đã sẳn sàng kích hoạt",
+  DEVICE_CANNOT_ACTIVATE: "Thiết bị Không thể kích hoạt",
 };
 
 module.exports = constants;

@@ -1,9 +1,21 @@
 const DatabaseService = require("./query.service");
 const db = require("../dbs/init.mysql");
 const PermissionModel = require("../models/permission.model");
-const { ERROR, ALREADY_EXITS } = require("../constants");
+const {
+  ERROR,
+  ALREADY_EXITS,
+  REDIS_PROPERTY_PERMISSION,
+} = require("../constants");
 const { BusinessLogicError } = require("../core/error.response");
+const {
+  set: setRedis,
+  setWithExpired: setRedisWithExpired,
+} = require("./redis.service");
 const tableName = "tbl_permission";
+const tableRole = "tbl_role";
+const tableRolePermission = "tbl_role_permission";
+const tableLevel = "tbl_level";
+const tableLevelPermission = "tbl_level_permission";
 
 class PermissionService extends DatabaseService {
   constructor() {
@@ -47,8 +59,54 @@ class PermissionService extends DatabaseService {
     try {
       const { conn } = await db.getConnection();
       try {
-      } catch (error) {}
-    } catch (error) {}
+        const where = `p.publish = ? AND p.is_deleted = ? AND l.publish = ? AND l.is_deleted = ? AND r.publish = ? AND r.is_deleted = ?`;
+        const conditions = [1, 0, 1, 0, 1, 0];
+        const joinTable = `${tableName} p INNER JOIN ${tableLevelPermission} lp ON p.id = lp.permission_id 
+        INNER JOIN ${tableLevel} l ON lp.level_id = l.id 
+        INNER JOIN ${tableRolePermission} rp ON p.id = rp.permission_id 
+        INNER JOIN ${tableRole} r ON rp.role_id = r.id`;
+
+        const select = `p.id,p.method,p.router,l.sort as level, r.sort as role`;
+
+        const res = await this.select(
+          conn,
+          joinTable,
+          select,
+          where,
+          conditions,
+          `p.id`,
+          "DESC",
+          0,
+          100000
+        );
+        if (!res.length) {
+          await setRedisWithExpired(
+            REDIS_PROPERTY_PERMISSION,
+            JSON.stringify([])
+          );
+          return [];
+        }
+
+        const formatData = res.reduce((result, item) => {
+          result[`${item.method}_${item.router}`] = {
+            role: item.role,
+            level: item.level,
+          };
+          return result;
+        }, {});
+
+        await setRedis(REDIS_PROPERTY_PERMISSION, JSON.stringify(formatData));
+        return formatData;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      console.log(error);
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
+    }
   }
 
   //getallrow
@@ -143,6 +201,7 @@ class PermissionService extends DatabaseService {
         throw isCheck.errors;
       }
       const res_ = await this.insert(conn, tableName, permission);
+      await this.init();
       conn.release();
       permission.id = res_;
       delete permission.is_deleted;
@@ -180,6 +239,7 @@ class PermissionService extends DatabaseService {
       delete perission.is_deleted;
 
       await this.update(conn, tableName, perission, "id", id);
+      await this.init();
       conn.release();
       perission.id = id;
       return perission;
@@ -195,6 +255,7 @@ class PermissionService extends DatabaseService {
       const { id } = params;
       const { conn } = await db.getConnection();
       await this.update(conn, tableName, { is_deleted: 1 }, "id", id);
+      await this.init();
       conn.release();
       return [];
     } catch (error) {
@@ -210,6 +271,7 @@ class PermissionService extends DatabaseService {
 
       const { conn } = await db.getConnection();
       await this.update(conn, tableName, { publish }, "id", id);
+      await this.init();
       conn.release();
       return [];
     } catch (error) {

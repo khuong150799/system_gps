@@ -2,6 +2,10 @@ const router = require("express").Router();
 const { VALIDATE_DATA, NOT_EMPTY } = require("../constants");
 const levelController = require("../controllers/level.controller");
 const { body, query, param } = require("express-validator");
+const { isAuth } = require("../middlewares/jwt.middleware");
+const {
+  checkPermission,
+} = require("../middlewares/checkPermission.middleware");
 
 module.exports = (app) => {
   router.get(
@@ -11,11 +15,15 @@ module.exports = (app) => {
       query("is_deleted").escape(),
       query("publish").escape(),
     ],
+    isAuth,
+    checkPermission,
     levelController.getAllRows
   );
   router.get(
     "/detail/:id",
     [param("id", VALIDATE_DATA).isNumeric()],
+    isAuth,
+    checkPermission,
     levelController.getById
   );
   router.post(
@@ -33,6 +41,8 @@ module.exports = (app) => {
         .escape(),
     ],
 
+    isAuth,
+    checkPermission,
     levelController.registerPermission
   );
 
@@ -46,6 +56,8 @@ module.exports = (app) => {
         .escape(),
     ],
 
+    isAuth,
+    checkPermission,
     levelController.register
   );
   router.put(
@@ -58,11 +70,15 @@ module.exports = (app) => {
         .withMessage(VALIDATE_DATA)
         .escape(),
     ],
+    isAuth,
+    checkPermission,
     levelController.updateById
   );
   router.delete(
     "/delete/:id",
     [param("id", VALIDATE_DATA).isNumeric()],
+    isAuth,
+    checkPermission,
     levelController.deleteById
   );
   router.patch(
@@ -71,6 +87,8 @@ module.exports = (app) => {
       param("id", VALIDATE_DATA).isNumeric(),
       body("publish", VALIDATE_DATA).isNumeric(),
     ],
+    isAuth,
+    checkPermission,
     levelController.updatePublish
   );
   router.patch(
@@ -79,6 +97,8 @@ module.exports = (app) => {
       param("id", VALIDATE_DATA).isNumeric(),
       body("sort", VALIDATE_DATA).isNumeric(),
     ],
+    isAuth,
+    checkPermission,
     levelController.updateSort
   );
   app.use("/api/v1/level", router);

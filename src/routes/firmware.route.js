@@ -3,6 +3,10 @@ const { VALIDATE_DATA, NOT_EMPTY } = require("../constants");
 const firmwareController = require("../controllers/firmware.controller");
 const { body, query, param } = require("express-validator");
 const uploadFirmware = require("../middlewares/uploadFirmware");
+const { isAuth } = require("../middlewares/jwt.middleware");
+const {
+  checkPermission,
+} = require("../middlewares/checkPermission.middleware");
 
 module.exports = (app) => {
   router.get(
@@ -13,11 +17,15 @@ module.exports = (app) => {
       query("model_id").escape(),
       query("publish").escape(),
     ],
+    isAuth,
+    checkPermission,
     firmwareController.getAllRows
   );
   router.get(
     "/detail/:id",
     [param("id", VALIDATE_DATA).isNumeric()],
+    isAuth,
+    checkPermission,
     firmwareController.getById
   );
   router.post(
@@ -55,6 +63,8 @@ module.exports = (app) => {
         .escape(),
       body("note").escape(),
     ],
+    isAuth,
+    checkPermission,
     firmwareController.register
   );
   router.put(
@@ -92,11 +102,15 @@ module.exports = (app) => {
         .escape(),
       body("note").escape(),
     ],
+    isAuth,
+    checkPermission,
     firmwareController.updateById
   );
   router.delete(
     "/delete/:id",
     [param("id", VALIDATE_DATA).isNumeric()],
+    isAuth,
+    checkPermission,
     firmwareController.deleteById
   );
   router.patch(
@@ -105,6 +119,8 @@ module.exports = (app) => {
       param("id", VALIDATE_DATA).isNumeric(),
       body("publish", VALIDATE_DATA).isNumeric(),
     ],
+    isAuth,
+    checkPermission,
     firmwareController.updatePublish
   );
 

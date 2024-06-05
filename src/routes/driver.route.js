@@ -2,6 +2,10 @@ const router = require("express").Router();
 const { NOT_EMPTY, VALIDATE_DATA } = require("../constants");
 const driverController = require("../controllers/driver.controller");
 const { body, query, param } = require("express-validator");
+const { isAuth } = require("../middlewares/jwt.middleware");
+const {
+  checkPermission,
+} = require("../middlewares/checkPermission.middleware");
 
 module.exports = (app) => {
   router.get(
@@ -12,11 +16,15 @@ module.exports = (app) => {
       query("is_check").escape(),
       query("is_deleted").escape(),
     ],
+    isAuth,
+    checkPermission,
     driverController.getAllRows
   );
   router.get(
     "/detail/:id",
     [param("id", VALIDATE_DATA).isNumeric(), query("is_deleted").escape()],
+    isAuth,
+    checkPermission,
     driverController.getById
   );
   router.post(
@@ -46,6 +54,8 @@ module.exports = (app) => {
         .withMessage(VALIDATE_DATA),
     ],
 
+    isAuth,
+    checkPermission,
     driverController.register
   );
   router.put(
@@ -75,11 +85,15 @@ module.exports = (app) => {
         .isNumeric()
         .withMessage(VALIDATE_DATA),
     ],
+    isAuth,
+    checkPermission,
     driverController.updateById
   );
   router.delete(
     "/delete/:id",
     [param("id", VALIDATE_DATA).isNumeric()],
+    isAuth,
+    checkPermission,
     driverController.deleteById
   );
   router.patch(
@@ -88,6 +102,8 @@ module.exports = (app) => {
       param("id", VALIDATE_DATA).isNumeric(),
       body("is_actived", VALIDATE_DATA).isNumeric(),
     ],
+    isAuth,
+    checkPermission,
     driverController.updateActived
   );
   router.patch(
@@ -96,6 +112,8 @@ module.exports = (app) => {
       param("id", VALIDATE_DATA).isNumeric(),
       body("is_check", VALIDATE_DATA).isNumeric(),
     ],
+    isAuth,
+    checkPermission,
     driverController.updateCheck
   );
   app.use("/api/v1/driver", router);

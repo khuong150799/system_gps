@@ -2,7 +2,13 @@ const DatabaseService = require("./query.service");
 const db = require("../dbs/init.mysql");
 const DeviceModel = require("../models/device.model");
 const UsersDevices = require("../models/usersDevices.model");
-const { ERROR, ALREADY_EXITS } = require("../constants");
+const {
+  ERROR,
+  ALREADY_EXITS,
+  NOT_EXITS,
+  IS_ACTIVED,
+  DEVICE_CANNOT_ACTIVATE,
+} = require("../constants");
 const { BusinessLogicError } = require("../core/error.response");
 const tableName = "tbl_device";
 const tableModel = "tbl_model";
@@ -14,6 +20,7 @@ const tableUsersDevice = "tbl_users_devices";
 const tableUsersCustomers = "tbl_users_customers";
 const tableFirmware = "tbl_firmware";
 const tableLevel = "tbl_level";
+const tableVehicle = "tbl_vehicle";
 
 class DeviceService extends DatabaseService {
   constructor() {
@@ -180,6 +187,181 @@ class DeviceService extends DatabaseService {
     }
   }
 
+  async reference(params, parentId) {
+    try {
+      const { conn } = await db.getConnection();
+      try {
+        const { id } = params;
+
+        const joinTable = `${tableUsersDevice} INNER JOIN ${tableUsersCustomers} ON ${tableUsersDevice}.user_id = ${tableUsersCustomers}.user_id 
+          INNER JOIN ${tableCustomers} ON ${tableUsersCustomers}.customer_id = ${tableCustomers}.id 
+          INNER JOIN ${tableLevel} ON ${tableCustomers}.level_id = ${tableLevel}.id`;
+
+        const data = await this.select(
+          conn,
+          joinTable,
+          `${tableUsersDevice}.user_id,COALESCE(${tableCustomers}.company,${tableCustomers}.name) as customer_name,${tableLevel}.name as level_name`,
+          `${tableUsersDevice}.device_id = ? AND ${tableUsersDevice}.is_deleted = ?`,
+          [id, 0],
+          `${tableUsersDevice}.id`,
+          "ASC",
+          0,
+          10000
+        );
+
+        if (parentId === null) return data;
+        if (data.length) {
+          const index = data.findIndex((item) => item.user_id === parentId);
+          if (index !== -1) return data.splice(index, data.length);
+          return [];
+        }
+        return [];
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      console.log(error);
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
+    }
+  }
+
+  //check
+  async checkOutside(params) {
+    try {
+      const { conn } = await db.getConnection();
+      try {
+        const { imei } = params;
+
+        const where = `${tableName}.imei = ? AND ${tableName}.is_deleted = ?`;
+        const conditions = [imei, 0, 1, 0];
+        // const joinTable = `${tableName} LEFT JOIN ${tableVehicle} ON ${tableName}.id = ${tableVehicle}.device_id`;
+        const select = `${tableName}.id,${tableName}.device_status_id`;
+
+        const res = await this.select(
+          conn,
+          tableName,
+          select,
+          where,
+          conditions,
+          `${tableName}.id`
+        );
+        if (!res || res?.length <= 0) throw { msg: `Thiết bi ${NOT_EXITS}` };
+        if (res[0].device_status_id === 4)
+          throw { msg: `Thiết bị ${IS_ACTIVED}` };
+        if (res[0].device_status_id === 3)
+          throw { msg: DEVICE_CANNOT_ACTIVATE };
+
+        return { imei };
+      } catch (error) {
+        throw error;
+      }
+    } catch (error) {
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
+    }
+  }
+
+  //checked
+  async checkInside(params, userId, parentId) {
+    try {
+      const { conn } = await db.getConnection();
+      try {
+        const { imei } = params;
+
+        const where = `${tableName}.imei = ? AND ${tableName}.is_deleted = ? AND ${tableUsersDevice}.is_moved = ?`;
+        const conditions = [imei, 0, 0];
+        const joinTable = `${tableName} INNER JOIN ${tableUsersDevice} ON ${tableName}.id = ${tableUsersDevice}.device_id`;
+        const select = `${tableName}.id,${tableName}.device_status_id,${tableUsersDevice}.user_id`;
+
+        const res = await this.select(
+          conn,
+          joinTable,
+          select,
+          where,
+          conditions,
+          `${tableName}.id`
+        );
+        // console.log({ res });
+        if (
+          !res ||
+          res?.length <= 0 ||
+          (res[0].user_id !== userId && res[0].user_id !== parentId)
+        )
+          throw { msg: `Thiết bi ${NOT_EXITS}` };
+        if (res[0].device_status_id === 4)
+          throw { msg: `Thiết bị ${IS_ACTIVED}` };
+        if (res[0].device_status_id === 3)
+          throw { msg: DEVICE_CANNOT_ACTIVATE };
+
+        return { imei };
+      } catch (error) {
+        throw error;
+      }
+    } catch (error) {
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
+    }
+  }
+
+  //activation
+  async activationOutside(body) {
+    try {
+      const { conn } = await db.getConnection();
+      try {
+        const {
+          name,
+          username,
+          password,
+          vehicle,
+          weight,
+          type,
+          warning_speed,
+          imei,
+          quantity_channel,
+          service_package_id,
+          is_transmission_gps,
+          is_transmission_image,
+          note,
+        } = body;
+
+        const where = `${tableName}.imei = ? AND ${tableName}.is_deleted = ? AND ${tableUsersDevice}.is_moved = ?`;
+        const conditions = [imei, 0, 0];
+        const joinTable = `${tableName} INNER JOIN ${tableUsersDevice} ON ${tableName}.id = ${tableUsersDevice}.device_id`;
+        const select = `${tableName}.id,${tableName}.device_status_id,${tableUsersDevice}.user_id`;
+
+        const res = await this.select(
+          conn,
+          joinTable,
+          select,
+          where,
+          conditions,
+          `${tableName}.id`
+        );
+        // console.log({ res });
+        if (
+          !res ||
+          res?.length <= 0 ||
+          (res[0].user_id !== userId && res[0].user_id !== parentId)
+        )
+          throw { msg: `Thiết bi ${NOT_EXITS}` };
+        if (res[0].device_status_id === 4)
+          throw { msg: `Thiết bị ${IS_ACTIVED}` };
+        if (res[0].device_status_id === 3)
+          throw { msg: DEVICE_CANNOT_ACTIVATE };
+
+        return { imei };
+      } catch (error) {
+        throw error;
+      }
+    } catch (error) {
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
+    }
+  }
+
   //Register
   async register(body, userId) {
     try {
@@ -262,52 +444,6 @@ class DeviceService extends DatabaseService {
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
     }
-  }
-
-  async reference(params, parentId) {
-    try {
-      const { conn } = await db.getConnection();
-      try {
-        const { id } = params;
-
-        const joinTable = `${tableUsersDevice} INNER JOIN ${tableUsersCustomers} ON ${tableUsersDevice}.user_id = ${tableUsersCustomers}.user_id 
-          INNER JOIN ${tableCustomers} ON ${tableUsersCustomers}.customer_id = ${tableCustomers}.id 
-          INNER JOIN ${tableLevel} ON ${tableCustomers}.level_id = ${tableLevel}.id`;
-
-        const data = await this.select(
-          conn,
-          joinTable,
-          `${tableUsersDevice}.user_id,COALESCE(${tableCustomers}.company,${tableCustomers}.name) as customer_name,${tableLevel}.name as level_name`,
-          `${tableUsersDevice}.device_id = ? AND ${tableUsersDevice}.is_deleted = ?`,
-          [id, 0],
-          `${tableUsersDevice}.id`,
-          "ASC",
-          0,
-          10000
-        );
-
-        if (parentId === null) return data;
-        if (data.length) {
-          const index = data.findIndex((item) => item.user_id === parentId);
-          if (index !== -1) return data.splice(index, data.length);
-          return [];
-        }
-        return [];
-      } catch (error) {
-        throw error;
-      } finally {
-        conn.release();
-      }
-    } catch (error) {
-      console.log(error);
-      const { msg, errors } = error;
-      throw new BusinessLogicError(msg, errors);
-    }
-  }
-
-  //check
-  async check(params) {
-    const { imei } = params;
   }
 
   //update

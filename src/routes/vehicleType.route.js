@@ -2,6 +2,10 @@ const router = require("express").Router();
 const { VALIDATE_DATA, NOT_EMPTY } = require("../constants");
 const vehicleTypeController = require("../controllers/vehicleType.controller");
 const { body, query, param } = require("express-validator");
+const { isAuth } = require("../middlewares/jwt.middleware");
+const {
+  checkPermission,
+} = require("../middlewares/checkPermission.middleware");
 
 module.exports = (app) => {
   router.get(
@@ -12,11 +16,15 @@ module.exports = (app) => {
       query("is_deleted").escape(),
       query("publish").escape(),
     ],
+    isAuth,
+    checkPermission,
     vehicleTypeController.getAllRows
   );
   router.get(
     "/detail/:id",
     [param("id", VALIDATE_DATA).isNumeric()],
+    isAuth,
+    checkPermission,
     vehicleTypeController.getById
   );
   router.post(
@@ -44,6 +52,8 @@ module.exports = (app) => {
         .escape(),
     ],
 
+    isAuth,
+    checkPermission,
     vehicleTypeController.register
   );
   router.put(
@@ -71,11 +81,15 @@ module.exports = (app) => {
         .withMessage(VALIDATE_DATA)
         .escape(),
     ],
+    isAuth,
+    checkPermission,
     vehicleTypeController.updateById
   );
   router.delete(
     "/delete/:id",
     [param("id", VALIDATE_DATA).isNumeric()],
+    isAuth,
+    checkPermission,
     vehicleTypeController.deleteById
   );
   router.patch(
@@ -84,6 +98,8 @@ module.exports = (app) => {
       param("id", VALIDATE_DATA).isNumeric(),
       body("publish", VALIDATE_DATA).isNumeric(),
     ],
+    isAuth,
+    checkPermission,
     vehicleTypeController.updatePublish
   );
 

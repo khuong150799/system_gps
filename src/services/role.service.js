@@ -5,6 +5,7 @@ const { ERROR, ALREADY_EXITS } = require("../constants");
 const { BusinessLogicError } = require("../core/error.response");
 const tableName = "tbl_role";
 const tableRolePermission = "tbl_role_permission";
+const permissionService = require("./permission.service");
 
 class RoleService extends DatabaseService {
   constructor() {
@@ -160,6 +161,7 @@ class RoleService extends DatabaseService {
         "role_id,permission_id,created_at",
         dataInsert
       );
+      await permissionService.init();
       conn.release();
 
       return [];
@@ -195,6 +197,7 @@ class RoleService extends DatabaseService {
       delete level.is_deleted;
 
       await this.update(conn, tableName, level, "id", id);
+      await permissionService.init();
       conn.release();
       level.id = id;
       return level;
@@ -210,6 +213,7 @@ class RoleService extends DatabaseService {
       const { id } = params;
       const { conn } = await db.getConnection();
       await this.update(conn, tableName, { is_deleted: 1 }, "id", id);
+      await permissionService.init();
       conn.release();
       return [];
     } catch (error) {
@@ -225,6 +229,7 @@ class RoleService extends DatabaseService {
 
       const { conn } = await db.getConnection();
       await this.update(conn, tableName, { publish }, "id", id);
+      await permissionService.init();
       conn.release();
       return [];
     } catch (error) {
@@ -240,6 +245,7 @@ class RoleService extends DatabaseService {
 
       const { conn } = await db.getConnection();
       await this.update(conn, tableName, { sort }, "id", id);
+      await permissionService.init();
       return [];
     } catch (error) {
       throw new BusinessLogicError(error.msg);

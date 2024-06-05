@@ -2,6 +2,10 @@ const router = require("express").Router();
 const { VALIDATE_DATA, NOT_EMPTY } = require("../constants");
 const ordersController = require("../controllers/orders.controller");
 const { body, query, param } = require("express-validator");
+const { isAuth } = require("../middlewares/jwt.middleware");
+const {
+  checkPermission,
+} = require("../middlewares/checkPermission.middleware");
 
 module.exports = (app) => {
   router.get(
@@ -11,11 +15,15 @@ module.exports = (app) => {
       query("is_deleted").escape(),
       query("orders_status_id").escape(),
     ],
+    isAuth,
+    checkPermission,
     ordersController.getAllRows
   );
   router.get(
     "/detail/:id",
     [param("id", VALIDATE_DATA).isNumeric()],
+    isAuth,
+    checkPermission,
     ordersController.getById
   );
   router.post(
@@ -39,6 +47,8 @@ module.exports = (app) => {
       body("note").escape(),
     ],
 
+    isAuth,
+    checkPermission,
     ordersController.register
   );
 
@@ -63,6 +73,8 @@ module.exports = (app) => {
       body("note").escape(),
     ],
 
+    isAuth,
+    checkPermission,
     ordersController.merge
   );
 
@@ -87,6 +99,8 @@ module.exports = (app) => {
       body("note").escape(),
     ],
 
+    isAuth,
+    checkPermission,
     ordersController.registerTree
   );
 
@@ -107,6 +121,8 @@ module.exports = (app) => {
       body("devices_id").isString().withMessage(VALIDATE_DATA).escape(),
       body("note").escape(),
     ],
+    isAuth,
+    checkPermission,
     ordersController.updateById
   );
   router.delete(
@@ -120,12 +136,16 @@ module.exports = (app) => {
         .escape(),
     ],
 
+    isAuth,
+    checkPermission,
     ordersController.deleteDevice
   );
 
   router.delete(
     "/delete/:id",
     [param("id", VALIDATE_DATA).isNumeric()],
+    isAuth,
+    checkPermission,
     ordersController.deleteById
   );
 

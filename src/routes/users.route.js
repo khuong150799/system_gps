@@ -3,6 +3,9 @@ const { VALIDATE_DATA, NOT_EMPTY } = require("../constants");
 const usersController = require("../controllers/users.controller");
 const { body, query, param } = require("express-validator");
 const { isAuth } = require("../middlewares/jwt.middleware");
+const {
+  checkPermission,
+} = require("../middlewares/checkPermission.middleware");
 
 module.exports = (app) => {
   router.get(
@@ -13,20 +16,22 @@ module.exports = (app) => {
       query("role_id").escape(),
     ],
     isAuth,
+    checkPermission,
     usersController.getAllRows
   );
   router.get(
     "/detail/:id",
     [param("id", VALIDATE_DATA).isNumeric()],
     isAuth,
+    checkPermission,
     usersController.getById
   );
 
-  router.get("/info", isAuth, usersController.getInfo);
+  router.get("/info", isAuth, checkPermission, usersController.getInfo);
 
   router.post(
     "/register-team",
-    isAuth,
+
     [
       body("parent_id", NOT_EMPTY)
         .notEmpty()
@@ -38,13 +43,13 @@ module.exports = (app) => {
         .withMessage(VALIDATE_DATA)
         .escape(),
     ],
-
+    isAuth,
+    checkPermission,
     usersController.registerTeam
   );
 
   router.post(
     "/register",
-    isAuth,
     [
       body("customer_id", NOT_EMPTY)
         .notEmpty()
@@ -65,7 +70,8 @@ module.exports = (app) => {
         .isNumeric()
         .withMessage(VALIDATE_DATA),
     ],
-
+    isAuth,
+    checkPermission,
     usersController.register
   );
   router.put(
@@ -82,18 +88,21 @@ module.exports = (app) => {
         .withMessage(VALIDATE_DATA),
     ],
     isAuth,
+    checkPermission,
     usersController.updateById
   );
   router.delete(
     "/delete/:id",
     [param("id", VALIDATE_DATA).isNumeric()],
     isAuth,
+    checkPermission,
     usersController.deleteById
   );
   router.patch(
     "/reset-pass/:id",
     [param("id", VALIDATE_DATA).isNumeric()],
     isAuth,
+    checkPermission,
     usersController.resetPass
   );
   router.patch(
@@ -112,6 +121,7 @@ module.exports = (app) => {
         .escape(),
     ],
     isAuth,
+    checkPermission,
     usersController.changePass
   );
   router.post(

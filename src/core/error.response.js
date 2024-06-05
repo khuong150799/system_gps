@@ -44,6 +44,17 @@ class Api401Error extends BaseError {
   }
 }
 
+class Api400Error extends BaseError {
+  constructor(
+    message = ReasonPhrases.METHOD_NOT_ALLOWED,
+    errors = [],
+    status = StatusCodes.BAD_REQUEST,
+    isOperational = true
+  ) {
+    super(message, status, errors, isOperational);
+  }
+}
+
 class BusinessLogicError extends BaseError {
   constructor(
     message = ReasonPhrases.INTERNAL_SERVER_ERROR,
@@ -67,6 +78,7 @@ class Api404Error extends BaseError {
 }
 
 module.exports = {
+  Api400Error,
   Api401Error,
   Api403Error,
   Api404Error,

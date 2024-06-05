@@ -2,6 +2,10 @@ const router = require("express").Router();
 const { VALIDATE_DATA, NOT_EMPTY } = require("../constants");
 const deviceController = require("../controllers/device.controller");
 const { body, query, param } = require("express-validator");
+const { isAuth } = require("../middlewares/jwt.middleware");
+const {
+  checkPermission,
+} = require("../middlewares/checkPermission.middleware");
 
 module.exports = (app) => {
   router.get(
@@ -15,17 +19,49 @@ module.exports = (app) => {
       query("start_activation_date").escape(),
       query("end_activation_date").escape(),
     ],
+    isAuth,
+    checkPermission,
     deviceController.getAllRows
   );
   router.get(
     "/detail/:id",
     [param("id", VALIDATE_DATA).isNumeric()],
+    isAuth,
+    checkPermission,
     deviceController.getById
+  );
+
+  router.get(
+    "/check-outside/:imei",
+    [
+      param("imei", NOT_EMPTY)
+        .notEmpty()
+        .isString()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+    ],
+    // isAuth,
+    deviceController.checkOutside
+  );
+
+  router.get(
+    "/check-inside/:imei",
+    [
+      param("imei", NOT_EMPTY)
+        .notEmpty()
+        .isString()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+    ],
+    isAuth,
+    deviceController.checkInside
   );
 
   router.get(
     "/reference/:id",
     [param("id", VALIDATE_DATA).isNumeric()],
+    isAuth,
+    checkPermission,
     deviceController.reference
   );
   router.post(
@@ -48,6 +84,8 @@ module.exports = (app) => {
         .escape(),
     ],
 
+    isAuth,
+    checkPermission,
     deviceController.register
   );
   router.put(
@@ -75,11 +113,15 @@ module.exports = (app) => {
         .withMessage(VALIDATE_DATA)
         .escape(),
     ],
+    isAuth,
+    checkPermission,
     deviceController.updateById
   );
   router.delete(
     "/delete/:id",
     [param("id", VALIDATE_DATA).isNumeric()],
+    isAuth,
+    checkPermission,
     deviceController.deleteById
   );
 

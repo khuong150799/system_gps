@@ -3,6 +3,15 @@ const catchAsync = require("../helper/catch.async");
 const permissionService = require("../services/permission.service");
 
 class ConnectionTypeController {
+  init = async () => {
+    try {
+      const data = await permissionService.init();
+      return data;
+    } catch (error) {
+      console.log("err init permission");
+    }
+  };
+
   getAllRows = catchAsync(async (req, res) => {
     const query = req.query;
     const { data, totalPage } = await permissionService.getallrows(query);

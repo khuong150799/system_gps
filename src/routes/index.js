@@ -1,8 +1,5 @@
-const { isAuth } = require("../middlewares/jwt.middleware");
-
 module.exports = (app) => {
   require("./users.route")(app);
-  app.use(isAuth);
   require("./module.route")(app);
   require("./level.route")(app);
   require("./role.route")(app);
