@@ -3,9 +3,10 @@ const db = require("../dbs/init.mysql");
 const LevelModel = require("../models/level.model");
 const { ERROR, ALREADY_EXITS } = require("../constants");
 const { BusinessLogicError } = require("../core/error.response");
+const permissionService = require("./permission.service");
 const tableName = "tbl_level";
 const tableLevelPermission = "tbl_level_permission";
-const permissionService = require("./permission.service");
+const tablePermission = "tbl_permission";
 
 class LevelService extends DatabaseService {
   constructor() {
@@ -110,6 +111,54 @@ class LevelService extends DatabaseService {
       );
       conn.release();
       return res_;
+    } catch (error) {
+      throw new BusinessLogicError(error.msg);
+    }
+  }
+
+  //getPermission
+  async getPermission(params, query) {
+    try {
+      const { conn } = await db.getConnection();
+      try {
+        const { id } = params;
+        const isDeleted = query.is_deleted || 0;
+        const where = `is_deleted = ? AND id = ?`;
+        const conditions = [isDeleted, id];
+
+        const levelInfo = await this.select(
+          conn,
+          tableName,
+          "sort",
+          where,
+          conditions
+        );
+        if (!levelInfo || levelInfo?.length <= 0) return [];
+
+        const level = levelInfo[0]?.sort || 0;
+
+        const select = `${tablePermission}.id`;
+        const joinTable = `${tableName} INNER JOIN ${tableLevelPermission} ON ${tableName}.id = ${tableLevelPermission}.level_id 
+        INNER JOIN ${tablePermission} ON ${tableLevelPermission}.permission_id = ${tablePermission}.id`;
+
+        const res_ = await this.select(
+          conn,
+          joinTable,
+          select,
+          `${tableName}.sort <= ?`,
+          level,
+          `${tablePermission}.id`,
+          "DESC",
+          0,
+          10000
+        );
+
+        return res_;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }

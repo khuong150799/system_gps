@@ -26,6 +26,14 @@ module.exports = (app) => {
     checkPermission,
     levelController.getById
   );
+
+  router.get(
+    "/get-permission/:id",
+    [param("id", VALIDATE_DATA).isNumeric()],
+    isAuth,
+    // checkPermission,
+    levelController.getPermission
+  );
   router.post(
     "/register-permission",
     [

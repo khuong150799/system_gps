@@ -16,6 +16,13 @@ class LevelController {
     GET(res, data);
   });
 
+  getPermission = catchAsync(async (req, res) => {
+    const params = req.params;
+    const query = req.query;
+    const data = await levelService.getPermission(params, query);
+    GET(res, data);
+  });
+
   register = catchAsync(async (req, res) => {
     const body = req.body;
     const data = await levelService.register(body);

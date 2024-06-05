@@ -17,6 +17,13 @@ class RoleController {
     GET(res, data);
   });
 
+  getPermission = catchAsync(async (req, res) => {
+    const params = req.params;
+    const query = req.query;
+    const data = await roleService.getPermission(params, query);
+    GET(res, data);
+  });
+
   register = catchAsync(async (req, res) => {
     const body = req.body;
     const data = await roleService.register(body);

@@ -3,9 +3,10 @@ const db = require("../dbs/init.mysql");
 const LevelModel = require("../models/level.model");
 const { ERROR, ALREADY_EXITS } = require("../constants");
 const { BusinessLogicError } = require("../core/error.response");
+const permissionService = require("./permission.service");
 const tableName = "tbl_role";
 const tableRolePermission = "tbl_role_permission";
-const permissionService = require("./permission.service");
+const tablePermission = "tbl_permission";
 
 class RoleService extends DatabaseService {
   constructor() {
@@ -108,6 +109,54 @@ class RoleService extends DatabaseService {
       );
       conn.release();
       return res_;
+    } catch (error) {
+      throw new BusinessLogicError(error.msg);
+    }
+  }
+
+  //getPermission
+  async getPermission(params, query) {
+    try {
+      const { conn } = await db.getConnection();
+      try {
+        const { id } = params;
+        const isDeleted = query.is_deleted || 0;
+        const where = `is_deleted = ? AND id = ?`;
+        const conditions = [isDeleted, id];
+
+        const roleInfo = await this.select(
+          conn,
+          tableName,
+          "sort",
+          where,
+          conditions
+        );
+        if (!roleInfo || roleInfo?.length <= 0) return [];
+
+        const role = roleInfo[0]?.sort || 0;
+
+        const select = `${tablePermission}.id`;
+        const joinTable = `${tableName} INNER JOIN ${tableRolePermission} ON ${tableName}.id = ${tableRolePermission}.role_id 
+        INNER JOIN ${tablePermission} ON ${tableRolePermission}.permission_id = ${tablePermission}.id`;
+
+        const res_ = await this.select(
+          conn,
+          joinTable,
+          select,
+          `${tableName}.sort <= ?`,
+          role,
+          `${tablePermission}.id`,
+          "DESC",
+          0,
+          10000
+        );
+
+        return res_;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }
