@@ -236,6 +236,7 @@ class DatabaseService {
 
   //tree menu
   async createTreeMenu(
+    dbPromise,
     db,
     tableName,
     select,
@@ -247,6 +248,7 @@ class DatabaseService {
     limit,
     selectDequy,
     whereDequy,
+    conditionsDequy = [],
     orderByFieldDequy,
     orderBySortDequy
   ) {
@@ -267,8 +269,11 @@ class DatabaseService {
         async function dequy(dataRes, level = 0) {
           for (let i = 0; i < dataRes.length; i++) {
             const parentId = dataRes[i].id;
-            const query = `SELECT ${selectDequy} FROM ${tableName} WHERE parent_id = ${parentId} ${whereDequy} ORDER BY ${orderByFieldDequy} ${orderBySortDequy}`;
-            const [rows] = await db.promise().query(query);
+            const query = `SELECT ${selectDequy} FROM ${tableName} WHERE parent_id = ? ${whereDequy} ORDER BY ${orderByFieldDequy} ${orderBySortDequy}`;
+            const [rows] = await dbPromise.query(query, [
+              parentId,
+              ...conditionsDequy,
+            ]);
 
             if (rows.length > 0) {
               dataRes[i]["child"] = rows;

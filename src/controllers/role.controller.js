@@ -49,6 +49,12 @@ class RoleController {
     DELETE(res, data);
   });
 
+  deletePermission = catchAsync(async (req, res) => {
+    const body = req.body;
+    const data = await roleService.deletePermission(body);
+    DELETE(res, data);
+  });
+
   updatePublish = catchAsync(async (req, res) => {
     const body = req.body;
     const params = req.params;

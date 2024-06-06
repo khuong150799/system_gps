@@ -70,6 +70,37 @@ class DeviceService extends DatabaseService {
     };
   }
 
+  async validateCheckOutside(conn, imei) {
+    let errors = {};
+    const where = `${tableName}.imei = ? AND ${tableName}.is_deleted = ?`;
+    const conditions = [imei, 0, 1, 0];
+    // const joinTable = `${tableName} LEFT JOIN ${tableVehicle} ON ${tableName}.id = ${tableVehicle}.device_id`;
+    const select = `${tableName}.id,${tableName}.device_status_id`;
+
+    const res = await this.select(
+      conn,
+      tableName,
+      select,
+      where,
+      conditions,
+      `${tableName}.id`
+    );
+
+    if (!res || res?.length <= 0) {
+      errors = { msg: `Thiết bi ${NOT_EXITS}` };
+    } else if (res[0].device_status_id === 4) {
+      errors = { msg: `Thiết bị ${IS_ACTIVED}` };
+    } else if (res[0].device_status_id === 3) {
+      errors = { msg: DEVICE_CANNOT_ACTIVATE };
+    }
+
+    if (Object.keys(errors).length) {
+      return { result: false, errors };
+    }
+
+    return { result: true, data: res };
+  }
+
   //getallrow
   async getallrows(query, customerId) {
     try {
@@ -235,24 +266,11 @@ class DeviceService extends DatabaseService {
       try {
         const { imei } = params;
 
-        const where = `${tableName}.imei = ? AND ${tableName}.is_deleted = ?`;
-        const conditions = [imei, 0, 1, 0];
-        // const joinTable = `${tableName} LEFT JOIN ${tableVehicle} ON ${tableName}.id = ${tableVehicle}.device_id`;
-        const select = `${tableName}.id,${tableName}.device_status_id`;
-
-        const res = await this.select(
-          conn,
-          tableName,
-          select,
-          where,
-          conditions,
-          `${tableName}.id`
-        );
-        if (!res || res?.length <= 0) throw { msg: `Thiết bi ${NOT_EXITS}` };
-        if (res[0].device_status_id === 4)
-          throw { msg: `Thiết bị ${IS_ACTIVED}` };
-        if (res[0].device_status_id === 3)
-          throw { msg: DEVICE_CANNOT_ACTIVATE };
+        const isCheck = await this.validateCheckOutside(conn, imei);
+        if (!isCheck.result) {
+          conn.release();
+          throw isCheck.errors;
+        }
 
         return { imei };
       } catch (error) {
@@ -327,32 +345,11 @@ class DeviceService extends DatabaseService {
           note,
         } = body;
 
-        const where = `${tableName}.imei = ? AND ${tableName}.is_deleted = ? AND ${tableUsersDevice}.is_moved = ?`;
-        const conditions = [imei, 0, 0];
-        const joinTable = `${tableName} INNER JOIN ${tableUsersDevice} ON ${tableName}.id = ${tableUsersDevice}.device_id`;
-        const select = `${tableName}.id,${tableName}.device_status_id,${tableUsersDevice}.user_id`;
-
-        const res = await this.select(
-          conn,
-          joinTable,
-          select,
-          where,
-          conditions,
-          `${tableName}.id`
-        );
-        // console.log({ res });
-        if (
-          !res ||
-          res?.length <= 0 ||
-          (res[0].user_id !== userId && res[0].user_id !== parentId)
-        )
-          throw { msg: `Thiết bi ${NOT_EXITS}` };
-        if (res[0].device_status_id === 4)
-          throw { msg: `Thiết bị ${IS_ACTIVED}` };
-        if (res[0].device_status_id === 3)
-          throw { msg: DEVICE_CANNOT_ACTIVATE };
-
-        return { imei };
+        const isCheck = await this.validateCheckOutside(conn, imei);
+        if (!isCheck.result) {
+          conn.release();
+          throw isCheck.errors;
+        }
       } catch (error) {
         throw error;
       }

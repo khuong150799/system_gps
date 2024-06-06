@@ -82,6 +82,20 @@ module.exports = (app) => {
     checkPermission,
     roleController.updateById
   );
+
+  router.delete(
+    "/delete-permission",
+    [
+      body("permissions", NOT_EMPTY)
+        .notEmpty()
+        .isString()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+    ],
+    isAuth,
+    // checkPermission,
+    roleController.deletePermission
+  );
   router.delete(
     "/delete/:id",
     [param("id", VALIDATE_DATA).isNumeric()],

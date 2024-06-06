@@ -34,6 +34,14 @@ module.exports = (app) => {
     // checkPermission,
     levelController.getPermission
   );
+
+  router.get(
+    "/get-module/:id",
+    [param("id", VALIDATE_DATA).isNumeric()],
+    isAuth,
+    // checkPermission,
+    levelController.getModule
+  );
   router.post(
     "/register-permission",
     [
@@ -52,6 +60,26 @@ module.exports = (app) => {
     isAuth,
     checkPermission,
     levelController.registerPermission
+  );
+
+  router.post(
+    "/register-module",
+    [
+      body("id", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+      body("modules", NOT_EMPTY)
+        .notEmpty()
+        .isString()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+    ],
+
+    isAuth,
+    checkPermission,
+    levelController.registerModule
   );
 
   router.post(
@@ -81,6 +109,34 @@ module.exports = (app) => {
     isAuth,
     checkPermission,
     levelController.updateById
+  );
+
+  router.delete(
+    "/delete-permission",
+    [
+      body("permissions", NOT_EMPTY)
+        .notEmpty()
+        .isString()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+    ],
+    isAuth,
+    // checkPermission,
+    levelController.deletePermission
+  );
+
+  router.delete(
+    "/delete-module",
+    [
+      body("modules", NOT_EMPTY)
+        .notEmpty()
+        .isString()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+    ],
+    isAuth,
+    // checkPermission,
+    levelController.deleteModule
   );
   router.delete(
     "/delete/:id",

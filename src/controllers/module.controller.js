@@ -5,7 +5,8 @@ const moduleService = require("../services/module.service");
 class ModuleController {
   getTree = catchAsync(async (req, res) => {
     const query = req.query;
-    const data = await moduleService.getTree(query);
+    const level = req.level;
+    const data = await moduleService.getTree(query, level);
     GET(res, data);
   });
 
@@ -16,10 +17,6 @@ class ModuleController {
   });
 
   getById = catchAsync(async (req, res) => {
-    // console.log({
-    //   baseUrl: req.baseUrl,
-    //   router: `${req.baseUrl}${req.route.path}`,
-    // });
     const params = req.params;
     const query = req.query;
     const data = await moduleService.getById(params, query);

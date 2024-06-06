@@ -7,6 +7,8 @@ const permissionService = require("./permission.service");
 const tableName = "tbl_level";
 const tableLevelPermission = "tbl_level_permission";
 const tablePermission = "tbl_permission";
+const tableLevelModule = "tbl_level_module";
+const tableModule = "tbl_module";
 
 class LevelService extends DatabaseService {
   constructor() {
@@ -139,15 +141,63 @@ class LevelService extends DatabaseService {
 
         const select = `${tablePermission}.id`;
         const joinTable = `${tableName} INNER JOIN ${tableLevelPermission} ON ${tableName}.id = ${tableLevelPermission}.level_id 
-        INNER JOIN ${tablePermission} ON ${tableLevelPermission}.permission_id = ${tablePermission}.id`;
+          INNER JOIN ${tablePermission} ON ${tableLevelPermission}.permission_id = ${tablePermission}.id`;
 
         const res_ = await this.select(
           conn,
           joinTable,
           select,
-          `${tableName}.sort <= ?`,
-          level,
+          `${tableName}.sort <= ? AND ${tablePermission}.is_deleted = ? AND ${tablePermission}.publish = ? AND ${tableLevelPermission}.is_deleted = ?`,
+          [level, isDeleted, 1, isDeleted],
           `${tablePermission}.id`,
+          "DESC",
+          0,
+          10000
+        );
+
+        return res_;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      throw new BusinessLogicError(error.msg);
+    }
+  }
+
+  //getPermission
+  async getModule(params, query) {
+    try {
+      const { conn } = await db.getConnection();
+      try {
+        const { id } = params;
+        const isDeleted = query.is_deleted || 0;
+        const where = `is_deleted = ? AND id = ?`;
+        const conditions = [isDeleted, id];
+
+        const levelInfo = await this.select(
+          conn,
+          tableName,
+          "sort",
+          where,
+          conditions
+        );
+        if (!levelInfo || levelInfo?.length <= 0) return [];
+
+        const level = levelInfo[0]?.sort || 0;
+
+        const select = `${tableModule}.id`;
+        const joinTable = `${tableName} INNER JOIN ${tableLevelModule} ON ${tableName}.id = ${tableLevelModule}.level_id 
+          INNER JOIN ${tableModule} ON ${tableLevelModule}.module_id = ${tableModule}.id`;
+
+        const res_ = await this.select(
+          conn,
+          joinTable,
+          select,
+          `${tableName}.sort <= ? AND ${tableModule}.is_deleted = ? AND ${tableModule}.publish = ? AND ${tableLevelModule}.is_deleted = ?`,
+          [level, isDeleted, 1, isDeleted],
+          `${tableModule}.id`,
           "DESC",
           0,
           10000
@@ -195,24 +245,55 @@ class LevelService extends DatabaseService {
     }
   }
 
-  //Register permission
   async registerPermission(body) {
     try {
       const { id, permissions } = body;
 
       const listPermissionId = JSON.parse(permissions);
       if (listPermissionId?.length <= 0) return [];
-      const dataInsert = listPermissionId.map((item) => [id, item, Date.now()]);
+      const dataInsert = listPermissionId.map((item) => [
+        id,
+        item,
+        0,
+        Date.now(),
+      ]);
 
       const { conn } = await db.getConnection();
 
-      await this.insertIgnore(
+      await this.insertDuplicate(
         conn,
         tableLevelPermission,
-        "level_id,permission_id,created_at",
-        dataInsert
+        "level_id,permission_id,is_deleted,created_at",
+        dataInsert,
+        "level_id=VALUES(level_id),is_deleted=VALUES(is_deleted),created_at=VALUES(created_at)"
       );
       await permissionService.init();
+      conn.release();
+
+      return [];
+    } catch (error) {
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
+    }
+  }
+
+  async registerModule(body) {
+    try {
+      const { id, modules } = body;
+
+      const listModuleId = JSON.parse(modules);
+      if (listModuleId?.length <= 0) return [];
+      const dataInsert = listModuleId.map((item) => [id, item, 0, Date.now()]);
+
+      const { conn } = await db.getConnection();
+
+      await this.insertDuplicate(
+        conn,
+        tableLevelModule,
+        "level_id,module_id,is_deleted,created_at",
+        dataInsert,
+        "level_id=VALUES(level_id),is_deleted=VALUES(is_deleted),created_at=VALUES(created_at)"
+      );
       conn.release();
 
       return [];
@@ -264,6 +345,45 @@ class LevelService extends DatabaseService {
       const { id } = params;
       const { conn } = await db.getConnection();
       await this.update(conn, tableName, { is_deleted: 1 }, "id", id);
+      await permissionService.init();
+      conn.release();
+      return [];
+    } catch (error) {
+      throw new BusinessLogicError(error.msg);
+    }
+  }
+
+  async deleteModule(body) {
+    try {
+      const { modules } = body;
+      const listModuleId = JSON.parse(modules);
+      const { conn } = await db.getConnection();
+      await this.update(
+        conn,
+        tableLevelModule,
+        { is_deleted: 1 },
+        "permission_id",
+        listModuleId
+      );
+      conn.release();
+      return [];
+    } catch (error) {
+      throw new BusinessLogicError(error.msg);
+    }
+  }
+
+  async deletePermission(body) {
+    try {
+      const { permissions } = body;
+      const listPermissionId = JSON.parse(permissions);
+      const { conn } = await db.getConnection();
+      await this.update(
+        conn,
+        tableLevelPermission,
+        { is_deleted: 1 },
+        "permission_id",
+        listPermissionId
+      );
       await permissionService.init();
       conn.release();
       return [];

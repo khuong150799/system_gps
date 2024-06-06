@@ -143,8 +143,8 @@ class RoleService extends DatabaseService {
           conn,
           joinTable,
           select,
-          `${tableName}.sort <= ?`,
-          role,
+          `${tableName}.sort <= ? AND ${tablePermission}.is_deleted = ? AND ${tablePermission}.publish = ? AND ${tableRolePermission}.is_deleted = ?`,
+          [role, isDeleted, 1, isDeleted],
           `${tablePermission}.id`,
           "DESC",
           0,
@@ -200,15 +200,21 @@ class RoleService extends DatabaseService {
 
       const listPermissionId = JSON.parse(permissions);
       if (listPermissionId?.length <= 0) return [];
-      const dataInsert = listPermissionId.map((item) => [id, item, Date.now()]);
+      const dataInsert = listPermissionId.map((item) => [
+        id,
+        item,
+        0,
+        Date.now(),
+      ]);
 
       const { conn } = await db.getConnection();
 
-      await this.insertIgnore(
+      await this.insertDuplicate(
         conn,
         tableRolePermission,
-        "role_id,permission_id,created_at",
-        dataInsert
+        "role_id,permission_id,is_deleted,created_at",
+        dataInsert,
+        "role_id=VALUES(role_id),is_deleted=VALUES(is_deleted),created_at=VALUES(created_at)"
       );
       await permissionService.init();
       conn.release();
@@ -262,6 +268,27 @@ class RoleService extends DatabaseService {
       const { id } = params;
       const { conn } = await db.getConnection();
       await this.update(conn, tableName, { is_deleted: 1 }, "id", id);
+      await permissionService.init();
+      conn.release();
+      return [];
+    } catch (error) {
+      throw new BusinessLogicError(error.msg);
+    }
+  }
+
+  //deletePermission
+  async deletePermission(body) {
+    try {
+      const { permissions } = body;
+      const listPermissionId = JSON.parse(permissions);
+      const { conn } = await db.getConnection();
+      await this.update(
+        conn,
+        tableRolePermission,
+        { is_deleted: 1 },
+        "permission_id",
+        listPermissionId
+      );
       await permissionService.init();
       conn.release();
       return [];

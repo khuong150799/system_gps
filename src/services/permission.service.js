@@ -252,12 +252,36 @@ class PermissionService extends DatabaseService {
   //delete
   async deleteById(params) {
     try {
-      const { id } = params;
-      const { conn } = await db.getConnection();
-      await this.update(conn, tableName, { is_deleted: 1 }, "id", id);
-      await this.init();
-      conn.release();
-      return [];
+      const { conn, connPromise } = await db.getConnection();
+      try {
+        const { id } = params;
+        await connPromise.beginTransaction();
+        await this.update(conn, tableName, { is_deleted: 1 }, "id", id);
+        await this.update(
+          conn,
+          tableRolePermission,
+          { is_deleted: 1 },
+          "permission_id",
+          id
+        );
+        await this.update(
+          conn,
+          tableRolePermission,
+          { is_deleted: 1 },
+          "permission_id",
+          id
+        );
+        await this.init();
+
+        await connPromise.commit();
+
+        return [];
+      } catch (error) {
+        await connPromise.rollback();
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }

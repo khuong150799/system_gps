@@ -3,36 +3,50 @@ const db = require("../dbs/init.mysql");
 const ModuleModel = require("../models/module.model");
 const { BusinessLogicError } = require("../core/error.response");
 const tableName = "tbl_module";
+const tableLevelModule = "tbl_level_module";
+const tableLevel = "tbl_level";
 
 class ModuleService extends DatabaseService {
   constructor() {
     super();
   }
-  async getTree(query) {
+  async getTree(query, level) {
     try {
-      const isDeleted = query.is_deleted || 0;
-      const where = `parent_id = ? AND publish = ? AND is_deleted = ?`;
-      const conditions = [0, 1, isDeleted];
-      const whereDequy = `AND publish = 1 AND is_deleted = ${isDeleted}`;
+      const { conn, connPromise } = await db.getConnection();
+      try {
+        const isDeleted = query.is_deleted || 0;
 
-      const { conn } = await db.getConnection();
-      const res_ = await this.createTreeMenu(
-        conn,
-        tableName,
-        "*",
-        where,
-        conditions,
-        "sort",
-        "ASC",
-        0,
-        10000,
-        "*",
-        whereDequy,
-        "sort",
-        "ASC"
-      );
-      conn.release();
-      return res_;
+        const joinTable = `${tableName} INNER JOIN ${tableLevelModule} ON ${tableName}.id = ${tableLevelModule}.module_id 
+        INNER JOIN ${tableLevel} ON ${tableLevelModule}.level_id ON ${tableLevel}.id`;
+        const where = `${tableName}.parent_id = ? AND ${tableName}.publish = ? AND ${tableName}.is_deleted = ? AND ${tableLevel}.sort <= ? AND ${tableName}.publish = ? AND ${tableLevel}.is_deleted = ? AND ${tableLevelModule}.is_deleted = ?`;
+        const conditions = [0, 1, isDeleted, level, 1, isDeleted, isDeleted];
+        const whereDequy = `AND ${tableName}.publish = ? AND ${tableName}.is_deleted = ? AND ${tableLevel}.sort <= ? AND ${tableName}.publish = ? AND ${tableLevel}.is_deleted = ? AND ${tableLevelModule}.is_deleted = ?`;
+        const conditionsDequy = [1, isDeleted, level, 1, isDeleted, isDeleted];
+
+        const res_ = await this.createTreeMenu(
+          connPromise,
+          conn,
+          joinTable,
+          "*",
+          where,
+          conditions,
+          "sort",
+          "ASC",
+          0,
+          10000,
+          "*",
+          whereDequy,
+          conditionsDequy,
+          "sort",
+          "ASC"
+        );
+        conn.release();
+        return res_;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }

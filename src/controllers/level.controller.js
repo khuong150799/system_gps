@@ -23,6 +23,13 @@ class LevelController {
     GET(res, data);
   });
 
+  getModule = catchAsync(async (req, res) => {
+    const params = req.params;
+    const query = req.query;
+    const data = await levelService.getModule(params, query);
+    GET(res, data);
+  });
+
   register = catchAsync(async (req, res) => {
     const body = req.body;
     const data = await levelService.register(body);
@@ -32,6 +39,12 @@ class LevelController {
   registerPermission = catchAsync(async (req, res) => {
     const body = req.body;
     const data = await levelService.registerPermission(body);
+    CREATED(res, [data]);
+  });
+
+  registerModule = catchAsync(async (req, res) => {
+    const body = req.body;
+    const data = await levelService.registerModule(body);
     CREATED(res, [data]);
   });
 
@@ -45,6 +58,18 @@ class LevelController {
   deleteById = catchAsync(async (req, res) => {
     const params = req.params;
     const data = await levelService.deleteById(params);
+    DELETE(res, data);
+  });
+
+  deletePermission = catchAsync(async (req, res) => {
+    const body = req.body;
+    const data = await levelService.deletePermission(body);
+    DELETE(res, data);
+  });
+
+  deleteModule = catchAsync(async (req, res) => {
+    const body = req.body;
+    const data = await levelService.deleteModule(body);
     DELETE(res, data);
   });
 
