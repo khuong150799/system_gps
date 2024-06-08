@@ -1,4 +1,4 @@
-class LevelPermission {
+class LevelPermissionSchema {
   constructor({ level_id, permission_id, is_deletd, created_at, updated_at }) {
     this.level_id = level_id;
     this.permission_id = permission_id;
@@ -8,4 +8,4 @@ class LevelPermission {
   }
 }
 
-module.exports = LevelPermission;
+module.exports = LevelPermissionSchema;

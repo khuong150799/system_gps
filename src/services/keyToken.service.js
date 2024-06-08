@@ -1,26 +1,22 @@
-const DatabaseService = require("./query.service");
 const db = require("../dbs/init.mysql");
-const KeyTokenModel = require("../models/keyToken.model");
+const keyTokenModel = require("../models/keyToken.model");
 const { BusinessLogicError } = require("../core/error.response");
 const tableName = "tbl_key_token";
 
-class KeyTokenService extends DatabaseService {
-  constructor() {
-    super();
-  }
-
+class KeyTokenService {
   //getallrow
   async getData(clientId) {
     try {
-      const where = `client_id = ?`;
-      const conditions = [clientId];
-
-      const select = "id,publish_key_token,publish_key_refresh_token";
       const { conn } = await db.getConnection();
-      const res = await this.select(conn, tableName, select, where, conditions);
+      try {
+        const res = await keyTokenModel.getData(conn, clientId);
 
-      conn.release();
-      return res;
+        return res;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }
@@ -29,28 +25,15 @@ class KeyTokenService extends DatabaseService {
   //Register
   async register(body) {
     try {
-      const {
-        user_id,
-        client_id,
-        publish_key_token,
-        publish_key_refresh_token,
-      } = body;
-      const keyToken = new KeyTokenModel({
-        user_id,
-        client_id,
-        publish_key_token,
-        publish_key_refresh_token,
-        created_at: Date.now(),
-      });
-      delete keyToken.updated_at;
-
       const { conn } = await db.getConnection();
-
-      const res_ = await this.insert(conn, tableName, keyToken);
-      conn.release();
-      keyToken.id = res_;
-      delete keyToken.is_deleted;
-      return keyToken;
+      try {
+        const keyToken = await keyTokenModel.register(conn, body);
+        return keyToken;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }

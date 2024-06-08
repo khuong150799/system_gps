@@ -1,4 +1,4 @@
-class LevelModule {
+class LevelModuleSchema {
   constructor({ level_id, module_id, is_deleted, created_at, updated_at }) {
     this.level_id = level_id;
     this.module_id = module_id;
@@ -8,4 +8,4 @@ class LevelModule {
   }
 }
 
-module.exports = LevelModule;
+module.exports = LevelModuleSchema;

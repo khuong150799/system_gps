@@ -1,15 +1,13 @@
-const DatabaseService = require("./query.service");
 const db = require("../dbs/init.mysql");
-const DeviceStatusModel = require("../models/deviceStatus.model");
+const deviceStatusModel = require("../models/deviceStatus.model");
 const { ERROR, ALREADY_EXITS } = require("../constants");
 const { BusinessLogicError } = require("../core/error.response");
+const DatabaseModel = require("../models/database.model");
 const tableName = "tbl_device_status";
 
-class DeviceStatusService extends DatabaseService {
-  constructor() {
-    super();
-  }
+const databaseModel = new DatabaseModel();
 
+class DeviceStatusService {
   async validate(conn, title, id = null) {
     let where = `title = ? AND is_deleted = ?`;
     const conditions = [title, 0];
@@ -18,7 +16,7 @@ class DeviceStatusService extends DatabaseService {
       conditions.push(id);
     }
 
-    const dataCheck = await this.select(
+    const dataCheck = await databaseModel.select(
       conn,
       tableName,
       "id",
@@ -45,43 +43,15 @@ class DeviceStatusService extends DatabaseService {
   //getallrow
   async getallrows(query) {
     try {
-      const offset = query.offset || 0;
-      const limit = query.limit || 10;
-      const isDeleted = query.is_deleted || 0;
-      let where = `${tableName}.is_deleted = ?`;
-      const conditions = [isDeleted];
-
-      if (query.keyword) {
-        where += ` AND ${tableName}.title LIKE ?`;
-        conditions.push(`%${query.keyword}%`);
-      }
-
-      if (query.publish) {
-        where += ` AND ${tableName}.publish = ?`;
-        conditions.push(query.publish);
-      }
-
-      const select = `${tableName}.id,${tableName}.title,${tableName}.des,${tableName}.publish,${tableName}.created_at,${tableName}.updated_at`;
       const { conn } = await db.getConnection();
-      const [res_, count] = await Promise.all([
-        this.select(
-          conn,
-          tableName,
-          select,
-          where,
-          conditions,
-          `${tableName}.id`,
-          "DESC",
-          offset,
-          limit
-        ),
-        this.count(conn, tableName, "*", where, conditions),
-      ]);
-
-      const totalPage = Math.ceil(count?.[0]?.total / limit);
-
-      conn.release();
-      return { data: res_, totalPage };
+      try {
+        const data = await deviceStatusModel.getallrows(conn, query);
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }
@@ -90,22 +60,15 @@ class DeviceStatusService extends DatabaseService {
   //getbyid
   async getById(params, query) {
     try {
-      const { id } = params;
-      const isDeleted = query.is_deleted || 0;
-      const where = `is_deleted = ? AND id = ?`;
-      const conditions = [isDeleted, id];
-      const selectData = `id,title,des,publish`;
-
       const { conn } = await db.getConnection();
-      const res_ = await this.select(
-        conn,
-        tableName,
-        selectData,
-        where,
-        conditions
-      );
-      conn.release();
-      return res_;
+      try {
+        const data = await deviceStatusModel.getById(conn, params, query);
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }
@@ -114,27 +77,22 @@ class DeviceStatusService extends DatabaseService {
   //Register
   async register(body) {
     try {
-      const { title, des, publish } = body;
-      const deviceStatus = new DeviceStatusModel({
-        title,
-        des,
-        publish,
-        is_deleted: 0,
-        created_at: Date.now(),
-      });
-      delete deviceStatus.updated_at;
-
       const { conn } = await db.getConnection();
-      const isCheck = await this.validate(conn, title);
-      if (!isCheck.result) {
+      try {
+        const { title } = body;
+
+        const isCheck = await this.validate(conn, title);
+        if (!isCheck.result) {
+          throw isCheck.errors;
+        }
+        const deviceStatus = await deviceStatusModel.register(conn, body);
+
+        return deviceStatus;
+      } catch (error) {
+        throw error;
+      } finally {
         conn.release();
-        throw isCheck.errors;
       }
-      const res_ = await this.insert(conn, tableName, deviceStatus);
-      conn.release();
-      deviceStatus.id = res_;
-      delete deviceStatus.is_deleted;
-      return deviceStatus;
     } catch (error) {
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
@@ -144,31 +102,28 @@ class DeviceStatusService extends DatabaseService {
   //update
   async updateById(body, params) {
     try {
-      const { title, des, publish } = body;
-      const { id } = params;
-
       const { conn } = await db.getConnection();
+      try {
+        const { title } = body;
+        const { id } = params;
 
-      const isCheck = await this.validate(conn, title, id);
-      if (!isCheck.result) {
+        const isCheck = await this.validate(conn, title, id);
+        if (!isCheck.result) {
+          throw isCheck.errors;
+        }
+
+        const deviceStatus = await deviceStatusModel.updateById(
+          conn,
+          body,
+          params
+        );
+
+        return deviceStatus;
+      } catch (error) {
+        throw error;
+      } finally {
         conn.release();
-        throw isCheck.errors;
       }
-
-      const deviceStatus = new DeviceStatusModel({
-        title,
-        des,
-        publish,
-        updated_at: Date.now(),
-      });
-      // console.log(id)
-      delete deviceStatus.created_at;
-      delete deviceStatus.is_deleted;
-
-      await this.update(conn, tableName, deviceStatus, "id", id);
-      conn.release();
-      deviceStatus.id = id;
-      return deviceStatus;
     } catch (error) {
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
@@ -178,11 +133,15 @@ class DeviceStatusService extends DatabaseService {
   //delete
   async deleteById(params) {
     try {
-      const { id } = params;
       const { conn } = await db.getConnection();
-      await this.update(conn, tableName, { is_deleted: 1 }, "id", id);
-      conn.release();
-      return [];
+      try {
+        await deviceStatusModel.deleteById(conn, params);
+        return [];
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }
@@ -191,13 +150,16 @@ class DeviceStatusService extends DatabaseService {
   //updatePublish
   async updatePublish(body, params) {
     try {
-      const { id } = params;
-      const { publish } = body;
-
       const { conn } = await db.getConnection();
-      await this.update(conn, tableName, { publish }, "id", id);
-      conn.release();
-      return [];
+      try {
+        await deviceStatusModel.updatePublish(conn, body, params);
+
+        return [];
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }

@@ -6,7 +6,6 @@ class ConnectionTypeController {
   getAllRows = catchAsync(async (req, res) => {
     const query = req.query;
     const { data, totalPage } = await connectionTypeService.getallrows(query);
-
     GET(res, data, totalPage);
   });
 

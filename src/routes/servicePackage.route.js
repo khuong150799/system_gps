@@ -29,11 +29,6 @@ module.exports = (app) => {
   router.post(
     "/register",
     [
-      body("code", NOT_EMPTY)
-        .notEmpty()
-        .isString()
-        .withMessage(VALIDATE_DATA)
-        .escape(),
       body("name", NOT_EMPTY)
         .notEmpty()
         .isString()
@@ -44,14 +39,19 @@ module.exports = (app) => {
         .isNumeric()
         .withMessage(VALIDATE_DATA)
         .escape(),
-      body("times", NOT_EMPTY)
+      body("fees_to_agency", NOT_EMPTY)
         .notEmpty()
         .isNumeric()
         .withMessage(VALIDATE_DATA)
         .escape(),
-      body("note", NOT_EMPTY)
+      body("fees_to_distributor", NOT_EMPTY)
         .notEmpty()
-        .isString()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+      body("times", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
         .withMessage(VALIDATE_DATA)
         .escape(),
     ],
@@ -64,11 +64,7 @@ module.exports = (app) => {
     "/update/:id",
     [
       param("id", VALIDATE_DATA).isNumeric(),
-      body("code", NOT_EMPTY)
-        .notEmpty()
-        .isString()
-        .withMessage(VALIDATE_DATA)
-        .escape(),
+
       body("name", NOT_EMPTY)
         .notEmpty()
         .isString()
@@ -79,14 +75,19 @@ module.exports = (app) => {
         .isNumeric()
         .withMessage(VALIDATE_DATA)
         .escape(),
-      body("times", NOT_EMPTY)
+      body("fees_to_agency", NOT_EMPTY)
         .notEmpty()
         .isNumeric()
         .withMessage(VALIDATE_DATA)
         .escape(),
-      body("note", NOT_EMPTY)
+      body("fees_to_distributor", NOT_EMPTY)
         .notEmpty()
-        .isString()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+      body("times", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
         .withMessage(VALIDATE_DATA)
         .escape(),
     ],

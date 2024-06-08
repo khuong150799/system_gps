@@ -1,4 +1,4 @@
-class UsersCustomersModel {
+class UsersCustomersSchema {
   constructor({ user_id, customer_id, created_at, updated_at }) {
     this.user_id = user_id;
     this.customer_id = customer_id;
@@ -7,4 +7,4 @@ class UsersCustomersModel {
   }
 }
 
-module.exports = UsersCustomersModel;
+module.exports = UsersCustomersSchema;

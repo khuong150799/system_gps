@@ -15,6 +15,7 @@ dist/
 .docker
 db.sql/
 yarn.lock
+serverCluster.js
 # Compiled Java class files
 *.class
 

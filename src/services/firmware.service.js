@@ -1,17 +1,14 @@
-const DatabaseService = require("./query.service");
 const db = require("../dbs/init.mysql");
-const FirmwareModel = require("../models/firmware.model");
+const firmwareModel = require("../models/firmware.model");
 const { ERROR, ALREADY_EXITS } = require("../constants");
 const { BusinessLogicError } = require("../core/error.response");
+const DatabaseModel = require("../models/database.model");
 const tableName = "tbl_firmware";
-const tableModel = "tbl_model";
 // const { existsSync, unlinkSync } = require("node:fs");
 
-class FirmwareService extends DatabaseService {
-  constructor() {
-    super();
-  }
+const databaseModel = new DatabaseModel();
 
+class FirmwareService {
   async validate(conn, name, id = null) {
     let where = `name = ? AND is_deleted = ?`;
     const conditions = [name, 0];
@@ -20,7 +17,7 @@ class FirmwareService extends DatabaseService {
       conditions.push(id);
     }
 
-    const dataCheck = await this.select(
+    const dataCheck = await databaseModel.select(
       conn,
       tableName,
       "id",
@@ -48,49 +45,15 @@ class FirmwareService extends DatabaseService {
   //getallrow
   async getallrows(query) {
     try {
-      const offset = query.offset || 0;
-      const limit = query.limit || 10;
-      const isDeleted = query.is_deleted || 0;
-      let where = `${tableName}.is_deleted = ?`;
-      const conditions = [isDeleted];
-
-      if (query.keyword) {
-        where += ` AND name LIKE ?`;
-        conditions.push(`%${query.keyword}%`);
-      }
-
-      if (query.publish) {
-        where += ` AND publish = ?`;
-        conditions.push(query.publish);
-      }
-      if (query.model_id) {
-        where += ` AND ${tableName}.model_id = ?`;
-        conditions.push(query.model_id);
-      }
-
-      const joinTable = `${tableName} INNER JOIN ${tableModel} On ${tableName}.model_id = ${tableModel}.id`;
-
-      const select = `${tableName}.id,${tableName}.name,${tableName}.version_software,${tableName}.version_hardware,${tableName}.checksum,${tableName}.path_version,${tableName}.path_note,${tableName}.note,${tableName}.publish,${tableName}.created_at,${tableName}.updated_at,${tableModel}.name as model_name`;
       const { conn } = await db.getConnection();
-      const [res_, count] = await Promise.all([
-        this.select(
-          conn,
-          joinTable,
-          select,
-          where,
-          conditions,
-          `${tableName}.id`,
-          "DESC",
-          offset,
-          limit
-        ),
-        this.count(conn, tableName, "*", where, conditions),
-      ]);
-
-      const totalPage = Math.ceil(count?.[0]?.total / limit);
-
-      conn.release();
-      return { data: res_, totalPage };
+      try {
+        const data = await firmwareModel.getallrows(conn, query);
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }
@@ -99,22 +62,15 @@ class FirmwareService extends DatabaseService {
   //getbyid
   async getById(params, query) {
     try {
-      const { id } = params;
-      const isDeleted = query.is_deleted || 0;
-      const where = `is_deleted = ? AND id = ?`;
-      const conditions = [isDeleted, id];
-      const selectData = `${tableName}.id,${tableName}.name,${tableName}.version_software,${tableName}.version_hardware,${tableName}.checksum,${tableName}.path_version,${tableName}.path_note,${tableName}.note,${tableName}.publish,${tableName}.model_id`;
-
       const { conn } = await db.getConnection();
-      const res_ = await this.select(
-        conn,
-        tableName,
-        selectData,
-        where,
-        conditions
-      );
-      conn.release();
-      return res_;
+      try {
+        const data = await firmwareModel.getById(conn, params, query);
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }
@@ -123,53 +79,26 @@ class FirmwareService extends DatabaseService {
   //Register
   async register(body, files) {
     try {
-      const {
-        name,
-        model_id,
-        version_hardware,
-        version_software,
-        path_version,
-        checksum,
-        note,
-        publish,
-      } = body;
-
       const { conn } = await db.getConnection();
+      try {
+        const { name } = body;
 
-      const isCheck = await this.validate(conn, name);
-      if (!isCheck.result) {
+        const isCheck = await this.validate(conn, name);
+        if (!isCheck.result) {
+          throw isCheck.errors;
+        }
+        const firmware = await firmwareModel.register(conn, body, files);
+
+        return firmware;
+      } catch (error) {
+        throw error;
+      } finally {
         conn.release();
-        throw isCheck.errors;
       }
-
-      const pathFirmware = files?.["firmware"]?.[0]?.path;
-      const pathFileNote = files?.["file_note"]?.[0]?.path;
-
-      const firmware = new FirmwareModel({
-        name,
-        model_id,
-        version_hardware,
-        version_software,
-        path_version: path_version || pathFirmware || null,
-        checksum,
-        note: note || null,
-        path_note: pathFileNote || null,
-        publish,
-        is_deleted: 0,
-        created_at: Date.now(),
-      });
-      delete firmware.updated_at;
-      const res_ = await this.insert(conn, tableName, firmware);
-      conn.release();
-      firmware.id = res_;
-      delete firmware.is_deleted;
-      return firmware;
     } catch (error) {
-      console.log(error);
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
     }
-    f;
   }
 
   //update
@@ -177,51 +106,23 @@ class FirmwareService extends DatabaseService {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
-        const {
-          name,
-          model_id,
-          version_hardware,
-          version_software,
-          checksum,
-          note,
-          publish,
-        } = body;
+        const { name } = body;
         const { id } = params;
 
         const isCheck = await this.validate(conn, name, id);
         if (!isCheck.result) {
-          conn.release();
           throw isCheck.errors;
         }
 
-        const pathFirmware = files?.["firmware"]?.[0]?.path;
-        const pathFileNote = files?.["file_note"]?.[0]?.path;
-
-        const firmware = new FirmwareModel({
-          name,
-          model_id,
-          version_hardware,
-          version_software,
-          path_version: pathFirmware || null,
-          checksum,
-          note: note || null,
-          path_note: pathFileNote || null,
-          publish,
-          is_deleted: 0,
-          updated_at: Date.now(),
-        });
-        if (!pathFirmware) {
-          delete firmware.path_version;
-        }
-        if (!pathFileNote) {
-          delete firmware.path_note;
-        }
-        delete firmware.created_at;
-        delete firmware.is_deleted;
-
         await connPromise.beginTransaction();
 
-        await this.update(conn, tableName, firmware, "id", id);
+        const firmware = await firmwareModel.updateById(
+          conn,
+          connPromise,
+          body,
+          params,
+          files
+        );
 
         // if (pathFirmware || pathFileNote) {
         //   const dataOld = await this.select(
@@ -247,7 +148,6 @@ class FirmwareService extends DatabaseService {
 
         await connPromise.commit();
 
-        firmware.id = id;
         return firmware;
       } catch (error) {
         await connPromise.rollback();
@@ -264,11 +164,15 @@ class FirmwareService extends DatabaseService {
   //delete
   async deleteById(params) {
     try {
-      const { id } = params;
       const { conn } = await db.getConnection();
-      await this.update(conn, tableName, { is_deleted: 1 }, "id", id);
-      conn.release();
-      return [];
+      try {
+        await firmwareModel.deleteById(conn, params);
+        return [];
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }
@@ -277,13 +181,15 @@ class FirmwareService extends DatabaseService {
   //updatePublish
   async updatePublish(body, params) {
     try {
-      const { id } = params;
-      const { publish } = body;
-
       const { conn } = await db.getConnection();
-      await this.update(conn, tableName, { publish }, "id", id);
-      conn.release();
-      return [];
+      try {
+        await firmwareModel.updatePublish(conn, body, params);
+        return [];
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }

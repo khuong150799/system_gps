@@ -1,29 +1,21 @@
-const DatabaseService = require("./query.service");
 const db = require("../dbs/init.mysql");
-const CustomersModel = require("../models/customers.model");
+const customersModel = require("../models/customers.model");
 const {
   ERROR,
   ALREADY_EXITS,
   VALIDATE_EMAIL,
   VALIDATE_PHONE,
 } = require("../constants");
-const { makeCode } = require("../ultils/makeCode");
 const { regexEmail, regexPhoneNumber } = require("../ultils/regex");
 const { BusinessLogicError } = require("../core/error.response");
+const DatabaseModel = require("../models/database.model");
+const usersService = require("./users.service");
 const tableName = "tbl_customers";
-const tableUsers = "tbl_users";
-const tableLevel = "tbl_level";
-const tableUsersCustomers = "tbl_users_customers";
 
-class CustomersService extends DatabaseService {
-  constructor() {
-    super();
-    // this.validate = this.validate()
-  }
+const databaseModel = new DatabaseModel();
 
+class CustomersService {
   async validate(conn, company = "", email = "", phone = "", id = null) {
-    console.log({ company, email, phone });
-
     const errors = [];
 
     if (email && !regexEmail(email)) {
@@ -83,7 +75,7 @@ class CustomersService extends DatabaseService {
 
     where += `)`;
 
-    const dataCheck = await this.select(
+    const dataCheck = await databaseModel.select(
       conn,
       tableName,
       "company,email,phone",
@@ -116,61 +108,25 @@ class CustomersService extends DatabaseService {
 
     return {
       result: false,
-      errors,
+      errors: {
+        msg: ERROR,
+        errors,
+      },
     };
   }
 
   //getallrow
   async getallrows(query) {
     try {
-      const offset = query.offset || 0;
-      const limit = query.limit || 10;
-
-      const isDeleted = query.is_deleted || 0;
-      let where = `${tableName}.is_deleted = ?`;
-      const conditions = [isDeleted];
-
-      if (query.keyword) {
-        where += ` AND (${tableName}.name LIKE ? OR ${tableName}.company LIKE ? OR ${tableName}.email LIKE ? OR ${tableName}.phone LIKE ? OR ${tableName}.address LIKE ? OR ${tableName}.tax_code LIKE ?)`;
-        conditions.push(
-          `%${query.keyword}%`,
-          `%${query.keyword}%`,
-          `%${query.keyword}%`,
-          `%${query.keyword}%`,
-          `%${query.keyword}%`,
-          `%${query.keyword}%`
-        );
-      }
-
-      if (query.level_id) {
-        where += ` AND level_id = ?`;
-        conditions.push(query.level_id);
-      }
-
-      const joinTable = `${tableName} INNER JOIN ${tableLevel} ON ${tableName}.level_id = ${tableLevel}.id`;
-
-      const select = `${tableName}.id,${tableName}.name,${tableName}.company,${tableName}.email,${tableName}.phone,${tableName}.address,${tableName}.tax_code,${tableName}.website,${tableLevel}.name as level_name,${tableName}.created_at,${tableName}.updated_at`;
-
       const { conn } = await db.getConnection();
-      const [res_, count] = await Promise.all([
-        this.select(
-          conn,
-          joinTable,
-          select,
-          where,
-          conditions,
-          `${tableName}.id`,
-          "DESC",
-          offset,
-          limit
-        ),
-        this.count(conn, joinTable, "*", where, conditions),
-      ]);
-
-      const totalPage = Math.ceil(count?.[0]?.total / limit);
-
-      conn.release();
-      return { data: res_, totalPage };
+      try {
+        const data = await customersModel.getallrows(conn, query);
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }
@@ -179,153 +135,118 @@ class CustomersService extends DatabaseService {
   //getbyid
   async getById(params, query) {
     try {
-      const { id } = params;
-      const isDeleted = query.is_deleted || 0;
-      const where = `${tableName}.is_deleted = ? AND ${tableName}.id = ?`;
-      const conditions = [isDeleted, id];
-
-      const selectData = `${tableName}.id,${tableName}.name,${tableName}.company,${tableName}.email,${tableName}.phone,${tableName}.address,${tableName}.tax_code,${tableName}.website,${tableName}.level_id`;
-
       const { conn } = await db.getConnection();
-      const res_ = await this.select(
-        conn,
-        tableName,
-        selectData,
-        where,
-        conditions
-      );
-      conn.release();
-      return res_;
+      try {
+        const data = await customersModel.getById(conn, params, query);
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }
   }
 
   //Register
-  async register(body) {
-    const { conn, connPromise } = await db.getConnection();
+  async register(body, userId) {
     try {
-      const {
-        level_id,
-        name,
-        company,
-        email,
-        phone,
-        address,
-        tax_code,
-        website,
-        parent_id,
-        username,
-        password,
-        role_id,
-        publish,
-      } = body;
-      const code = makeCode();
-      const customer = new CustomersModel({
-        level_id,
-        code,
-        name,
-        company: company || null,
-        email: email || null,
-        phone: phone || null,
-        address: address || null,
-        tax_code: tax_code || null,
-        website: website || null,
-        publish,
-        is_deleted: 0,
-        created_at: Date.now(),
-      });
-      delete customer.updated_at;
-
-      if (company || email || phone) {
-        const isCheck = await this.validate(conn, company, email, phone);
-        if (!isCheck.result) {
-          conn.release();
-          throw isCheck.errors;
+      const { conn, connPromise } = await db.getConnection();
+      try {
+        const { company, email, phone, username, password, parent_id } = body;
+        if (company || email || phone) {
+          const isCheck = await this.validate(conn, company, email, phone);
+          if (!isCheck.result) {
+            throw isCheck.errors;
+          }
         }
-      }
+        const isCheckUsername = await usersService.validateUsername(username);
+        if (!isCheckUsername.result) {
+          throw isCheckUsername.errors;
+        }
 
-      await connPromise.beginTransaction();
-      const res_ = await this.insert(conn, tableName, customer);
-      await connPromise.commit();
-      conn.release();
-      customer.id = res_;
-      delete customer.is_deleted;
-      return customer;
+        const isCheckPassword = await usersService.validatePassword(
+          password,
+          true
+        );
+        if (!isCheckPassword.result) {
+          throw isCheckPassword.errors;
+        }
+
+        const isCheckChild = await usersService.validateIsChild(
+          connPromise,
+          userId,
+          parent_id
+        );
+
+        if (!isCheckChild.result) {
+          throw isCheckChild.errors;
+        }
+
+        const customer = await customersModel.register(conn, connPromise, body);
+
+        return customer;
+      } catch (error) {
+        // console.log("error", error.msg);
+        await connPromise.rollback();
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
-      // console.log("error", error.msg);
-      await connPromise.rollback();
+      console.log(error);
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
-    } finally {
-      conn.release();
     }
   }
 
   //update
   async updateById(body, params) {
-    const { conn, connPromise } = await db.getConnection();
     try {
-      const { id } = params;
-      const {
-        level_id,
-        name,
-        company,
-        email,
-        phone,
-        address,
-        tax_code,
-        website,
-        publish,
-      } = body;
-      const customer = new CustomersModel({
-        level_id,
-        name,
-        company: company || null,
-        email: email || null,
-        phone: phone || null,
-        address: address || null,
-        tax_code: tax_code || null,
-        website: website || null,
-        publish,
-        updated_at: Date.now(),
-      });
-      delete customer.code;
-      delete customer.is_deleted;
-      delete customer.created_at;
+      const { conn, connPromise } = await db.getConnection();
+      try {
+        const { id } = params;
+        const { company, email, phone } = body;
 
-      if (company || email || phone) {
-        const isCheck = await this.validate(conn, company, email, phone, id);
-        if (!isCheck.result) {
-          conn.release();
-          throw isCheck.errors;
+        if (company || email || phone) {
+          const isCheck = await this.validate(conn, company, email, phone, id);
+          if (!isCheck.result) {
+            throw isCheck.errors;
+          }
         }
+
+        const customer = await customersModel.updateById(
+          conn,
+          connPromise,
+          body,
+          params
+        );
+        return customer;
+      } catch (error) {
+        await connPromise.rollback();
+        throw error;
+      } finally {
+        conn.release();
       }
-
-      await connPromise.beginTransaction();
-      await this.update(conn, tableName, customer, "id", id);
-      await connPromise.commit();
-
-      conn.release();
-      customer.id = id;
-      return customer;
     } catch (error) {
-      await connPromise.rollback();
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
-    } finally {
-      conn.release();
     }
   }
 
   //delete
   async deleteById(params) {
     try {
-      const { id } = params;
       const { conn } = await db.getConnection();
-      await this.update(conn, tableName, { is_deleted: 1 }, "id", id);
-      conn.release();
-      return [];
+      try {
+        await customersModel.deleteById(conn, params);
+        return [];
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }
@@ -334,13 +255,15 @@ class CustomersService extends DatabaseService {
   //updatePublish
   async updatePublish(body, params) {
     try {
-      const { id } = params;
-      const { publish } = body;
-
       const { conn } = await db.getConnection();
-      await this.update(conn, tableName, { publish }, "id", id);
-      conn.release();
-      return [];
+      try {
+        await customersModel.updatePublish(conn, body, params);
+        return [];
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }

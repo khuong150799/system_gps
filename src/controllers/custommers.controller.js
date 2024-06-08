@@ -18,7 +18,8 @@ class CustomersController {
 
   register = catchAsync(async (req, res) => {
     const body = req.body;
-    const data = await customersService.register(body);
+    const userId = req.userId;
+    const data = await customersService.register(body, userId);
     CREATED(res, [data]);
   });
 

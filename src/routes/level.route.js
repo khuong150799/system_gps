@@ -31,7 +31,7 @@ module.exports = (app) => {
     "/get-permission/:id",
     [param("id", VALIDATE_DATA).isNumeric()],
     isAuth,
-    // checkPermission,
+    checkPermission,
     levelController.getPermission
   );
 
@@ -39,7 +39,7 @@ module.exports = (app) => {
     "/get-module/:id",
     [param("id", VALIDATE_DATA).isNumeric()],
     isAuth,
-    // checkPermission,
+    checkPermission,
     levelController.getModule
   );
   router.post(
@@ -112,8 +112,9 @@ module.exports = (app) => {
   );
 
   router.delete(
-    "/delete-permission",
+    "/delete-permission/:id",
     [
+      param("id", VALIDATE_DATA).isNumeric(),
       body("permissions", NOT_EMPTY)
         .notEmpty()
         .isString()
@@ -121,13 +122,14 @@ module.exports = (app) => {
         .escape(),
     ],
     isAuth,
-    // checkPermission,
+    checkPermission,
     levelController.deletePermission
   );
 
   router.delete(
-    "/delete-module",
+    "/delete-module/:id",
     [
+      param("id", VALIDATE_DATA).isNumeric(),
       body("modules", NOT_EMPTY)
         .notEmpty()
         .isString()
@@ -135,7 +137,7 @@ module.exports = (app) => {
         .escape(),
     ],
     isAuth,
-    // checkPermission,
+    checkPermission,
     levelController.deleteModule
   );
   router.delete(

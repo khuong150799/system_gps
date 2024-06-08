@@ -1,4 +1,4 @@
-class RolePermission {
+class RolePermissionSchema {
   constructor({ role_id, permission_id, is_deletd, created_at, updated_at }) {
     this.role_id = role_id;
     this.permission_id = permission_id;
@@ -8,4 +8,4 @@ class RolePermission {
   }
 }
 
-module.exports = RolePermission;
+module.exports = RolePermissionSchema;

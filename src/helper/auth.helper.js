@@ -11,7 +11,7 @@ const {
   exists: existsRedis,
   get: getRedis,
   set: setRedis,
-} = require("../services/redis.service");
+} = require("../models/redis.model");
 const { promisify } = require("util");
 const {
   ACCESS_TOKEN_TIME_LIFE,

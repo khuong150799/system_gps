@@ -1,15 +1,13 @@
-const DatabaseService = require("./query.service");
 const db = require("../dbs/init.mysql");
-const DiskModel = require("../models/disk.model");
+const diskModel = require("../models/disk.model");
 const { ERROR, ALREADY_EXITS } = require("../constants");
 const { BusinessLogicError } = require("../core/error.response");
+const DatabaseModel = require("../models/database.model");
 const tableName = "tbl_disk";
 
-class DiskService extends DatabaseService {
-  constructor() {
-    super();
-  }
+const databaseModel = new DatabaseModel();
 
+class DiskService {
   async validate(conn, name, id = null) {
     let where = `name = ? AND is_deleted = ?`;
     const conditions = [name, 0];
@@ -18,7 +16,7 @@ class DiskService extends DatabaseService {
       conditions.push(id);
     }
 
-    const dataCheck = await this.select(
+    const dataCheck = await databaseModel.select(
       conn,
       tableName,
       "id",
@@ -45,43 +43,15 @@ class DiskService extends DatabaseService {
   //getallrow
   async getallrows(query) {
     try {
-      const offset = query.offset || 0;
-      const limit = query.limit || 10;
-      const isDeleted = query.is_deleted || 0;
-      let where = `is_deleted = ?`;
-      const conditions = [isDeleted];
-
-      if (query.keyword) {
-        where += ` AND name LIKE ?`;
-        conditions.push(`%${query.keyword}%`);
-      }
-
-      if (query.publish) {
-        where += ` AND publish = ?`;
-        conditions.push(query.publish);
-      }
-
-      const select = "id,name,publish,created_at,updated_at";
       const { conn } = await db.getConnection();
-      const [res_, count] = await Promise.all([
-        this.select(
-          conn,
-          tableName,
-          select,
-          where,
-          conditions,
-          "id",
-          "DESC",
-          offset,
-          limit
-        ),
-        this.count(conn, tableName, "*", where, conditions),
-      ]);
-
-      const totalPage = Math.ceil(count?.[0]?.total / limit);
-
-      conn.release();
-      return { data: res_, totalPage };
+      try {
+        const data = await diskModel.getallrows(conn, query);
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }
@@ -90,22 +60,15 @@ class DiskService extends DatabaseService {
   //getbyid
   async getById(params, query) {
     try {
-      const { id } = params;
-      const isDeleted = query.is_deleted || 0;
-      const where = `is_deleted = ? AND id = ?`;
-      const conditions = [isDeleted, id];
-      const selectData = `id,name,publish`;
-
       const { conn } = await db.getConnection();
-      const res_ = await this.select(
-        conn,
-        tableName,
-        selectData,
-        where,
-        conditions
-      );
-      conn.release();
-      return res_;
+      try {
+        const data = await diskModel.getById(conn, params, query);
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }
@@ -114,26 +77,21 @@ class DiskService extends DatabaseService {
   //Register
   async register(body) {
     try {
-      const { name, publish } = body;
-      const disk = new DiskModel({
-        name,
-        publish,
-        is_deleted: 0,
-        created_at: Date.now(),
-      });
-      delete disk.updated_at;
-
       const { conn } = await db.getConnection();
-      const isCheck = await this.validate(conn, name);
-      if (!isCheck.result) {
+      try {
+        const { name } = body;
+
+        const isCheck = await this.validate(conn, name);
+        if (!isCheck.result) {
+          throw isCheck.errors;
+        }
+        const disk = await diskModel.register(conn, body);
+        return disk;
+      } catch (error) {
+        throw error;
+      } finally {
         conn.release();
-        throw isCheck.errors;
       }
-      const res_ = await this.insert(conn, tableName, disk);
-      conn.release();
-      disk.id = res_;
-      delete disk.is_deleted;
-      return disk;
     } catch (error) {
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
@@ -143,31 +101,20 @@ class DiskService extends DatabaseService {
   //update
   async updateById(body, params) {
     try {
-      const { name, publish } = body;
-      const { id } = params;
-
       const { conn } = await db.getConnection();
+      try {
+        const { name } = body;
+        const { id } = params;
 
-      const isCheck = await this.validate(conn, name, id);
-      if (!isCheck.result) {
-        conn.release();
-        throw isCheck.errors;
+        const isCheck = await this.validate(conn, name, id);
+        if (!isCheck.result) {
+          throw isCheck.errors;
+        }
+        const disk = await diskModel.updateById(conn, body, params);
+        return disk;
+      } catch (error) {
+        throw error;
       }
-
-      const disk = new DiskModel({
-        name,
-        publish,
-        updated_at: Date.now(),
-      });
-      // console.log(id)
-      delete disk.created_at;
-      delete disk.sort;
-      delete disk.is_deleted;
-
-      await this.update(conn, tableName, disk, "id", id);
-      conn.release();
-      disk.id = id;
-      return disk;
     } catch (error) {
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
@@ -177,11 +124,15 @@ class DiskService extends DatabaseService {
   //delete
   async deleteById(params) {
     try {
-      const { id } = params;
       const { conn } = await db.getConnection();
-      await this.update(conn, tableName, { is_deleted: 1 }, "id", id);
-      conn.release();
-      return [];
+      try {
+        await diskModel.deleteById(conn, params);
+        return [];
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }
@@ -190,13 +141,15 @@ class DiskService extends DatabaseService {
   //updatePublish
   async updatePublish(body, params) {
     try {
-      const { id } = params;
-      const { publish } = body;
-
       const { conn } = await db.getConnection();
-      await this.update(conn, tableName, { publish }, "id", id);
-      conn.release();
-      return [];
+      try {
+        await diskModel.updatePublish(conn, body, params);
+        return [];
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }

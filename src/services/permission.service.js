@@ -1,27 +1,14 @@
-const DatabaseService = require("./query.service");
 const db = require("../dbs/init.mysql");
-const PermissionModel = require("../models/permission.model");
-const {
-  ERROR,
-  ALREADY_EXITS,
-  REDIS_PROPERTY_PERMISSION,
-} = require("../constants");
+const { ERROR, ALREADY_EXITS } = require("../constants");
 const { BusinessLogicError } = require("../core/error.response");
-const {
-  set: setRedis,
-  setWithExpired: setRedisWithExpired,
-} = require("./redis.service");
+
+const permissionModel = require("../models/permission.model");
+const DatabaseModel = require("../models/database.model");
 const tableName = "tbl_permission";
-const tableRole = "tbl_role";
-const tableRolePermission = "tbl_role_permission";
-const tableLevel = "tbl_level";
-const tableLevelPermission = "tbl_level_permission";
 
-class PermissionService extends DatabaseService {
-  constructor() {
-    super();
-  }
+const databaseModel = new DatabaseModel();
 
+class PermissionService {
   async validate(conn, name, id = null) {
     let where = `name = ? AND is_deleted = ?`;
     const conditions = [name, 0];
@@ -30,7 +17,7 @@ class PermissionService extends DatabaseService {
       conditions.push(id);
     }
 
-    const dataCheck = await this.select(
+    const dataCheck = await databaseModel.select(
       conn,
       tableName,
       "id",
@@ -59,51 +46,14 @@ class PermissionService extends DatabaseService {
     try {
       const { conn } = await db.getConnection();
       try {
-        const where = `p.publish = ? AND p.is_deleted = ? AND l.publish = ? AND l.is_deleted = ? AND r.publish = ? AND r.is_deleted = ?`;
-        const conditions = [1, 0, 1, 0, 1, 0];
-        const joinTable = `${tableName} p INNER JOIN ${tableLevelPermission} lp ON p.id = lp.permission_id 
-        INNER JOIN ${tableLevel} l ON lp.level_id = l.id 
-        INNER JOIN ${tableRolePermission} rp ON p.id = rp.permission_id 
-        INNER JOIN ${tableRole} r ON rp.role_id = r.id`;
-
-        const select = `p.id,p.method,p.router,l.sort as level, r.sort as role`;
-
-        const res = await this.select(
-          conn,
-          joinTable,
-          select,
-          where,
-          conditions,
-          `p.id`,
-          "DESC",
-          0,
-          100000
-        );
-        if (!res.length) {
-          await setRedisWithExpired(
-            REDIS_PROPERTY_PERMISSION,
-            JSON.stringify([])
-          );
-          return [];
-        }
-
-        const formatData = res.reduce((result, item) => {
-          result[`${item.method}_${item.router}`] = {
-            role: item.role,
-            level: item.level,
-          };
-          return result;
-        }, {});
-
-        await setRedis(REDIS_PROPERTY_PERMISSION, JSON.stringify(formatData));
-        return formatData;
+        const data = await permissionModel.init(conn);
+        return data;
       } catch (error) {
         throw error;
       } finally {
         conn.release();
       }
     } catch (error) {
-      console.log(error);
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
     }
@@ -112,44 +62,15 @@ class PermissionService extends DatabaseService {
   //getallrow
   async getallrows(query) {
     try {
-      const offset = query.offset || 0;
-      const limit = query.limit || 10;
-      const isDeleted = query.is_deleted || 0;
-      let where = `is_deleted = ?`;
-      const conditions = [isDeleted];
-
-      if (query.keyword) {
-        where += ` AND name LIKE ?`;
-        conditions.push(`%${query.keyword}%`);
-      }
-
-      if (query.publish) {
-        where += ` AND publish = ?`;
-        conditions.push(query.publish);
-      }
-
-      const select = `id,name,method,group_,router,publish,created_at,updated_at`;
-
       const { conn } = await db.getConnection();
-      const [res_, count] = await Promise.all([
-        this.select(
-          conn,
-          tableName,
-          select,
-          where,
-          conditions,
-          "id",
-          "DESC",
-          offset,
-          limit
-        ),
-        this.count(conn, tableName, "*", where, conditions),
-      ]);
-
-      const totalPage = Math.ceil(count?.[0]?.total / limit);
-
-      conn.release();
-      return { data: res_, totalPage };
+      try {
+        const data = await permissionModel.getallrows(conn, query);
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }
@@ -158,22 +79,15 @@ class PermissionService extends DatabaseService {
   //getbyid
   async getById(params, query) {
     try {
-      const { id } = params;
-      const isDeleted = query.is_deleted || 0;
-      const where = `is_deleted = ? AND id = ?`;
-      const conditions = [isDeleted, id];
-      const selectData = `id,name,method,router,group_,publish`;
-
       const { conn } = await db.getConnection();
-      const res_ = await this.select(
-        conn,
-        tableName,
-        selectData,
-        where,
-        conditions
-      );
-      conn.release();
-      return res_;
+      try {
+        const data = await permissionModel.getById(conn, params, query);
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }
@@ -182,30 +96,21 @@ class PermissionService extends DatabaseService {
   //Register
   async register(body) {
     try {
-      const { name, method, router, group_, publish } = body;
-      const permission = new PermissionModel({
-        name,
-        method,
-        router,
-        group_,
-        publish,
-        is_deleted: 0,
-        created_at: Date.now(),
-      });
-      delete permission.updated_at;
-
       const { conn } = await db.getConnection();
-      const isCheck = await this.validate(conn, name);
-      if (!isCheck.result) {
+      try {
+        const { name } = body;
+
+        const isCheck = await this.validate(conn, name);
+        if (!isCheck.result) {
+          throw isCheck.errors;
+        }
+        const data = await permissionModel.register(conn, body);
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
         conn.release();
-        throw isCheck.errors;
       }
-      const res_ = await this.insert(conn, tableName, permission);
-      await this.init();
-      conn.release();
-      permission.id = res_;
-      delete permission.is_deleted;
-      return permission;
     } catch (error) {
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
@@ -215,34 +120,23 @@ class PermissionService extends DatabaseService {
   //update
   async updateById(body, params) {
     try {
-      const { name, method, router, group_, publish } = body;
-      const { id } = params;
-
       const { conn } = await db.getConnection();
+      try {
+        const { name } = body;
+        const { id } = params;
 
-      const isCheck = await this.validate(conn, name, id);
-      if (!isCheck.result) {
+        const isCheck = await this.validate(conn, name, id);
+        if (!isCheck.result) {
+          throw isCheck.errors;
+        }
+
+        const data = await permissionModel.updateById(conn, body, params);
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
         conn.release();
-        throw isCheck.errors;
       }
-
-      const perission = new PermissionModel({
-        name,
-        method,
-        router,
-        group_,
-        publish,
-        updated_at: Date.now(),
-      });
-      // console.log(id)
-      delete perission.created_at;
-      delete perission.is_deleted;
-
-      await this.update(conn, tableName, perission, "id", id);
-      await this.init();
-      conn.release();
-      perission.id = id;
-      return perission;
     } catch (error) {
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
@@ -254,26 +148,7 @@ class PermissionService extends DatabaseService {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
-        const { id } = params;
-        await connPromise.beginTransaction();
-        await this.update(conn, tableName, { is_deleted: 1 }, "id", id);
-        await this.update(
-          conn,
-          tableRolePermission,
-          { is_deleted: 1 },
-          "permission_id",
-          id
-        );
-        await this.update(
-          conn,
-          tableRolePermission,
-          { is_deleted: 1 },
-          "permission_id",
-          id
-        );
-        await this.init();
-
-        await connPromise.commit();
+        await permissionModel.deleteById(conn, connPromise, params);
 
         return [];
       } catch (error) {
@@ -290,14 +165,15 @@ class PermissionService extends DatabaseService {
   //updatePublish
   async updatePublish(body, params) {
     try {
-      const { id } = params;
-      const { publish } = body;
-
       const { conn } = await db.getConnection();
-      await this.update(conn, tableName, { publish }, "id", id);
-      await this.init();
-      conn.release();
-      return [];
+      try {
+        await permissionModel.updatePublish(conn, body, params);
+        return [];
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }

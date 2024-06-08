@@ -1,4 +1,4 @@
-class UsersDevicesModel {
+class UsersDevicesSchema {
   constructor({
     user_id,
     device_id,
@@ -18,4 +18,4 @@ class UsersDevicesModel {
   }
 }
 
-module.exports = UsersDevicesModel;
+module.exports = UsersDevicesSchema;

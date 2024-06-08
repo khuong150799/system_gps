@@ -1,26 +1,19 @@
-const DatabaseService = require("./query.service");
 const db = require("../dbs/init.mysql");
 const { BusinessLogicError } = require("../core/error.response");
-const tableName = "tbl_license_type";
+const licenseTypeModel = require("../models/licenseType.model");
 
-class LicenseTypeService extends DatabaseService {
-  constructor() {
-    super();
-  }
+class LicenseTypeService {
   async getAllRows() {
     try {
       const { conn } = await db.getConnection();
-      const data = await this.select(
-        conn,
-        tableName,
-        "id,title",
-        "1 = ?",
-        [1],
-        "id",
-        "ASC"
-      );
-      conn.release();
-      return data;
+      try {
+        const data = await licenseTypeModel.getAllRows(conn);
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }

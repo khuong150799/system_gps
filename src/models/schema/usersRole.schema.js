@@ -1,4 +1,4 @@
-class UsersRoleModel {
+class UsersRoleSchema {
   constructor({ user_id, role_id, created_at, updated_at }) {
     this.user_id = user_id;
     this.role_id = role_id;
@@ -7,4 +7,4 @@ class UsersRoleModel {
   }
 }
 
-module.exports = UsersRoleModel;
+module.exports = UsersRoleSchema;

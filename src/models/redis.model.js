@@ -1,7 +1,7 @@
 const { BusinessLogicError } = require("../core/error.response");
 const { getRedis } = require("../dbs/init.redis");
 
-class RedisService {
+class RedisModel {
   constructor() {
     this.redis = getRedis();
     this.get = this.get.bind(this);
@@ -85,4 +85,4 @@ class RedisService {
   }
 }
 
-module.exports = new RedisService();
+module.exports = new RedisModel();

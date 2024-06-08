@@ -1,15 +1,13 @@
-const DatabaseService = require("./query.service");
 const db = require("../dbs/init.mysql");
-const OrdersStatusModel = require("../models/ordersStatus.model");
 const { ERROR, ALREADY_EXITS } = require("../constants");
 const { BusinessLogicError } = require("../core/error.response");
+const DatabaseModel = require("../models/database.model");
+const ordersStatusModel = require("../models/ordersStatus.model");
 const tableName = "tbl_orders_status";
 
-class OrdersStatusService extends DatabaseService {
-  constructor() {
-    super();
-  }
+const databaseModel = new DatabaseModel();
 
+class OrdersStatusService {
   async validate(conn, title, id = null) {
     let where = `title = ? AND is_deleted = ?`;
     const conditions = [title, 0];
@@ -18,7 +16,7 @@ class OrdersStatusService extends DatabaseService {
       conditions.push(id);
     }
 
-    const dataCheck = await this.select(
+    const dataCheck = await databaseModel.select(
       conn,
       tableName,
       "id",
@@ -45,43 +43,15 @@ class OrdersStatusService extends DatabaseService {
   //getallrow
   async getallrows(query) {
     try {
-      const offset = query.offset || 0;
-      const limit = query.limit || 10;
-      const isDeleted = query.is_deleted || 0;
-      let where = `is_deleted = ?`;
-      const conditions = [isDeleted];
-
-      if (query.keyword) {
-        where += ` AND title LIKE ?`;
-        conditions.push(`%${query.keyword}%`);
-      }
-
-      if (query.publish) {
-        where += ` AND publish = ?`;
-        conditions.push(query.publish);
-      }
-
-      const select = "id,title,des,publish,created_at,updated_at";
       const { conn } = await db.getConnection();
-      const [res_, count] = await Promise.all([
-        this.select(
-          conn,
-          tableName,
-          select,
-          where,
-          conditions,
-          "id",
-          "DESC",
-          offset,
-          limit
-        ),
-        this.count(conn, tableName, "*", where, conditions),
-      ]);
-
-      const totalPage = Math.ceil(count?.[0]?.total / limit);
-
-      conn.release();
-      return { data: res_, totalPage };
+      try {
+        const data = await ordersStatusModel.getallrows(conn, query);
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }
@@ -90,22 +60,15 @@ class OrdersStatusService extends DatabaseService {
   //getbyid
   async getById(params, query) {
     try {
-      const { id } = params;
-      const isDeleted = query.is_deleted || 0;
-      const where = `is_deleted = ? AND id = ?`;
-      const conditions = [isDeleted, id];
-      const selectData = `id,title,des,publish`;
-
       const { conn } = await db.getConnection();
-      const res_ = await this.select(
-        conn,
-        tableName,
-        selectData,
-        where,
-        conditions
-      );
-      conn.release();
-      return res_;
+      try {
+        const data = await ordersStatusModel.getById(conn, params, query);
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }
@@ -114,27 +77,22 @@ class OrdersStatusService extends DatabaseService {
   //Register
   async register(body) {
     try {
-      const { title, des, publish } = body;
-      const ordersStatus = new OrdersStatusModel({
-        title,
-        des: des || null,
-        publish,
-        is_deleted: 0,
-        created_at: Date.now(),
-      });
-      delete ordersStatus.updated_at;
-
       const { conn } = await db.getConnection();
-      const isCheck = await this.validate(conn, title);
-      if (!isCheck.result) {
+      try {
+        const { title } = body;
+
+        const isCheck = await this.validate(conn, title);
+        if (!isCheck.result) {
+          throw isCheck.errors;
+        }
+        const data = await ordersStatusModel.register(conn, body);
+
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
         conn.release();
-        throw isCheck.errors;
       }
-      const res_ = await this.insert(conn, tableName, ordersStatus);
-      conn.release();
-      ordersStatus.id = res_;
-      delete ordersStatus.is_deleted;
-      return ordersStatus;
     } catch (error) {
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
@@ -144,32 +102,23 @@ class OrdersStatusService extends DatabaseService {
   //update
   async updateById(body, params) {
     try {
-      const { title, des, publish } = body;
-      const { id } = params;
-
       const { conn } = await db.getConnection();
+      try {
+        const { title } = body;
+        const { id } = params;
 
-      const isCheck = await this.validate(conn, title, id);
-      if (!isCheck.result) {
+        const isCheck = await this.validate(conn, title, id);
+        if (!isCheck.result) {
+          throw isCheck.errors;
+        }
+        const data = await ordersStatusModel.updateById(conn, body, params);
+
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
         conn.release();
-        throw isCheck.errors;
       }
-
-      const ordersStatus = new OrdersStatusModel({
-        title,
-        des: des || null,
-        publish,
-        updated_at: Date.now(),
-      });
-      // console.log(id)
-      delete ordersStatus.created_at;
-      delete ordersStatus.sort;
-      delete ordersStatus.is_deleted;
-
-      await this.update(conn, tableName, ordersStatus, "id", id);
-      conn.release();
-      ordersStatus.id = id;
-      return ordersStatus;
     } catch (error) {
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
@@ -179,11 +128,15 @@ class OrdersStatusService extends DatabaseService {
   //delete
   async deleteById(params) {
     try {
-      const { id } = params;
       const { conn } = await db.getConnection();
-      await this.update(conn, tableName, { is_deleted: 1 }, "id", id);
-      conn.release();
-      return [];
+      try {
+        await ordersStatusModel.deleteById(conn, params);
+        return [];
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }
@@ -192,13 +145,15 @@ class OrdersStatusService extends DatabaseService {
   //updatePublish
   async updatePublish(body, params) {
     try {
-      const { id } = params;
-      const { publish } = body;
-
       const { conn } = await db.getConnection();
-      await this.update(conn, tableName, { publish }, "id", id);
-      conn.release();
-      return [];
+      try {
+        await ordersStatusModel.updatePublish(conn, body, params);
+        return [];
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }

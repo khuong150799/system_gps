@@ -43,30 +43,40 @@ class CustomersController {
     CREATED(res, [data]);
   });
 
+  registerDevices = catchAsync(async (req, res) => {
+    const body = req.body;
+    const params = req.params;
+    const userId = req.userId;
+    const data = await usersSrevice.registerDevices(body, params, userId);
+    CREATED(res, [data]);
+  });
+
   updateById = catchAsync(async (req, res) => {
     const body = req.body;
     const params = req.params;
-
-    const data = await usersSrevice.updateById(body, params);
+    const userId = req.userId;
+    const data = await usersSrevice.updateById(body, params, userId);
     UPDATE(res, [data]);
   });
 
   deleteById = catchAsync(async (req, res) => {
     const params = req.params;
-    const data = await usersSrevice.deleteById(params);
+    const userId = req.userId;
+    const data = await usersSrevice.deleteById(params, userId);
     DELETE(res, data);
   });
 
   resetPass = catchAsync(async (req, res) => {
     const params = req.params;
-    const data = await usersSrevice.resetPass(params);
+    const userId = req.userId;
+    const data = await usersSrevice.resetPass(params, userId);
     UPDATE(res, data);
   });
 
   changePass = catchAsync(async (req, res) => {
     const body = req.body;
-    const params = req.params;
-    const data = await usersSrevice.changePass(body, params);
+    const userId = req.userId;
+    const data = await usersSrevice.changePass(body, userId);
     UPDATE(res, data);
   });
   login = catchAsync(async (req, res) => {

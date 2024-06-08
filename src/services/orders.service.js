@@ -1,6 +1,4 @@
-const DatabaseService = require("./query.service");
 const db = require("../dbs/init.mysql");
-const OrdersModel = require("../models/orders.model");
 const {
   ERROR,
   ALREADY_EXITS,
@@ -8,8 +6,6 @@ const {
   DIFFERENT_RECIVER_ORDERS,
   NOT_EMPTY,
   STRUCTURE_ORDERS_FAIL,
-  NOT_ACTIVE_ACCOUNT,
-  DELETED_ACCOUNT,
   IS_ACTIVED,
   NOT_ACTIVE_CUSTOMER,
   DELETED_CUSTOMER,
@@ -17,22 +13,18 @@ const {
   MERGE_ORDER_FAIL,
 } = require("../constants");
 const { BusinessLogicError } = require("../core/error.response");
-const { makeCode } = require("../ultils/makeCode");
+const DatabaseModel = require("../models/database.model");
+const ordersModel = require("../models/orders.model");
 const tableName = "tbl_orders";
-const tableOrdersDevice = "tbl_orders_device";
 const tableDevice = "tbl_device";
 const tableUsers = "tbl_users";
-const tableRole = "tbl_role";
 const tableCustomers = "tbl_customers";
 const tableUsersCustomers = "tbl_users_customers";
-const tableUsersRole = "tbl_users_role";
 const tableUsersDevice = "tbl_users_devices";
 
-class OrdersService extends DatabaseService {
-  constructor() {
-    super();
-  }
+const databaseModel = new DatabaseModel();
 
+class OrdersService {
   async validate(
     conn,
     code,
@@ -56,7 +48,7 @@ class OrdersService extends DatabaseService {
       where += ` AND ${tableName}.id <> ?`;
       conditions.push(id);
 
-      const ordersInfo = await this.select(
+      const ordersInfo = await databaseModel.select(
         conn,
         tableName,
         "creator_customer_id",
@@ -84,9 +76,9 @@ class OrdersService extends DatabaseService {
     }
 
     const [dataCheckCode, dataDevice] = await Promise.all([
-      this.select(conn, tableName, `id`, where, conditions),
+      databaseModel.select(conn, tableName, `id`, where, conditions),
 
-      this.select(
+      databaseModel.select(
         conn,
         joinTableUsersDevice,
         selectDevice,
@@ -99,8 +91,8 @@ class OrdersService extends DatabaseService {
     let dataInfo = [];
     if (reciver) {
       const joinTableUsersCustomers = `${tableUsersCustomers} INNER JOIN ${tableUsers} ON ${tableUsersCustomers}.user_id = ${tableUsers}.id`;
-      console.log({ reciver });
-      const info = await this.select(
+      // console.log({ reciver });
+      const info = await databaseModel.select(
         conn,
         joinTableUsersCustomers,
         `${tableUsers}.id,${tableUsers}.parent_id,${tableUsers}.is_actived,${tableUsers}.is_deleted`,
@@ -108,7 +100,7 @@ class OrdersService extends DatabaseService {
         [reciver, 1],
         `${tableUsersCustomers}.id`
       );
-      console.log({ info });
+      // console.log({ info });
       if (info?.length <= 0) {
         errors.push({
           value: reciver,
@@ -128,7 +120,7 @@ class OrdersService extends DatabaseService {
           param: "reciver",
         });
       } else {
-        const dataReciverParent = await this.select(
+        const dataReciverParent = await databaseModel.select(
           conn,
           joinTableUsersCustomers,
           `${tableUsersCustomers}.customer_id as id`,
@@ -216,7 +208,7 @@ class OrdersService extends DatabaseService {
     if (errors.length) return { result: false, errors: { msg: ERROR, errors } };
 
     const joinTable = `${tableUsersCustomers} INNER JOIN ${tableUsers} ON ${tableUsersCustomers}.user_id = ${tableUsers}.id`;
-    const dataInfo = await this.select(
+    const dataInfo = await databaseModel.select(
       conn,
       joinTable,
       `${tableUsers}.id,${tableUsers}.is_actived,${tableUsers}.is_deleted`,
@@ -250,7 +242,7 @@ class OrdersService extends DatabaseService {
     const where = `code IN (?) AND is_deleted = 0`;
     const conditions = [listOrders];
 
-    const dataOrdersExits = await this.select(
+    const dataOrdersExits = await databaseModel.select(
       conn,
       tableName,
       "id,code,reciver,quantity",
@@ -321,7 +313,7 @@ class OrdersService extends DatabaseService {
       if (i > 0) {
         result = [
           ...result,
-          this.select(
+          databaseModel.select(
             conn,
             joinTable,
             select,
@@ -337,7 +329,7 @@ class OrdersService extends DatabaseService {
 
     const dataInfo = await Promise.all(arrayPromise);
     const arrayPromiseParent = dataInfo.map((item) =>
-      this.select(
+      databaseModel.select(
         conn,
         joinTable,
         `${tableCustomers}.id`,
@@ -381,7 +373,7 @@ class OrdersService extends DatabaseService {
       ${tableName} INNER JOIN ${tableUsersCustomers} ON ${tableName}.creator_customer_id = ${tableUsersCustomers}.customer_id 
       INNER JOIN ${tableUsers} ON ${tableUsersCustomers}.user_id = ${tableUsers}.id`;
     const [dataOwnerDevice, dataOwnerOrders] = await Promise.all([
-      this.select(
+      databaseModel.select(
         conn,
         joinTableUsersDeviceWithUsersCustomers,
         `${tableUsersDevice}.user_id ,${tableUsersCustomers}.customer_id`,
@@ -389,7 +381,7 @@ class OrdersService extends DatabaseService {
         [0, deviceId, id],
         `${tableUsersDevice}.id`
       ),
-      this.select(
+      databaseModel.select(
         conn,
         joinTableOdersUsersWithUsersCustomersWithUsers,
         `${tableUsersCustomers}.user_id ,${tableName}.creator_customer_id as customer_id,${tableName}.quantity`,
@@ -413,67 +405,15 @@ class OrdersService extends DatabaseService {
   //getallrow
   async getallrows(query) {
     try {
-      const offset = query.offset || 0;
-      const limit = query.limit || 10;
-
-      const { is_deleted, keyword, orders_status_id, customer_id } = query;
-      const isDeleted = is_deleted || 0;
-      let where = `${tableName}.is_deleted = ?`;
-      const conditions = [isDeleted];
-
-      if (keyword) {
-        where += ` AND (code LIKE ? OR ${tableCustomers}.name LIKE ? OR c.anme LIKE ? OR c.company LIKE ? OR ${tableUsers}.username LIKE ?)`;
-        conditions.push(
-          `%${keyword}%`,
-          `%${keyword}%`,
-          `%${keyword}%`,
-          `%${keyword}%`,
-          `%${keyword}%`
-        );
-      }
-
-      if (orders_status_id) {
-        where += ` AND ${tableName}.orders_status_id = ?`;
-        conditions.push(orders_status_id);
-      }
-
-      if (customer_id) {
-        where += ` AND ${tableName}.reciver = ?`;
-        conditions.push(customer_id);
-      }
-
-      // const joinTable = `${tableName} INNER JOIN ${tableCustomers} ON ${tableName}.reciver = ${tableCustomers}.id
-      // INNER JOIN ${tableUsersCustomers} ON ${tableName}.creator = ${tableUsersCustomers}.user_id
-      // INNER JOIN ${tableCustomers} c ON ${tableUsersCustomers}.customer_id = c.id
-      // INNER JOIN ${tableUsers} ON ${tableName}.creator = ${tableUsers}.id
-      // INNER JOIN ${tableUsersRole} ON ${tableName}.creator = ${tableUsersRole}.user_id
-      // INNER JOIN ${tableRole} ON ${tableUsersRole}.role_id = ${tableRole}.id`;
-
-      const joinTable = `${tableName} INNER JOIN ${tableCustomers} ON ${tableName}.reciver = ${tableCustomers}.id 
-      INNER JOIN ${tableCustomers} c ON ${tableName}.creator_customer_id = c.id 
-      INNER JOIN ${tableUsers} ON ${tableName}.creator_user_id = ${tableUsers}.id`;
-
-      const select = `${tableName}.id,${tableName}.code,${tableName}.quantity,COALESCE(${tableCustomers}.company, ${tableCustomers}.name) as reciver,COALESCE(c.company, c.name) as creator_customer,${tableUsers}.username as ceator_user,${tableName}.orders_status_id,${tableName}.created_at,${tableName}.updated_at`;
       const { conn } = await db.getConnection();
-      const [res_, count] = await Promise.all([
-        this.select(
-          conn,
-          joinTable,
-          select,
-          where,
-          conditions,
-          `${tableName}.id`,
-          "DESC",
-          offset,
-          limit
-        ),
-        this.count(conn, joinTable, "*", where, conditions),
-      ]);
-
-      const totalPage = Math.ceil(count?.[0]?.total / limit);
-
-      conn.release();
-      return { data: res_, totalPage };
+      try {
+        const data = await ordersModel.getallrows(conn, query);
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }
@@ -482,28 +422,15 @@ class OrdersService extends DatabaseService {
   //getbyid
   async getById(params, query) {
     try {
-      const { id } = params;
-      const isDeleted = query.is_deleted || 0;
-      const where = `${tableName}.is_deleted = ? AND ${tableName}.id = ?`;
-      const conditions = [isDeleted, id];
-
-      const joinTable = `${tableName} INNER JOIN ${tableOrdersDevice} ON ${tableName}.id = ${tableOrdersDevice}.orders_id 
-        INNER JOIN ${tableDevice} ON ${tableOrdersDevice}.device_id = ${tableDevice}.id`;
-
-      const selectData = `${tableName}.id,${tableName}.code,${tableName}.reciver,${tableName}.note,${tableName}.orders_status_id,
-        JSON_ARRAYAGG(JSON_OBJECT('id', ${tableDevice}.id,'imei', ${tableDevice}.imei)) AS devices`;
-
       const { conn } = await db.getConnection();
-      const res_ = await this.select(
-        conn,
-        joinTable,
-        selectData,
-        `${where} GROUP BY ${tableName}.id,${tableName}.code`,
-        conditions,
-        `${tableName}.id`
-      );
-      conn.release();
-      return res_;
+      try {
+        const data = await ordersModel.getById(conn, params, query);
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }
@@ -514,22 +441,9 @@ class OrdersService extends DatabaseService {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
-        const { code, devices_id, reciver, note } = body;
+        const { code, devices_id, reciver } = body;
 
         const listDevice = JSON.parse(devices_id);
-
-        const orders = new OrdersModel({
-          code,
-          creator_user_id: userId,
-          creator_customer_id: customerId,
-          reciver,
-          quantity: listDevice?.length,
-          orders_status_id: 1,
-          note: note || null,
-          is_deleted: 0,
-          created_at: Date.now(),
-        });
-        delete orders.updated_at;
 
         const isCheck = await this.validate(
           conn,
@@ -539,111 +453,21 @@ class OrdersService extends DatabaseService {
           customerId
         );
         if (!isCheck.result) {
-          conn.release();
           throw isCheck.errors;
         }
-
-        await connPromise.beginTransaction();
-
-        const res_ = await this.insertDuplicate(
-          conn,
-          tableName,
-          `code,
-          creator_user_id,
-          creator_customer_id,
-          reciver,
-          quantity,
-          orders_status_id,
-          note,
-          is_deleted,
-          created_at`,
-          [
-            [
-              code,
-              userId,
-              customerId,
-              reciver,
-              listDevice?.length,
-              1,
-              note || null,
-              0,
-              Date.now(),
-            ],
-          ],
-          `code=VALUES(code),creator_user_id=VALUES(creator_user_id),creator_customer_id=VALUES(creator_customer_id),reciver=VALUES(reciver),quantity=VALUES(quantity),
-          orders_status_id=VALUES(orders_status_id),note=VALUES(note),is_deleted=VALUES(is_deleted),created_at=VALUES(created_at)`
-        );
-
         const { dataInfo } = isCheck.data;
         const { id: userIdReciver } = dataInfo[0];
 
-        const dataInsert = listDevice.reduce(
-          (result, item) => {
-            result.ordersDevices = [
-              ...result.ordersDevices,
-              [res_, item, 0, Date.now()],
-            ];
-
-            result.usersDevicesInsert = [
-              ...result.usersDevicesInsert,
-              [userIdReciver, item, 1, 0, 0, Date.now()],
-            ];
-
-            const dateeUpdate = {
-              conditionField: ["is_moved", "device_id"],
-              conditionValue: [0, item],
-              updateValue: 1,
-            };
-            result.usersDevicesUpdate = [
-              ...result.usersDevicesUpdate,
-              dateeUpdate,
-            ];
-
-            return result;
-          },
-          { ordersDevices: [], usersDevicesInsert: [], usersDevicesUpdate: [] }
-        );
-
-        const { ordersDevices, usersDevicesInsert, usersDevicesUpdate } =
-          dataInsert;
-
-        await this.insertDuplicate(
+        const data = await ordersModel.register(
           conn,
-          tableOrdersDevice,
-          "orders_id,device_id,is_deleted,created_at",
-          ordersDevices,
-          "is_deleted=VALUES(is_deleted)"
+          connPromise,
+          userIdReciver,
+          body,
+          userId,
+          customerId
         );
 
-        const dataUpdate = [
-          {
-            field: "is_moved",
-            conditions: usersDevicesUpdate,
-          },
-        ];
-        await this.updatMultiRowsWithMultiConditions(
-          conn,
-          tableUsersDevice,
-          dataUpdate,
-          "",
-          "ID",
-          "AND"
-        );
-
-        await this.insertDuplicate(
-          conn,
-          tableUsersDevice,
-          "user_id,device_id,is_main,is_deleted,is_moved,created_at",
-          usersDevicesInsert,
-          `is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved)`
-        );
-
-        await connPromise.commit();
-
-        conn.release();
-        orders.id = res_;
-        delete orders.is_deleted;
-        return orders;
+        return data;
       } catch (error) {
         await connPromise.rollback();
         throw error;
@@ -660,80 +484,30 @@ class OrdersService extends DatabaseService {
   async merge(body, userId, customerId) {
     const { conn, connPromise } = await db.getConnection();
     try {
-      const { code, orders_code, reciver, note } = body;
+      const { orders_code, reciver } = body;
 
       const listOrdersCode = JSON.parse(orders_code);
 
       const isCheck = await this.validateMerge(conn, listOrdersCode, reciver);
       if (!isCheck.result) {
-        conn.release();
         throw isCheck.errors;
       }
 
       const dataOrdersDb = isCheck.data;
 
-      const { quantity, listOrdersId, ordersIdKeep } = dataOrdersDb.reduce(
-        (result, item) => {
-          result.quantity += item.quantity;
-
-          if (item.code.toString() === code.toString()) {
-            result.ordersIdKeep = item.id;
-          } else {
-            result.listOrdersId = [...result.listOrdersId, item.id];
-          }
-          return result;
-        },
-        { quantity: 0, listOrdersId: [], ordersIdKeep: null }
-      );
-
-      if (quantity === 0 || listOrdersId.length === 0 || !ordersIdKeep)
-        throw { msg: ERROR };
-
-      await connPromise.beginTransaction();
-
-      const orders = new OrdersModel({
-        code,
-        creator_user_id: userId,
-        creator_customer_id: customerId,
-        reciver,
-        quantity,
-        orders_status_id: 1,
-        note: note || null,
-        is_deleted: 0,
-        created_at: Date.now(),
-        updated_at: null,
-      });
-
-      await this.update(
+      const data = await ordersModel.merge(
         conn,
-        tableName,
-        {
-          is_deleted: 1,
-          note: `Đơn hàng được merge vào đơn hàng mới có mã ${code}`,
-        },
-        "id",
-        listOrdersId
+        connPromise,
+        dataOrdersDb,
+        body,
+        userId,
+        customerId
       );
 
-      await this.update(conn, tableName, orders, "id", ordersIdKeep);
-      await this.update(
-        conn,
-        tableOrdersDevice,
-        { orders_id: ordersIdKeep },
-        "orders_id",
-        listOrdersId
-      );
-
-      await connPromise.commit();
-
-      conn.release();
-      orders.id = ordersIdKeep;
-      delete orders.is_deleted;
-      return orders;
+      return data;
     } catch (error) {
       await connPromise.rollback();
       const { msg, errors } = error;
-      console.log("error", error);
       throw new BusinessLogicError(msg, errors);
     } finally {
       conn.release();
@@ -745,11 +519,10 @@ class OrdersService extends DatabaseService {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
-        const { code, devices_id, recivers, note } = body;
+        const { code, devices_id, recivers } = body;
 
         const listDevice = JSON.parse(devices_id);
         const listReciver = JSON.parse(recivers);
-        const createdAt = Date.now();
 
         const isCheck = await this.validate(
           conn,
@@ -759,113 +532,23 @@ class OrdersService extends DatabaseService {
           customerId
         );
         if (!isCheck.result) {
-          conn.release();
           throw isCheck.errors;
         }
 
         const isCheckRecivers = await this.validateRecivers(conn, listReciver);
         if (!isCheckRecivers.result) {
-          conn.release();
           throw isCheckRecivers.errors;
         }
 
         const { data: dataInfo } = isCheckRecivers;
 
-        await connPromise.beginTransaction();
-
-        const dataInsertOrders = listReciver.reduce((result, item, i) => {
-          if (i !== listReciver.length - 1) {
-            const data = [
-              i === 0 ? code : makeCode(),
-              userId,
-              item,
-              listReciver[i + 1],
-              listDevice?.length,
-              1,
-              note || null,
-              0,
-              createdAt,
-            ];
-            result = [...result, data];
-          }
-
-          return result;
-        }, []);
-
-        const res_ = await this.insertDuplicate(
+        await ordersModel.registerTree(
           conn,
-          tableName,
-          "code,creator_user_id,creator_customer_id,reciver,quantity,orders_status_id,note,is_deleted,created_at",
-          dataInsertOrders,
-          `code=VALUES(code),creator_user_id=VALUES(creator_user_id),creator_customer_id=VALUES(creator_customer_id),
-          reciver=VALUES(reciver),quantity=VALUES(quantity),orders_status_id=VALUES(orders_status_id),note=VALUES(note),
-          is_deleted=VALUES(is_deleted),updated_at=VALUES(created_at)`
+          connPromise,
+          dataInfo,
+          body,
+          userId
         );
-        const dataInsertOrdersDevice = listReciver.reduce((result, item, i) => {
-          if (i !== listReciver.length - 1) {
-            const orders_id = res_ + i;
-            result = [
-              ...result,
-              ...listDevice.map((item1) => [orders_id, item1, 0, Date.now()]),
-            ];
-          }
-          return result;
-        }, []);
-        // console.log("dataInsertOrdersDevice", dataInsertOrdersDevice);
-        await this.insertDuplicate(
-          conn,
-          tableOrdersDevice,
-          "orders_id,device_id,is_deleted,created_at",
-          dataInsertOrdersDevice,
-          `orders_id=VALUES(orders_id),device_id=VALUES(device_id),is_deleted=VALUES(is_deleted),updated_at=VALUES(created_at)`
-        );
-
-        const usersDevicesUpdate = listDevice.map((item) => ({
-          conditionField: ["is_moved", "device_id"],
-          conditionValue: [0, item],
-          updateValue: 1,
-        }));
-        const dataUpdate = [
-          {
-            field: "is_moved",
-            conditions: usersDevicesUpdate,
-          },
-        ];
-        await this.updatMultiRowsWithMultiConditions(
-          conn,
-          tableUsersDevice,
-          dataUpdate,
-          "",
-          "ID",
-          "AND"
-        );
-
-        const usersDevicesInsert = dataInfo.reduce((result, item, i) => {
-          result = [
-            ...result,
-            ...listDevice.map((item1) => [
-              item[0].id,
-              item1,
-              1,
-              0,
-              i === dataInfo.length - 1 ? 0 : 1,
-              Date.now(),
-            ]),
-          ];
-          return result;
-        }, []);
-
-        await this.insertDuplicate(
-          conn,
-          tableUsersDevice,
-          "user_id,device_id,is_main,is_deleted,is_moved,created_at",
-          usersDevicesInsert,
-          `is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved)`
-        );
-
-        await connPromise.commit();
-
-        conn.release();
 
         return [];
       } catch (error) {
@@ -882,127 +565,63 @@ class OrdersService extends DatabaseService {
 
   //update
   async updateById(body, params, customerId) {
-    const { conn, connPromise } = await db.getConnection();
     try {
-      const { code, devices_id, reciver, note } = body;
+      const { conn, connPromise } = await db.getConnection();
+      try {
+        const { code, devices_id, reciver } = body;
 
-      if (devices_id === "") return [];
+        if (devices_id === "") return [];
 
-      const listDevice = JSON.parse(devices_id);
-      const { id } = params;
+        const listDevice = JSON.parse(devices_id);
+        const { id } = params;
 
-      const isCheck = await this.validate(
-        conn,
-        code,
-        listDevice,
-        reciver,
-        customerId,
-        id
-      );
-      if (!isCheck.result) {
+        const isCheck = await this.validate(
+          conn,
+          code,
+          listDevice,
+          reciver,
+          customerId,
+          id
+        );
+        if (!isCheck.result) {
+          throw isCheck.errors;
+        }
+
+        const { dataInfo } = isCheck.data;
+
+        const data = await ordersModel.updateById(
+          conn,
+          connPromise,
+          dataInfo,
+          body,
+          params
+        );
+
+        return data;
+      } catch (error) {
+        await connPromise.rollback();
+        throw error;
+      } finally {
         conn.release();
-        throw isCheck.errors;
       }
-
-      const orders = new OrdersModel({
-        code,
-        reciver,
-        quantity: listDevice?.length,
-        note: note || null,
-        updated_at: Date.now(),
-      });
-      delete orders.creator_customer_id;
-      delete orders.creator_user_id;
-      delete orders.created_at;
-      delete orders.orders_status_id;
-      delete orders.is_deleted;
-
-      await connPromise.beginTransaction();
-      const dataUpdateOrders = `code = "${code}", reciver = ${reciver}, quantity = quantity + ${
-        listDevice?.length
-      }, note = "${note || null}", updated_at = ${Date.now()}`;
-      await this.update(conn, tableName, dataUpdateOrders, "id", id);
-
-      const dataInsert = listDevice?.map((item) => [id, item, 0, Date.now()]);
-      await this.insertDuplicate(
-        conn,
-        tableOrdersDevice,
-        "orders_id,device_id,is_deleted,created_at",
-        dataInsert,
-        `orders_id=VALUES(orders_id),device_id=VALUES(device_id),is_deleted=VALUES(is_deleted),updated_at=VALUES(created_at)`
-      );
-
-      const { dataInfo } = isCheck.data;
-
-      const { usersDevicesUpdate, usersDevicesInsert } = listDevice.reduce(
-        (result, item) => {
-          result.usersDevicesUpdate = [
-            ...result.usersDevicesUpdate,
-            {
-              conditionField: ["is_moved", "device_id"],
-              conditionValue: [0, item],
-              updateValue: 1,
-            },
-          ];
-
-          result.usersDevicesInsert = [
-            ...result.usersDevicesInsert,
-            [dataInfo[0].id, item, 1, 0, 0, Date.now()],
-          ];
-          return result;
-        },
-        { usersDevicesUpdate: [], usersDevicesInsert: [] }
-      );
-
-      if (usersDevicesUpdate?.length <= 0 || usersDevicesInsert.length <= 0)
-        throw { msg: ERROR };
-
-      const dataUpdate = [
-        {
-          field: "is_moved",
-          conditions: usersDevicesUpdate,
-        },
-      ];
-      await this.updatMultiRowsWithMultiConditions(
-        conn,
-        tableUsersDevice,
-        dataUpdate,
-        "",
-        "ID",
-        "AND"
-      );
-
-      await this.insertDuplicate(
-        conn,
-        tableUsersDevice,
-        "user_id,device_id,is_main,is_deleted,is_moved,created_at",
-        usersDevicesInsert,
-        `is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved)`
-      );
-
-      await connPromise.commit();
-
-      conn.release();
-      orders.id = id;
-      return orders;
     } catch (error) {
-      console.log(error);
-      await connPromise.rollback();
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
-    } finally {
-      conn.release();
     }
   }
 
   //delete
   async deleteById(params) {
     try {
-      const { id } = params;
       const { conn } = await db.getConnection();
-      await this.update(conn, tableName, { is_deleted: 1 }, "id", id);
-      conn.release();
-      return [];
+      try {
+        await ordersModel.deleteById(conn, params);
+        return [];
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }
@@ -1023,100 +642,21 @@ class OrdersService extends DatabaseService {
           customerId
         );
         if (!isCheck.result) {
-          conn.release();
           throw isCheck.errors;
         }
 
         const { dataOwnerDevice, dataOwnerOrders } = isCheck.data;
 
-        const joinTableUserWithUsersCustomersWithUsersDevice = `
-          ${tableUsers} INNER JOIN ${tableUsersCustomers} On ${tableUsers}.id = ${tableUsersCustomers}.user_id 
-          INNER JOIN ${tableUsersDevice} On ${tableUsers}.id = ${tableUsersDevice}.user_id
-          LEFT JOIN ${tableName} On ${tableUsersCustomers}.customer_id = ${tableName}.creator_customer_id
-          `;
-
-        const dataUserAndCustomerDelete = [];
-        const dequy = async (data) => {
-          dataUserAndCustomerDelete.push(data[0]);
-          const id = data[0].user_id;
-
-          const dataRes = await connPromise.query(
-            `SELECT ${tableUsers}.id as user_id,${tableUsersCustomers}.customer_id,${tableName}.quantity FROM ${joinTableUserWithUsersCustomersWithUsersDevice} WHERE ${tableUsers}.parent_id = ? AND ${tableUsers}.is_deleted = ? AND ${tableUsersDevice}.device_id = ? `,
-            [id, 0, device_id]
-          );
-
-          if (
-            dataRes?.[0]?.[0].length > 0 &&
-            dataRes[0][0].id !== dataOwnerDevice[0].user_id
-          ) {
-            await dequy(dataRes[0]);
-          }
-        };
-        await dequy(dataOwnerOrders);
-
-        const formatData = dataUserAndCustomerDelete.reduce(
-          (result, item) => {
-            result.listUserId = [...result.listUserId, item.user_id];
-            result.listCustomerId = [
-              ...result.listCustomerId,
-              item.customer_id,
-            ];
-            if (item.quantity > 0) {
-              const dateeUpdate = {
-                conditionField: [
-                  `${tableName}.creator_customer_id`,
-                  `${tableOrdersDevice}.device_id`,
-                ],
-                conditionValue: [item.customer_id, device_id],
-                updateValue: item.quantity - 1,
-              };
-              result.dataOrdersUpdateMulti = [
-                ...result.dataOrdersUpdateMulti,
-                dateeUpdate,
-              ];
-            }
-            return result;
-          },
-          { listUserId: [], listCustomerId: [], dataOrdersUpdateMulti: [] }
-        );
-
-        const { listUserId, listCustomerId, dataOrdersUpdateMulti } =
-          formatData;
-        await connPromise.beginTransaction();
-
-        await this.update(
+        const data = await ordersModel.deleteDevice(
           conn,
-          tableUsersDevice,
-          { is_deleted: 1 },
-          `${tableUsersDevice}.user_id IN (?) AND ${tableUsersDevice}.device_id`,
-          [listUserId, device_id]
+          connPromise,
+          dataOwnerDevice,
+          dataOwnerOrders,
+          body
         );
 
-        const joinTableOrdersWithOrdersDevice = `${tableName} INNER JOIN ${tableOrdersDevice} ON ${tableName}.id = ${tableOrdersDevice}.orders_id`;
-        await this.update(
-          conn,
-          joinTableOrdersWithOrdersDevice,
-          `${tableOrdersDevice}.is_deleted = 1`,
-          `${tableName}.creator_customer_id IN (?) AND ${tableOrdersDevice}.device_id`,
-          [listCustomerId, device_id]
-        );
-        if (dataOrdersUpdateMulti?.length) {
-          await this.updatMultiRowsWithMultiConditions(
-            conn,
-            joinTableOrdersWithOrdersDevice,
-            [
-              {
-                field: "quantity",
-                conditions: dataOrdersUpdateMulti,
-              },
-            ]
-          );
-        }
-        await connPromise.commit();
-        conn.release();
-        return dataUserAndCustomerDelete;
+        return data;
       } catch (error) {
-        console.log(error);
         await connPromise.rollback();
         throw error;
       } finally {

@@ -1,6 +1,6 @@
 const { ERROR, NOT_EXITS } = require("../constants");
 
-class DatabaseService {
+class DatabaseModel {
   //get all + get by id + get where in
   async select(
     db,
@@ -108,9 +108,9 @@ class DatabaseService {
         query,
         typeof data === "string"
           ? condition
-          : Array.isArray(condition)
-          ? [data, ...condition]
-          : [data, condition],
+          : typeof data === "object"
+          ? [data, condition]
+          : [data, ...condition],
         (err, dataRes) => {
           if (err) {
             console.log(err);
@@ -353,4 +353,4 @@ class DatabaseService {
   }
 }
 
-module.exports = DatabaseService;
+module.exports = DatabaseModel;

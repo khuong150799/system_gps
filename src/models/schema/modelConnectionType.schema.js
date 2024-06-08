@@ -1,4 +1,4 @@
-class ModelConnectionTypeModel {
+class ModelConnectionTypeSchema {
   constructor({ model_id, connection_type_id, created_at, updated_at }) {
     this.model_id = model_id;
     this.connection_type_id = connection_type_id;
@@ -7,4 +7,4 @@ class ModelConnectionTypeModel {
   }
 }
 
-module.exports = ModelConnectionTypeModel;
+module.exports = ModelConnectionTypeSchema;

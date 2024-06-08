@@ -1,15 +1,13 @@
-const DatabaseService = require("./query.service");
 const db = require("../dbs/init.mysql");
-const ModelTypeModel = require("../models/modelType.model");
 const { ERROR, ALREADY_EXITS } = require("../constants");
 const { BusinessLogicError } = require("../core/error.response");
+const DatabaseModel = require("../models/database.model");
+const modelTypeModel = require("../models/modelType.model");
 const tableName = "tbl_model_type";
 
-class ModelTypeService extends DatabaseService {
-  constructor() {
-    super();
-  }
+const databaseModel = new DatabaseModel();
 
+class ModelTypeService {
   async validate(conn, name, id = null) {
     let where = `name = ? AND is_deleted = ?`;
     const conditions = [name, 0];
@@ -18,7 +16,7 @@ class ModelTypeService extends DatabaseService {
       conditions.push(id);
     }
 
-    const dataCheck = await this.select(
+    const dataCheck = await databaseModel.select(
       conn,
       tableName,
       "id",
@@ -45,43 +43,15 @@ class ModelTypeService extends DatabaseService {
   //getallrow
   async getallrows(query) {
     try {
-      const offset = query.offset || 0;
-      const limit = query.limit || 10;
-      const isDeleted = query.is_deleted || 0;
-      let where = `is_deleted = ?`;
-      const conditions = [isDeleted];
-
-      if (query.keyword) {
-        where += ` AND name LIKE ?`;
-        conditions.push(`%${query.keyword}%`);
-      }
-
-      if (query.publish) {
-        where += ` AND publish = ?`;
-        conditions.push(query.publish);
-      }
-
-      const select = "id,name,publish,created_at,updated_at";
       const { conn } = await db.getConnection();
-      const [res_, count] = await Promise.all([
-        this.select(
-          conn,
-          tableName,
-          select,
-          where,
-          conditions,
-          "id",
-          "DESC",
-          offset,
-          limit
-        ),
-        this.count(conn, tableName, "*", where, conditions),
-      ]);
-
-      const totalPage = Math.ceil(count?.[0]?.total / limit);
-
-      conn.release();
-      return { data: res_, totalPage };
+      try {
+        const data = await modelTypeModel.getallrows(conn, query);
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }
@@ -90,22 +60,15 @@ class ModelTypeService extends DatabaseService {
   //getbyid
   async getById(params, query) {
     try {
-      const { id } = params;
-      const isDeleted = query.is_deleted || 0;
-      const where = `is_deleted = ? AND id = ?`;
-      const conditions = [isDeleted, id];
-      const selectData = `id,name,des,publish`;
-
       const { conn } = await db.getConnection();
-      const res_ = await this.select(
-        conn,
-        tableName,
-        selectData,
-        where,
-        conditions
-      );
-      conn.release();
-      return res_;
+      try {
+        const data = await modelTypeModel.getById(conn, params, query);
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }
@@ -114,27 +77,21 @@ class ModelTypeService extends DatabaseService {
   //Register
   async register(body) {
     try {
-      const { name, des, publish } = body;
-      const modelType = new ModelTypeModel({
-        name,
-        des: des || null,
-        publish,
-        is_deleted: 0,
-        created_at: Date.now(),
-      });
-      delete modelType.updated_at;
-
       const { conn } = await db.getConnection();
-      const isCheck = await this.validate(conn, name);
-      if (!isCheck.result) {
+      try {
+        const { name } = body;
+
+        const isCheck = await this.validate(conn, name);
+        if (!isCheck.result) {
+          throw isCheck.errors;
+        }
+        const modelType = await modelTypeModel.register(conn, body);
+        return modelType;
+      } catch (error) {
+        throw error;
+      } finally {
         conn.release();
-        throw isCheck.errors;
       }
-      const res_ = await this.insert(conn, tableName, modelType);
-      conn.release();
-      modelType.id = res_;
-      delete modelType.is_deleted;
-      return modelType;
     } catch (error) {
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
@@ -144,32 +101,23 @@ class ModelTypeService extends DatabaseService {
   //update
   async updateById(body, params) {
     try {
-      const { name, des, publish } = body;
-      const { id } = params;
-
       const { conn } = await db.getConnection();
+      try {
+        const { name } = body;
+        const { id } = params;
 
-      const isCheck = await this.validate(conn, name, id);
-      if (!isCheck.result) {
+        const isCheck = await this.validate(conn, name, id);
+        if (!isCheck.result) {
+          throw isCheck.errors;
+        }
+
+        const modelType = await modelTypeModel.updateById(conn, body, params);
+        return modelType;
+      } catch (error) {
+        throw error;
+      } finally {
         conn.release();
-        throw isCheck.errors;
       }
-
-      const modelType = new ModelTypeModel({
-        name,
-        des: des || null,
-        publish,
-        updated_at: Date.now(),
-      });
-      // console.log(id)
-      delete modelType.created_at;
-      delete modelType.sort;
-      delete modelType.is_deleted;
-
-      await this.update(conn, tableName, modelType, "id", id);
-      conn.release();
-      modelType.id = id;
-      return modelType;
     } catch (error) {
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
@@ -179,11 +127,15 @@ class ModelTypeService extends DatabaseService {
   //delete
   async deleteById(params) {
     try {
-      const { id } = params;
       const { conn } = await db.getConnection();
-      await this.update(conn, tableName, { is_deleted: 1 }, "id", id);
-      conn.release();
-      return [];
+      try {
+        await modelTypeModel.deleteById(conn, params);
+        return [];
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }
@@ -192,13 +144,15 @@ class ModelTypeService extends DatabaseService {
   //updatePublish
   async updatePublish(body, params) {
     try {
-      const { id } = params;
-      const { publish } = body;
-
       const { conn } = await db.getConnection();
-      await this.update(conn, tableName, { publish }, "id", id);
-      conn.release();
-      return [];
+      try {
+        await modelTypeModel.updatePublish(conn, body, params);
+        return [];
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }

@@ -1,12 +1,15 @@
 const { REDIS_PROPERTY_PERMISSION } = require("../constants");
 const { Api400Error } = require("../core/error.response");
 const permissionService = require("../services/permission.service");
-const { get: getRedis } = require("../services/redis.service");
+const { get: getRedis } = require("../models/redis.model");
+const cluster = require("cluster");
 
 const checkPermission = async function (req, res, next) {
   try {
+    process.send({ worker: cluster.worker.id, cmd: "request" });
+    return next();
+
     const { role, level, method, attchPath } = req;
-    // console.log({ role, level, method, attchPath });
 
     const perissionRedis = await getRedis(REDIS_PROPERTY_PERMISSION);
     let data = {};
@@ -24,17 +27,16 @@ const checkPermission = async function (req, res, next) {
 
     const permission = data[`${method}_${attchPath}`];
     if (!permission) throw "lỗi";
-
     const { role: rolePermission, level: levelPermission } = permission;
+
     if (
       Number(role) < Number(rolePermission) ||
       Number(level) < Number(levelPermission)
-    )
+    ) {
       throw "lỗi";
-
+    }
     next();
   } catch (error) {
-    console.log(error);
     return next(new Api400Error());
   }
 };

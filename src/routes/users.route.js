@@ -49,6 +49,21 @@ module.exports = (app) => {
   );
 
   router.post(
+    "/register-device/:id",
+
+    [
+      body("devices", NOT_EMPTY)
+        .notEmpty()
+        .isString()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+    ],
+    isAuth,
+    checkPermission,
+    usersController.registerDevices
+  );
+
+  router.post(
     "/register",
     [
       body("customer_id", NOT_EMPTY)
@@ -106,7 +121,7 @@ module.exports = (app) => {
     usersController.resetPass
   );
   router.patch(
-    "/change-pass/:id",
+    "/change-pass",
     [
       param("id", VALIDATE_DATA).isNumeric(),
       body("old_password", NOT_EMPTY)

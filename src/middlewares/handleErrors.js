@@ -30,7 +30,6 @@ const logErrorMiddleware = (err, req, res, next) => {
 };
 
 const returnError = (error, req, res, next) => {
-  console.log({ error: error.errors });
   const statusCode = error.status || 500;
 
   return res.status(statusCode).json({

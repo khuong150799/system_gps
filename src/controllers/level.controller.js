@@ -63,13 +63,15 @@ class LevelController {
 
   deletePermission = catchAsync(async (req, res) => {
     const body = req.body;
-    const data = await levelService.deletePermission(body);
+    const params = req.params;
+    const data = await levelService.deletePermission(body, params);
     DELETE(res, data);
   });
 
   deleteModule = catchAsync(async (req, res) => {
     const body = req.body;
-    const data = await levelService.deleteModule(body);
+    const params = req.params;
+    const data = await levelService.deleteModule(body, params);
     DELETE(res, data);
   });
 

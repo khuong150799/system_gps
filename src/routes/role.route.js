@@ -84,8 +84,9 @@ module.exports = (app) => {
   );
 
   router.delete(
-    "/delete-permission",
+    "/delete-permission/:id",
     [
+      param("id", VALIDATE_DATA).isNumeric(),
       body("permissions", NOT_EMPTY)
         .notEmpty()
         .isString()

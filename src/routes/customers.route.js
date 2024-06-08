@@ -34,6 +34,20 @@ module.exports = (app) => {
         .notEmpty()
         .isNumeric()
         .withMessage(VALIDATE_DATA),
+      body("username", NOT_EMPTY)
+        .notEmpty()
+        .isString()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+      body("password", NOT_EMPTY)
+        .notEmpty()
+        .isString()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+      body("role_id", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA),
     ],
 
     isAuth,
