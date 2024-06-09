@@ -49,7 +49,7 @@ class ModelModel extends DatabaseModel {
     const joinTable = `${tableModel} INNER JOIN ${tableDisk} ON ${tableModel}.disk_id = ${tableDisk}.id 
     INNER JOIN ${tableModelConnectionType} ON ${tableModel}.id = ${tableModelConnectionType}.model_id 
     INNER JOIN ${tableConnectionType} ON ${tableModelConnectionType}.connection_type_id = ${tableConnectionType}.id 
-    INNER JOIN ${tableModelType} ON ${tableModel}.connection_type_id = ${tableModelType}.id`;
+    INNER JOIN ${tableModelType} ON ${tableModel}.model_type_id = ${tableModelType}.id`;
 
     const select = `${tableModel}.id,${tableModel}.name,${tableModel}.note,${tableModel}.made_in,${tableDisk}.name as disk_name,${tableModel}.quantity_channel,${tableModel}.note,${tableModel}.publish,${tableModel}.is_gps,GROUP_CONCAT(${tableConnectionType}.name) as connection_type_name,${tableModelType}.name as maodel_type_name`;
     const [res_, count] = await Promise.all([

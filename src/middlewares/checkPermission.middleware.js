@@ -5,7 +5,7 @@ const { get: getRedis } = require("../models/redis.model");
 
 const checkPermission = async function (req, res, next) {
   try {
-    // return next();
+    return next();
 
     const { role, level, method, attchPath } = req;
 
