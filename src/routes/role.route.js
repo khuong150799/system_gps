@@ -31,7 +31,7 @@ module.exports = (app) => {
     "/get-permission/:id",
     [param("id", VALIDATE_DATA).isNumeric()],
     isAuth,
-    // checkPermission,
+    checkPermission,
     roleController.getPermission
   );
 
@@ -94,7 +94,7 @@ module.exports = (app) => {
         .escape(),
     ],
     isAuth,
-    // checkPermission,
+    checkPermission,
     roleController.deletePermission
   );
   router.delete(

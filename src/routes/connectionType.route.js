@@ -37,7 +37,7 @@ module.exports = (app) => {
     ],
 
     isAuth,
-    // checkPermission,
+    checkPermission,
     connectionTypeController.register
   );
   router.put(

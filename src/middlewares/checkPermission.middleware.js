@@ -2,12 +2,10 @@ const { REDIS_PROPERTY_PERMISSION } = require("../constants");
 const { Api400Error } = require("../core/error.response");
 const permissionService = require("../services/permission.service");
 const { get: getRedis } = require("../models/redis.model");
-const cluster = require("cluster");
 
 const checkPermission = async function (req, res, next) {
   try {
-    process.send({ worker: cluster.worker.id, cmd: "request" });
-    return next();
+    // return next();
 
     const { role, level, method, attchPath } = req;
 

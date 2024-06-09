@@ -1,9 +1,12 @@
+const {
+  tableModel,
+  tableDisk,
+  tableModelConnectionType,
+  tableConnectionType,
+  tableModelType,
+} = require("../constants/tableName");
 const DatabaseModel = require("./database.model");
 const ModelSchema = require("./schema/model.schema");
-const tableName = "tbl_model";
-const tableDisk = "tbl_disk";
-const tableConnectType = "tbl_connection_type";
-const tableModelConnectType = "tbl_model_connection_type";
 
 class ModelModel extends DatabaseModel {
   constructor() {
@@ -15,43 +18,46 @@ class ModelModel extends DatabaseModel {
     const offset = query.offset || 0;
     const limit = query.limit || 10;
     const isDeleted = query.is_deleted || 0;
-    let where = `${tableName}.is_deleted = ?`;
+    let where = `${tableModel}.is_deleted = ?`;
     const conditions = [isDeleted];
 
     if (query.keyword) {
-      where += ` AND (${tableName}.name LIKE ? OR ${tableName}.made_in LIKE ?)`;
+      where += ` AND (${tableModel}.name LIKE ? OR ${tableModel}.made_in LIKE ?)`;
       conditions.push(`%${query.keyword}%`, `%${query.keyword}%`);
     }
 
     if (query.publish) {
-      where += ` AND ${tableName}.publish = ?`;
+      where += ` AND ${tableModel}.publish = ?`;
       conditions.push(query.publish);
     }
 
     if (query.disk_id) {
-      where += ` AND ${tableName}.disk_id = ?`;
+      where += ` AND ${tableModel}.disk_id = ?`;
       conditions.push(query.disk_id);
     }
 
     if (query.type) {
-      where += ` AND ${tableName}.type = ?`;
+      where += ` AND ${tableModel}.type = ?`;
       conditions.push(query.type);
     }
 
     if (query.connection_type_id) {
-      where += ` AND ${tableConnectType}.id = ?`;
+      where += ` AND ${tableConnectionType}.id = ?`;
       conditions.push(query.connection_type_id);
     }
 
-    const joinTable = `${tableName} INNER JOIN ${tableDisk} ON ${tableName}.disk_id = ${tableDisk}.id INNER JOIN ${tableModelConnectType} ON ${tableName}.id = ${tableModelConnectType}.model_id INNER JOIN ${tableConnectType} ON ${tableModelConnectType}.connection_type_id = ${tableConnectType}.id`;
+    const joinTable = `${tableModel} INNER JOIN ${tableDisk} ON ${tableModel}.disk_id = ${tableDisk}.id 
+    INNER JOIN ${tableModelConnectionType} ON ${tableModel}.id = ${tableModelConnectionType}.model_id 
+    INNER JOIN ${tableConnectionType} ON ${tableModelConnectionType}.connection_type_id = ${tableConnectionType}.id 
+    INNER JOIN ${tableModelType} ON ${tableModel}.connection_type_id = ${tableModelType}.id`;
 
-    const select = `${tableName}.id,${tableName}.name,${tableName}.note,${tableName}.made_in,${tableDisk}.name as disk_name,${tableName}.quantity_channel,${tableName}.note,${tableName}.publish,${tableName}.is_gps,GROUP_CONCAT(${tableConnectType}.name) as connection_type_name`;
+    const select = `${tableModel}.id,${tableModel}.name,${tableModel}.note,${tableModel}.made_in,${tableDisk}.name as disk_name,${tableModel}.quantity_channel,${tableModel}.note,${tableModel}.publish,${tableModel}.is_gps,GROUP_CONCAT(${tableConnectionType}.name) as connection_type_name,${tableModelType}.name as maodel_type_name`;
     const [res_, count] = await Promise.all([
       this.select(
         conn,
         joinTable,
         select,
-        `${where} GROUP BY ${tableName}.id`,
+        `${where} GROUP BY ${tableModel}.id`,
         conditions,
         "id",
         "DESC",
@@ -62,7 +68,7 @@ class ModelModel extends DatabaseModel {
         conn,
         joinTable,
         "*",
-        `${where} GROUP BY ${tableName}.id`,
+        `${where} GROUP BY ${tableModel}.id`,
         conditions
       ),
     ]);
@@ -76,18 +82,18 @@ class ModelModel extends DatabaseModel {
   async getById(conn, params, query) {
     const { id } = params;
     const isDeleted = query.is_deleted || 0;
-    const where = `${tableName}.is_deleted = ? AND ${tableName}.id = ?`;
+    const where = `${tableModel}.is_deleted = ? AND ${tableModel}.id = ?`;
     const conditions = [isDeleted, id];
-    const joinTable = `${tableName} INNER JOIN ${tableModelConnectType} ON ${tableName}.id = ${tableModelConnectType}.model_id`;
-    const selectData = `${tableName}.id,${tableName}.name,${tableName}.made_in,${tableName}.type,GROUP_CONCAT(${tableModelConnectType}.connection_type_id) as connection_type_id,${tableName}.disk_id,${tableName}.quantity_channel,${tableName}.note,${tableName}.publish,${tableName}.is_gps`;
+    const joinTable = `${tableModel} INNER JOIN ${tableModelConnectionType} ON ${tableModel}.id = ${tableModelConnectionType}.model_id`;
+    const selectData = `${tableModel}.id,${tableModel}.name,${tableModel}.made_in,${tableModel}.type,GROUP_CONCAT(${tableModelConnectionType}.connection_type_id) as connection_type_id,${tableModel}.disk_id,${tableModel}.quantity_channel,${tableModel}.note,${tableModel}.publish,${tableModel}.is_gps`;
 
     const res_ = await this.select(
       conn,
       joinTable,
       selectData,
-      `${where} GROUP BY ${tableName}.id`,
+      `${where} GROUP BY ${tableModel}.id`,
       conditions,
-      `${tableName}.id`
+      `${tableModel}.id`
     );
     return res_;
   }
@@ -122,7 +128,7 @@ class ModelModel extends DatabaseModel {
     delete model.updated_at;
 
     await connPromise.beginTransaction();
-    const res_ = await this.insert(conn, tableName, model);
+    const res_ = await this.insert(conn, tableModel, model);
 
     const connectionTypeIdParse = JSON.parse(connection_type_id);
 
@@ -134,7 +140,7 @@ class ModelModel extends DatabaseModel {
 
     await this.insertMulti(
       conn,
-      tableModelConnectType,
+      tableModelConnectionType,
       "model_id,connection_type_id,created_at",
       dataInsertModelConnectType
     );
@@ -179,11 +185,11 @@ class ModelModel extends DatabaseModel {
 
     await connPromise.beginTransaction();
 
-    await this.update(conn, tableName, model, "id", id);
+    await this.update(conn, tableModel, model, "id", id);
     const connectionTypeIdParse = JSON.parse(connection_type_id);
     await this.delete(
       conn,
-      tableModelConnectType,
+      tableModelConnectionType,
       `model_id = ? AND connection_type_id NOT IN (?)`,
       [id, connectionTypeIdParse],
       "ID",
@@ -198,7 +204,7 @@ class ModelModel extends DatabaseModel {
 
     await this.insertIgnore(
       conn,
-      tableModelConnectType,
+      tableModelConnectionType,
       "model_id,connection_type_id,created_at",
       dataInsertModelConnectType
     );
@@ -212,7 +218,7 @@ class ModelModel extends DatabaseModel {
   //delete
   async deleteById(conn, params) {
     const { id } = params;
-    await this.update(conn, tableName, { is_deleted: 1 }, "id", id);
+    await this.update(conn, tableModel, { is_deleted: 1 }, "id", id);
     return [];
   }
 
@@ -221,7 +227,7 @@ class ModelModel extends DatabaseModel {
     const { id } = params;
     const { publish } = body;
 
-    await this.update(conn, tableName, { publish }, "id", id);
+    await this.update(conn, tableModel, { publish }, "id", id);
     return [];
   }
 }

@@ -54,6 +54,7 @@ module.exports = (app) => {
         .escape(),
     ],
     isAuth,
+    checkPermission,
     deviceController.checkInside
   );
 
@@ -109,8 +110,8 @@ module.exports = (app) => {
         .escape(),
     ],
 
-    isAuth,
-    checkPermission,
+    // isAuth,
+    // checkPermission,
     deviceController.activationOutside
   );
 

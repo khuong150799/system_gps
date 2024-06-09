@@ -8,12 +8,7 @@ const {
 } = require("../middlewares/checkPermission.middleware");
 
 module.exports = (app) => {
-  router.get(
-    "/tree",
-    isAuth,
-    // checkPermission,
-    moduleController.getTree
-  );
+  router.get("/tree", isAuth, checkPermission, moduleController.getTree);
   router.get("/rows", isAuth, checkPermission, moduleController.getAllRows);
   router.get("/detail/:id", isAuth, checkPermission, moduleController.getById);
   router.post(
