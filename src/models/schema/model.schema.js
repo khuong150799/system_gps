@@ -2,7 +2,7 @@ class ModelSchema {
   constructor({
     name,
     made_in,
-    type,
+    model_type_id,
     disk_id,
     quantity_channel,
     note,
@@ -14,7 +14,7 @@ class ModelSchema {
   }) {
     this.name = name;
     this.made_in = made_in;
-    this.type = type;
+    this.model_type_id = model_type_id;
     this.disk_id = disk_id;
     this.quantity_channel = quantity_channel;
     this.note = note;

@@ -1,9 +1,8 @@
+const { tableFirmware, tableModel } = require("../constants/tableName.contant");
 const DatabaseModel = require("./database.model");
 
 const FirmwareSchema = require("./schema/firmware.schema");
 
-const tableName = "tbl_firmware";
-const tableModel = "tbl_model";
 // const { existsSync, unlinkSync } = require("node:fs");
 
 class FirmwareModel extends DatabaseModel {
@@ -16,7 +15,7 @@ class FirmwareModel extends DatabaseModel {
     const offset = query.offset || 0;
     const limit = query.limit || 10;
     const isDeleted = query.is_deleted || 0;
-    let where = `${tableName}.is_deleted = ?`;
+    let where = `${tableFirmware}.is_deleted = ?`;
     const conditions = [isDeleted];
 
     if (query.keyword) {
@@ -29,13 +28,13 @@ class FirmwareModel extends DatabaseModel {
       conditions.push(query.publish);
     }
     if (query.model_id) {
-      where += ` AND ${tableName}.model_id = ?`;
+      where += ` AND ${tableFirmware}.model_id = ?`;
       conditions.push(query.model_id);
     }
 
-    const joinTable = `${tableName} INNER JOIN ${tableModel} On ${tableName}.model_id = ${tableModel}.id`;
+    const joinTable = `${tableFirmware} INNER JOIN ${tableModel} On ${tableFirmware}.model_id = ${tableModel}.id`;
 
-    const select = `${tableName}.id,${tableName}.name,${tableName}.version_software,${tableName}.version_hardware,${tableName}.checksum,${tableName}.path_version,${tableName}.path_note,${tableName}.note,${tableName}.publish,${tableName}.created_at,${tableName}.updated_at,${tableModel}.name as model_name`;
+    const select = `${tableFirmware}.id,${tableFirmware}.name,${tableFirmware}.version_software,${tableFirmware}.version_hardware,${tableFirmware}.checksum,${tableFirmware}.path_version,${tableFirmware}.path_note,${tableFirmware}.note,${tableFirmware}.publish,${tableFirmware}.created_at,${tableFirmware}.updated_at,${tableModel}.name as model_name`;
     const [res_, count] = await Promise.all([
       this.select(
         conn,
@@ -43,12 +42,12 @@ class FirmwareModel extends DatabaseModel {
         select,
         where,
         conditions,
-        `${tableName}.id`,
+        `${tableFirmware}.id`,
         "DESC",
         offset,
         limit
       ),
-      this.count(conn, tableName, "*", where, conditions),
+      this.count(conn, tableFirmware, "*", where, conditions),
     ]);
 
     const totalPage = Math.ceil(count?.[0]?.total / limit);
@@ -62,11 +61,11 @@ class FirmwareModel extends DatabaseModel {
     const isDeleted = query.is_deleted || 0;
     const where = `is_deleted = ? AND id = ?`;
     const conditions = [isDeleted, id];
-    const selectData = `${tableName}.id,${tableName}.name,${tableName}.version_software,${tableName}.version_hardware,${tableName}.checksum,${tableName}.path_version,${tableName}.path_note,${tableName}.note,${tableName}.publish,${tableName}.model_id`;
+    const selectData = `${tableFirmware}.id,${tableFirmware}.name,${tableFirmware}.version_software,${tableFirmware}.version_hardware,${tableFirmware}.checksum,${tableFirmware}.path_version,${tableFirmware}.path_note,${tableFirmware}.note,${tableFirmware}.publish,${tableFirmware}.model_id`;
 
     const res_ = await this.select(
       conn,
-      tableName,
+      tableFirmware,
       selectData,
       where,
       conditions
@@ -104,7 +103,7 @@ class FirmwareModel extends DatabaseModel {
       created_at: Date.now(),
     });
     delete firmware.updated_at;
-    const res_ = await this.insert(conn, tableName, firmware);
+    const res_ = await this.insert(conn, tableFirmware, firmware);
     firmware.id = res_;
     delete firmware.is_deleted;
     return firmware;
@@ -150,12 +149,12 @@ class FirmwareModel extends DatabaseModel {
 
     await connPromise.beginTransaction();
 
-    await this.update(conn, tableName, firmware, "id", id);
+    await this.update(conn, tableFirmware, firmware, "id", id);
 
     // if (pathFirmware || pathFileNote) {
     //   const dataOld = await this.select(
     //     conn,
-    //     tableName,
+    //     tableFirmware,
     //     "path_version,path_note",
     //     "id = ? AND is_deleted = ?",
     //     [id, 0]
@@ -183,7 +182,7 @@ class FirmwareModel extends DatabaseModel {
   //delete
   async deleteById(conn, params) {
     const { id } = params;
-    await this.update(conn, tableName, { is_deleted: 1 }, "id", id);
+    await this.update(conn, tableFirmware, { is_deleted: 1 }, "id", id);
     return [];
   }
 
@@ -191,7 +190,7 @@ class FirmwareModel extends DatabaseModel {
   async updatePublish(conn, body, params) {
     const { id } = params;
     const { publish } = body;
-    await this.update(conn, tableName, { publish }, "id", id);
+    await this.update(conn, tableFirmware, { publish }, "id", id);
     return [];
   }
 }

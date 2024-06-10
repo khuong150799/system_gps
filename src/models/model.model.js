@@ -4,7 +4,7 @@ const {
   tableModelConnectionType,
   tableConnectionType,
   tableModelType,
-} = require("../constants/tableName");
+} = require("../constants/tableName.contant");
 const DatabaseModel = require("./database.model");
 const ModelSchema = require("./schema/model.schema");
 
@@ -46,12 +46,12 @@ class ModelModel extends DatabaseModel {
       conditions.push(query.connection_type_id);
     }
 
-    const joinTable = `${tableModel} INNER JOIN ${tableDisk} ON ${tableModel}.disk_id = ${tableDisk}.id 
+    const joinTable = `${tableModel} LEFT JOIN ${tableDisk} ON ${tableModel}.disk_id = ${tableDisk}.id 
     INNER JOIN ${tableModelConnectionType} ON ${tableModel}.id = ${tableModelConnectionType}.model_id 
     INNER JOIN ${tableConnectionType} ON ${tableModelConnectionType}.connection_type_id = ${tableConnectionType}.id 
     INNER JOIN ${tableModelType} ON ${tableModel}.model_type_id = ${tableModelType}.id`;
 
-    const select = `${tableModel}.id,${tableModel}.name,${tableModel}.note,${tableModel}.made_in,${tableDisk}.name as disk_name,${tableModel}.quantity_channel,${tableModel}.note,${tableModel}.publish,${tableModel}.is_gps,GROUP_CONCAT(${tableConnectionType}.name) as connection_type_name,${tableModelType}.name as maodel_type_name`;
+    const select = `${tableModel}.id,${tableModel}.name,${tableModel}.note,${tableModel}.made_in,${tableDisk}.name as disk_name,${tableModel}.quantity_channel,${tableModel}.note,${tableModel}.publish,${tableModel}.is_gps,GROUP_CONCAT(${tableConnectionType}.name) as connection_type_name,${tableModelType}.name as model_type_name`;
     const [res_, count] = await Promise.all([
       this.select(
         conn,
@@ -85,7 +85,7 @@ class ModelModel extends DatabaseModel {
     const where = `${tableModel}.is_deleted = ? AND ${tableModel}.id = ?`;
     const conditions = [isDeleted, id];
     const joinTable = `${tableModel} INNER JOIN ${tableModelConnectionType} ON ${tableModel}.id = ${tableModelConnectionType}.model_id`;
-    const selectData = `${tableModel}.id,${tableModel}.name,${tableModel}.made_in,${tableModel}.type,GROUP_CONCAT(${tableModelConnectionType}.connection_type_id) as connection_type_id,${tableModel}.disk_id,${tableModel}.quantity_channel,${tableModel}.note,${tableModel}.publish,${tableModel}.is_gps`;
+    const selectData = `${tableModel}.id,${tableModel}.name,${tableModel}.made_in,${tableModel}.model_type_id,GROUP_CONCAT(${tableModelConnectionType}.connection_type_id) as connection_type_id,${tableModel}.disk_id,${tableModel}.quantity_channel,${tableModel}.note,${tableModel}.publish,${tableModel}.is_gps`;
 
     const res_ = await this.select(
       conn,
@@ -116,9 +116,9 @@ class ModelModel extends DatabaseModel {
     const model = new ModelSchema({
       name,
       made_in,
-      type,
-      disk_id: type === 2 ? disk_id : null,
-      quantity_channel: type === 2 ? quantity_channel : null,
+      model_type_id: type,
+      disk_id: Number(type) === 2 ? disk_id : null,
+      quantity_channel: Number(type) === 2 ? quantity_channel : null,
       note,
       publish,
       is_gps,
@@ -158,8 +158,8 @@ class ModelModel extends DatabaseModel {
       made_in,
       type,
       disk_id,
-      connection_type_id,
       quantity_channel,
+      connection_type_id,
       note,
       publish,
       is_gps,
@@ -171,9 +171,9 @@ class ModelModel extends DatabaseModel {
     const model = new ModelSchema({
       name,
       made_in,
-      type,
-      disk_id,
-      quantity_channel,
+      model_type_id: type,
+      disk_id: Number(type) === 2 ? disk_id : null,
+      quantity_channel: Number(type) === 2 ? quantity_channel : null,
       note,
       publish,
       is_gps,

@@ -1,15 +1,17 @@
 const DatabaseModel = require("./database.model");
 const PermissionSchema = require("./schema/permission.schema");
-const { REDIS_PROPERTY_PERMISSION } = require("../constants");
+const { REDIS_PROPERTY_PERMISSION } = require("../constants/msg.contant");
 const {
   set: setRedis,
   setWithExpired: setRedisWithExpired,
 } = require("./redis.model");
-const tableName = "tbl_permission";
-const tableRole = "tbl_role";
-const tableRolePermission = "tbl_role_permission";
-const tableLevel = "tbl_level";
-const tableLevelPermission = "tbl_level_permission";
+const {
+  tablePermission,
+  tableRole,
+  tableRolePermission,
+  tableLevel,
+  tableLevelPermission,
+} = require("../constants/tableName.contant");
 
 class PermissionModel extends DatabaseModel {
   constructor() {
@@ -19,7 +21,7 @@ class PermissionModel extends DatabaseModel {
   async init(conn) {
     const where = `p.publish = ? AND p.is_deleted = ? AND l.publish = ? AND l.is_deleted = ? AND r.publish = ? AND r.is_deleted = ? AND lp.is_deleted = ? AND rp.is_deleted = ?`;
     const conditions = [1, 0, 1, 0, 1, 0, 0, 0];
-    const joinTable = `${tableName} p INNER JOIN ${tableLevelPermission} lp ON p.id = lp.permission_id 
+    const joinTable = `${tablePermission} p INNER JOIN ${tableLevelPermission} lp ON p.id = lp.permission_id 
     INNER JOIN ${tableLevel} l ON lp.level_id = l.id 
     INNER JOIN ${tableRolePermission} rp ON p.id = rp.permission_id 
     INNER JOIN ${tableRole} r ON rp.role_id = r.id`;
@@ -77,7 +79,7 @@ class PermissionModel extends DatabaseModel {
     const [res_, count] = await Promise.all([
       this.select(
         conn,
-        tableName,
+        tablePermission,
         select,
         where,
         conditions,
@@ -86,7 +88,7 @@ class PermissionModel extends DatabaseModel {
         offset,
         limit
       ),
-      this.count(conn, tableName, "*", where, conditions),
+      this.count(conn, tablePermission, "*", where, conditions),
     ]);
 
     const totalPage = Math.ceil(count?.[0]?.total / limit);
@@ -104,7 +106,7 @@ class PermissionModel extends DatabaseModel {
 
     const res_ = await this.select(
       conn,
-      tableName,
+      tablePermission,
       selectData,
       where,
       conditions
@@ -126,7 +128,7 @@ class PermissionModel extends DatabaseModel {
     });
     delete permission.updated_at;
 
-    const res_ = await this.insert(conn, tableName, permission);
+    const res_ = await this.insert(conn, tablePermission, permission);
     await this.init(conn);
     permission.id = res_;
     delete permission.is_deleted;
@@ -150,7 +152,7 @@ class PermissionModel extends DatabaseModel {
     delete perission.created_at;
     delete perission.is_deleted;
 
-    await this.update(conn, tableName, perission, "id", id);
+    await this.update(conn, tablePermission, perission, "id", id);
     await this.init(conn);
     perission.id = id;
     return perission;
@@ -160,7 +162,7 @@ class PermissionModel extends DatabaseModel {
   async deleteById(conn, connPromise, params) {
     const { id } = params;
     await connPromise.beginTransaction();
-    await this.update(conn, tableName, { is_deleted: 1 }, "id", id);
+    await this.update(conn, tablePermission, { is_deleted: 1 }, "id", id);
     await this.update(
       conn,
       tableRolePermission,
@@ -187,7 +189,7 @@ class PermissionModel extends DatabaseModel {
     const { id } = params;
     const { publish } = body;
 
-    await this.update(conn, tableName, { publish }, "id", id);
+    await this.update(conn, tablePermission, { publish }, "id", id);
     await this.init(conn);
     return [];
   }

@@ -1,7 +1,7 @@
 const DatabaseModel = require("./database.model");
 const db = require("../dbs/init.mysql");
 const DeviceStatusSchema = require("./schema/deviceStatus.schema");
-const tableName = "tbl_device_status";
+const { tableDeviceStatus } = require("../constants/tableName.contant");
 
 class DeviceStatusModel extends DatabaseModel {
   constructor() {
@@ -13,33 +13,33 @@ class DeviceStatusModel extends DatabaseModel {
     const offset = query.offset || 0;
     const limit = query.limit || 10;
     const isDeleted = query.is_deleted || 0;
-    let where = `${tableName}.is_deleted = ?`;
+    let where = `${tableDeviceStatus}.is_deleted = ?`;
     const conditions = [isDeleted];
 
     if (query.keyword) {
-      where += ` AND ${tableName}.title LIKE ?`;
+      where += ` AND ${tableDeviceStatus}.title LIKE ?`;
       conditions.push(`%${query.keyword}%`);
     }
 
     if (query.publish) {
-      where += ` AND ${tableName}.publish = ?`;
+      where += ` AND ${tableDeviceStatus}.publish = ?`;
       conditions.push(query.publish);
     }
 
-    const select = `${tableName}.id,${tableName}.title,${tableName}.des,${tableName}.publish,${tableName}.created_at,${tableName}.updated_at`;
+    const select = `${tableDeviceStatus}.id,${tableDeviceStatus}.title,${tableDeviceStatus}.des,${tableDeviceStatus}.publish,${tableDeviceStatus}.created_at,${tableDeviceStatus}.updated_at`;
     const [res_, count] = await Promise.all([
       this.select(
         conn,
-        tableName,
+        tableDeviceStatus,
         select,
         where,
         conditions,
-        `${tableName}.id`,
+        `${tableDeviceStatus}.id`,
         "DESC",
         offset,
         limit
       ),
-      this.count(conn, tableName, "*", where, conditions),
+      this.count(conn, tableDeviceStatus, "*", where, conditions),
     ]);
 
     const totalPage = Math.ceil(count?.[0]?.total / limit);
@@ -57,7 +57,7 @@ class DeviceStatusModel extends DatabaseModel {
 
     const res_ = await this.select(
       conn,
-      tableName,
+      tableDeviceStatus,
       selectData,
       where,
       conditions
@@ -77,7 +77,7 @@ class DeviceStatusModel extends DatabaseModel {
     });
     delete deviceStatus.updated_at;
 
-    const res_ = await this.insert(conn, tableName, deviceStatus);
+    const res_ = await this.insert(conn, tableDeviceStatus, deviceStatus);
     deviceStatus.id = res_;
     delete deviceStatus.is_deleted;
     return deviceStatus;
@@ -98,7 +98,7 @@ class DeviceStatusModel extends DatabaseModel {
     delete deviceStatus.created_at;
     delete deviceStatus.is_deleted;
 
-    await this.update(conn, tableName, deviceStatus, "id", id);
+    await this.update(conn, tableDeviceStatus, deviceStatus, "id", id);
     deviceStatus.id = id;
     return deviceStatus;
   }
@@ -106,7 +106,7 @@ class DeviceStatusModel extends DatabaseModel {
   //delete
   async deleteById(conn, params) {
     const { id } = params;
-    await this.update(conn, tableName, { is_deleted: 1 }, "id", id);
+    await this.update(conn, tableDeviceStatus, { is_deleted: 1 }, "id", id);
     return [];
   }
 
@@ -114,7 +114,7 @@ class DeviceStatusModel extends DatabaseModel {
   async updatePublish(conn, body, params) {
     const { id } = params;
     const { publish } = body;
-    await this.update(conn, tableName, { publish }, "id", id);
+    await this.update(conn, tableDeviceStatus, { publish }, "id", id);
     return [];
   }
 }

@@ -1,4 +1,4 @@
-const instanceDiscord = require("../config/discord.config");
+// const instanceDiscord = require("../config/discord.config");
 const {
   Api404Error,
   BaseError,

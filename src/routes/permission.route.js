@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const { VALIDATE_DATA, NOT_EMPTY } = require("../constants");
+const { VALIDATE_DATA, NOT_EMPTY } = require("../constants/msg.contant");
 const permissionController = require("../controllers/permission.controller");
 const { body, query, param } = require("express-validator");
 const { isAuth } = require("../middlewares/jwt.middleware");

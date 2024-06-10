@@ -10,13 +10,7 @@ const {
   PASSWORD_DEFAULT,
 
   REFRESH_TOKEN_SECRET_KEY,
-} = require("../constants");
-const tableName = "tbl_users";
-const tableCustomers = "tbl_customers";
-const tableLevel = "tbl_level";
-const tableUsersCustomers = "tbl_users_customers";
-const tableRole = "tbl_role";
-const tableUsersRole = "tbl_users_role";
+} = require("../constants/msg.contant");
 
 const bcrypt = require("bcrypt");
 const {
@@ -28,7 +22,15 @@ const { set: setRedis, expire: expireRedis } = require("./redis.model");
 
 const CustomersSchema = require("./schema/customers.schema");
 const { makeCode } = require("../ultils/makeCode");
-const { tableUsersDevices } = require("../constants/tableName");
+const {
+  tableUsersDevices,
+  tableUsers,
+  tableCustomers,
+  tableUsersCustomers,
+  tableLevel,
+  tableRole,
+  tableUsersRole,
+} = require("../constants/tableName.contant");
 
 class UsersModel extends DatabaseModel {
   constructor() {
@@ -40,11 +42,11 @@ class UsersModel extends DatabaseModel {
     const offset = query.offset || 0;
     const limit = query.limit || 10;
     const isDeleted = query.is_deleted || 0;
-    let where = `${tableName}.is_deleted = ?`;
+    let where = `${tableUsers}.is_deleted = ?`;
     const conditions = [isDeleted];
 
     if (query.keyword) {
-      where += ` AND (${tableName}.name LIKE ? OR ${tableCustomers}.name LIKE ?)`;
+      where += ` AND (${tableUsers}.name LIKE ? OR ${tableCustomers}.name LIKE ?)`;
       conditions.push(`%${query.keyword}%`, `%${query.keyword}%`);
     }
 
@@ -58,9 +60,14 @@ class UsersModel extends DatabaseModel {
       conditions.push(query.role_id);
     }
 
-    const joinTable = `${tableName} INNER JOIN ${tableUsersCustomers} ON ${tableName}.id = ${tableUsersCustomers}.user_id INNER JOIN ${tableCustomers} ON ${tableUsersCustomers}.customer_id = ${tableCustomers}.id INNER JOIN ${tableUsersRole} ON ${tableName}.id = ${tableUsersRole}.user_id INNER JOIN ${tableRole} ON ${tableUsersRole}.role_id = ${tableRole}.id INNER JOIN ${tableLevel} ON ${tableCustomers}.level_id = ${tableLevel}.id `;
+    const joinTable = `${tableUsers} INNER JOIN ${tableUsersCustomers} ON ${tableUsers}.id = ${tableUsersCustomers}.user_id 
+      INNER JOIN ${tableCustomers} ON ${tableUsersCustomers}.customer_id = ${tableCustomers}.id 
+      INNER JOIN ${tableUsersRole} ON ${tableUsers}.id = ${tableUsersRole}.user_id 
+      INNER JOIN ${tableRole} ON ${tableUsersRole}.role_id = ${tableRole}.id 
+      INNER JOIN ${tableLevel} ON ${tableCustomers}.level_id = ${tableLevel}.id `;
 
-    const select = `${tableName}.id,${tableName}.username,${tableCustomers}.name as customer_name,${tableLevel}.name as level_name,${tableRole}.name as role_name,${tableName}.created_at,${tableName}.updated_at`;
+    const select = `${tableUsers}.id,${tableUsers}.username,${tableCustomers}.name as customer_name,${tableLevel}.name as level_name,
+      ${tableRole}.name as role_name,${tableUsers}.created_at,${tableUsers}.updated_at`;
 
     const [res_, count] = await Promise.all([
       this.select(
@@ -69,7 +76,7 @@ class UsersModel extends DatabaseModel {
         select,
         where,
         conditions,
-        `${tableName}.id`,
+        `${tableUsers}.id`,
         "DESC",
         offset,
         limit
@@ -82,14 +89,41 @@ class UsersModel extends DatabaseModel {
     return { data: res_, totalPage };
   }
 
+  async getaListWithUser(conn, query, userId) {
+    const isDeleted = query.is_deleted || 0;
+    const where = `parent_id = ? AND ${tableUsers}.is_deleted = ?`;
+    const conditions = [userId, isDeleted];
+    const whereDequy = `AND ${tableUsers}.is_deleted = ${isDeleted}`;
+
+    const joinTable = `${tableUsers} INNER JOIN ${tableUsersCustomers} ON ${tableUsers}.id = ${tableUsersCustomers}.user_id 
+      INNER JOIN ${tableCustomers} ON ${tableUsersCustomers}.customer_id = ${tableCustomers}.id`;
+
+    const select = `${tableUsers}.id,${tableUsers}.username,${tableUsers}.parent_id,COALESCE(${tableCustomers}.company,${tableCustomers}.name) as customer_name,${tableCustomers}.id as customer_id`;
+
+    const res_ = await this.getAllRowsMenu(
+      conn,
+      joinTable,
+      select,
+      where,
+      conditions,
+      `${tableUsers}.id`,
+      "ASC",
+      select,
+      whereDequy,
+      `${tableUsers}.id`,
+      "ASC"
+    );
+    return res_;
+  }
+
   //getbyid
   async getById(conn, params, query) {
     const { id } = params;
     const isDeleted = query.is_deleted || 0;
-    const where = `${tableName}.is_deleted = ? AND ${tableName}.id = ?`;
+    const where = `${tableUsers}.is_deleted = ? AND ${tableUsers}.id = ?`;
     const conditions = [isDeleted, id];
-    const joinTable = `${tableName} INNER JOIN ${tableUsersRole} ON ${tableName}.id = ${tableUsersRole}.user_id`;
-    const selectData = `${tableName}.id,${tableName}.username,${tableName}.parent_id,${tableName}.is_actived,${tableUsersRole}.role_id`;
+    const joinTable = `${tableUsers} INNER JOIN ${tableUsersRole} ON ${tableUsers}.id = ${tableUsersRole}.user_id`;
+    const selectData = `${tableUsers}.id,${tableUsers}.username,${tableUsers}.parent_id,${tableUsers}.is_actived,${tableUsersRole}.role_id`;
 
     const res_ = await this.select(
       conn,
@@ -102,12 +136,14 @@ class UsersModel extends DatabaseModel {
   }
 
   async getInfo(conn, userId) {
-    const where = `${tableName}.is_deleted = ? AND ${tableName}.id = ?`;
+    const where = `${tableUsers}.is_deleted = ? AND ${tableUsers}.id = ?`;
     const conditions = [0, userId];
-    const joinTable = `${tableName} INNER JOIN ${tableUsersRole} ON ${tableName}.id = ${tableUsersRole}.user_id 
-      INNER JOIN ${tableUsersCustomers} ON ${tableName}.id = ${tableUsersCustomers}.user_id 
+    const joinTable = `${tableUsers} INNER JOIN ${tableUsersRole} ON ${tableUsers}.id = ${tableUsersRole}.user_id 
+      INNER JOIN ${tableUsersCustomers} ON ${tableUsers}.id = ${tableUsersCustomers}.user_id 
       INNER JOIN ${tableCustomers} ON ${tableUsersCustomers}.customer_id = ${tableCustomers}.id`;
-    const selectData = `${tableName}.id,${tableName}.username,${tableName}.parent_id,${tableName}.is_actived,${tableUsersRole}.role_id,${tableCustomers}.name as customer_name,${tableCustomers}.email,${tableCustomers}.phone,${tableCustomers}.company,${tableCustomers}.address,${tableCustomers}.tax_code,${tableCustomers}.website`;
+    const selectData = `${tableUsers}.id,${tableUsers}.username,${tableUsers}.parent_id,${tableUsers}.is_actived,
+      ${tableUsersRole}.role_id,${tableCustomers}.name as customer_name,${tableCustomers}.email,${tableCustomers}.phone,
+      ${tableCustomers}.company,${tableCustomers}.address,${tableCustomers}.tax_code,${tableCustomers}.website,${tableCustomers}.id as customer_id`;
 
     const res_ = await this.select(
       conn,
@@ -115,7 +151,7 @@ class UsersModel extends DatabaseModel {
       selectData,
       where,
       conditions,
-      `${tableName}.id`
+      `${tableUsers}.id`
     );
     return res_;
   }
@@ -143,7 +179,7 @@ class UsersModel extends DatabaseModel {
     if (isCommit) {
       await connPromise.beginTransaction();
     }
-    const res_ = await this.insert(conn, tableName, user);
+    const res_ = await this.insert(conn, tableUsers, user);
 
     const usersRole = new UsersRoleSchema({
       user_id: res_,
@@ -174,7 +210,7 @@ class UsersModel extends DatabaseModel {
   }
 
   //RegisterTeam
-  async registerTeam(conn, username, password, connPromise, body, userId) {
+  async registerTeam(conn, username, password, connPromise, body) {
     const { parent_id, name } = body;
     const createdAt = Date.now();
 
@@ -195,7 +231,7 @@ class UsersModel extends DatabaseModel {
     delete user.updated_at;
 
     await connPromise.beginTransaction();
-    const res_ = await this.insert(conn, tableName, user);
+    const res_ = await this.insert(conn, tableUsers, user);
 
     const usersRole = new UsersRoleSchema({
       user_id: res_,
@@ -265,8 +301,54 @@ class UsersModel extends DatabaseModel {
     return [];
   }
 
+  async move(conn, connPromise, body) {
+    const { reciver, user_is_moved } = body;
+    const listDevices = await this.select(
+      conn,
+      tableUsersDevices,
+      "device_id",
+      "user_id = ?",
+      user_is_moved,
+      "id",
+      "ASC",
+      0,
+      1000000000
+    );
+
+    await connPromise.beginTransaction();
+    await this.update(
+      conn,
+      tableUsers,
+      { parent_id: reciver },
+      "id",
+      user_is_moved
+    );
+
+    if (listDevices.length) {
+      const dataInsert = listDevices.map((item) => [
+        reciver,
+        item.device_id,
+        1,
+        0,
+        1,
+        Date.now(),
+      ]);
+
+      await this.insertDuplicate(
+        conn,
+        tableUsersDevices,
+        "user_id,device_id,is_main,is_deleted,is_moved,created_at",
+        dataInsert,
+        "is_main=VALUES(is_main),is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved)"
+      );
+    }
+
+    await connPromise.commit();
+    return [];
+  }
+
   //update
-  async updateById(conn, connPromise, body, params, userId) {
+  async updateById(conn, connPromise, body, params) {
     const { parent_id, role_id, customer_id, is_actived } = body;
     const { id } = params;
     const updatedAt = Date.now();
@@ -285,7 +367,7 @@ class UsersModel extends DatabaseModel {
     delete user.expired_on;
     delete user.is_deleted;
     delete user.created_at;
-    await this.update(conn, tableName, user, "id", id);
+    await this.update(conn, tableUsers, user, "id", id);
 
     const usersRole = new UsersRoleSchema({
       role_id,
@@ -323,7 +405,7 @@ class UsersModel extends DatabaseModel {
   //delete
   async deleteById(conn, params) {
     const { id } = params;
-    await this.update(conn, tableName, { is_deleted: 1 }, "id", id);
+    await this.update(conn, tableUsers, { is_deleted: 1 }, "id", id);
     return [];
   }
 
@@ -334,7 +416,7 @@ class UsersModel extends DatabaseModel {
     const hashPass = await bcrypt.hash(PASSWORD_DEFAULT, salt);
     await this.update(
       conn,
-      tableName,
+      tableUsers,
       { password: hashPass, text_pass: PASSWORD_DEFAULT },
       "id",
       id,
@@ -349,7 +431,7 @@ class UsersModel extends DatabaseModel {
 
     await this.update(
       conn,
-      tableName,
+      tableUsers,
       { password: hashPass, text_pass: new_password },
       "id",
       userId
@@ -457,8 +539,8 @@ class UsersModel extends DatabaseModel {
   }
 
   //logout
-  async logout(clientId) {
-    await keyTokenModel.deleteById({
+  async logout(conn, clientId) {
+    await keyTokenModel.deleteById(conn, {
       client_id: clientId,
     });
 

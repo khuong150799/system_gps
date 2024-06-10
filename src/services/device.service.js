@@ -1,11 +1,10 @@
 const db = require("../dbs/init.mysql");
 const deviceModel = require("../models/device.model");
-const { ERROR, ALREADY_EXITS } = require("../constants");
+const { ERROR, ALREADY_EXITS } = require("../constants/msg.contant");
 const { BusinessLogicError } = require("../core/error.response");
 const DatabaseModel = require("../models/database.model");
-const usersService = require("./users.service");
-const tableName = "tbl_device";
-const tableVehicle = "tbl_vehicle";
+const validateModel = require("../models/validate.model");
+const { tableUsers, tableVehicle } = require("../constants/tableName.contant");
 
 const databaseModel = new DatabaseModel();
 
@@ -21,12 +20,12 @@ class DeviceService {
 
     const dataCheck = await databaseModel.select(
       conn,
-      tableName,
+      tableVehicle,
       "dev_id,imei",
       where,
       conditions
     );
-    if (dataCheck.length <= 0) return { result: true };
+    if (dataCheck.length <= 0) return [];
 
     const errors = dataCheck.map((item) => {
       if (item.dev_id) {
@@ -44,37 +43,10 @@ class DeviceService {
       }
     });
 
-    return {
-      result: false,
-      errors: {
-        msg: ERROR,
-        errors,
-      },
+    throw {
+      msg: ERROR,
+      errors,
     };
-  }
-
-  async validateCheckExitVehicleName(conn, name) {
-    const data = await databaseModel.select(
-      conn,
-      tableVehicle,
-      "id",
-      "name = ?",
-      name
-    );
-
-    if (data.length)
-      return {
-        result: false,
-        errors: {
-          msg: ERROR,
-          errors: [
-            { value: name, msg: `Biển số phương tiện ${ALREADY_EXITS}` },
-          ],
-          param: "vehicle",
-        },
-      };
-
-    return { result: true };
   }
 
   //getallrow
@@ -176,24 +148,19 @@ class DeviceService {
         } = body;
         const dataInfoDevice = await deviceModel.checkOutside(conn, { imei });
 
-        const isCheckUsername = await usersService.validateUsername(username);
-        if (!isCheckUsername.result) {
-          throw isCheckUsername.errors;
-        }
+        await validateModel.checkRegexUsername(username);
 
-        const isCheckPassword = await usersService.validatePassword(
-          password,
-          true
+        await validateModel.checkRegexPassword(password, true);
+
+        await validateModel.checkExitValue(
+          conn,
+          tableUsers,
+          "username",
+          username,
+          "Tài khoản",
+          "username"
         );
-        if (!isCheckPassword.result) {
-          throw isCheckPassword.errors;
-        }
 
-        const isCheckExitUsername =
-          await usersService.validateCheckExitUsername(conn, username);
-        if (!isCheckExitUsername.result) {
-          throw isCheckExitUsername.errors;
-        }
         const { user_id, id } = dataInfoDevice[0];
         const dataBody = { ...body, parent_id: user_id, device_id: id };
         const data = await deviceModel.activationOutside(
@@ -228,25 +195,21 @@ class DeviceService {
         );
         const { id } = dataInfoDevice[0];
 
-        const isCheckInfo = await usersService.validateUserInfo(conn, userId);
-        if (!isCheckInfo.result) throw isCheckInfo.errors;
-
-        const { data: dataInfo } = isCheckInfo;
-        const { is_actived, is_deleted } = dataInfo;
-        const isCheckStatusUser = await usersService.validateStatusUser(
-          is_actived,
-          is_deleted
-        );
-        if (!isCheckStatusUser.result) throw isCheckStatusUser.errors;
-
-        const isCheckExitVehicleName = await this.validateCheckExitVehicleName(
+        const { is_actived, is_deleted } = await validateModel.checkUserInfo(
           conn,
-          vehicle
+          userId
         );
 
-        if (!isCheckExitVehicleName.result) {
-          throw isCheckExitVehicleName.errors;
-        }
+        await validateModel.checkStatusUser(is_actived, is_deleted);
+
+        await validateModel.checkExitValue(
+          conn,
+          tableVehicle,
+          "name",
+          vehicle,
+          "Biển số phương tiện",
+          "vehicle"
+        );
 
         const dataBody = { ...body, device_id: id };
         const data = await deviceModel.activationInside(

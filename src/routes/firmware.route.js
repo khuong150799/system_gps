@@ -1,8 +1,8 @@
 const router = require("express").Router();
-const { VALIDATE_DATA, NOT_EMPTY } = require("../constants");
+const { VALIDATE_DATA, NOT_EMPTY } = require("../constants/msg.contant");
 const firmwareController = require("../controllers/firmware.controller");
 const { body, query, param } = require("express-validator");
-const uploadFirmware = require("../middlewares/uploadFirmware");
+const uploadFirmware = require("../middlewares/uploadFirmware.middleware");
 const { isAuth } = require("../middlewares/jwt.middleware");
 const {
   checkPermission,

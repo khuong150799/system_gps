@@ -1,8 +1,9 @@
+const {
+  tableVehicleType,
+  tableVehicleIcon,
+} = require("../constants/tableName.contant");
 const DatabaseModel = require("./database.model");
 const VehicleTypeSchema = require("./schema/vehicleType.schema");
-
-const tableVehicleIcon = "tbl_vehicle_icon";
-const tableName = "tbl_vehicle_type";
 
 class VehicleTypeModel extends DatabaseModel {
   constructor() {
@@ -14,25 +15,25 @@ class VehicleTypeModel extends DatabaseModel {
     const offset = query.offset || 0;
     const limit = query.limit || 10;
     const isDeleted = query.is_deleted || 0;
-    let where = `${tableName}.is_deleted = ?`;
+    let where = `${tableVehicleType}.is_deleted = ?`;
     const conditions = [isDeleted];
 
     if (query.keyword) {
-      where += ` AND ${tableName}.name LIKE ?`;
+      where += ` AND ${tableVehicleType}.name LIKE ?`;
       conditions.push(`%${query.keyword}%`);
     }
 
     if (query.publish) {
-      where += ` AND ${tableName}.publish = ?`;
+      where += ` AND ${tableVehicleType}.publish = ?`;
       conditions.push(query.publish);
     }
     if (query.vehicle_icon_id) {
-      where += ` AND ${tableName}.vehicle_icon_id = ?`;
+      where += ` AND ${tableVehicleType}.vehicle_icon_id = ?`;
       conditions.push(query.vehicle_icon_id);
     }
-    const joinTable = `${tableName} INNER JOIN ${tableVehicleIcon} ON ${tableName}.vehicle_icon_id = ${tableVehicleIcon}.id`;
+    const joinTable = `${tableVehicleType} INNER JOIN ${tableVehicleIcon} ON ${tableVehicleType}.vehicle_icon_id = ${tableVehicleIcon}.id`;
 
-    const select = `${tableName}.id,${tableName}.name,${tableName}.max_speed,${tableName}.rule,${tableName}.publish,${tableName}.created_at,${tableName}.updated_at,${tableVehicleIcon}.name as vehicle_icon_name`;
+    const select = `${tableVehicleType}.id,${tableVehicleType}.name,${tableVehicleType}.max_speed,${tableVehicleType}.rule,${tableVehicleType}.publish,${tableVehicleType}.created_at,${tableVehicleType}.updated_at,${tableVehicleIcon}.name as vehicle_icon_name`;
     const [res_, count] = await Promise.all([
       this.select(
         conn,
@@ -40,7 +41,7 @@ class VehicleTypeModel extends DatabaseModel {
         select,
         where,
         conditions,
-        `${tableName}.id`,
+        `${tableVehicleType}.id`,
         "DESC",
         offset,
         limit
@@ -63,7 +64,7 @@ class VehicleTypeModel extends DatabaseModel {
 
     const res_ = await this.select(
       conn,
-      tableName,
+      tableVehicleType,
       selectData,
       where,
       conditions
@@ -85,7 +86,7 @@ class VehicleTypeModel extends DatabaseModel {
     });
     delete verhicleType.updated_at;
 
-    const res_ = await this.insert(conn, tableName, verhicleType);
+    const res_ = await this.insert(conn, tableVehicleType, verhicleType);
     verhicleType.id = res_;
     delete verhicleType.is_deleted;
     return verhicleType;
@@ -108,7 +109,7 @@ class VehicleTypeModel extends DatabaseModel {
     delete vehicleType.created_at;
     delete vehicleType.is_deleted;
 
-    await this.update(conn, tableName, vehicleType, "id", id);
+    await this.update(conn, tableVehicleType, vehicleType, "id", id);
     vehicleType.id = id;
     return vehicleType;
   }
@@ -116,7 +117,7 @@ class VehicleTypeModel extends DatabaseModel {
   //delete
   async deleteById(conn, params) {
     const { id } = params;
-    await this.update(conn, tableName, { is_deleted: 1 }, "id", id);
+    await this.update(conn, tableVehicleType, { is_deleted: 1 }, "id", id);
     return [];
   }
 
@@ -125,7 +126,7 @@ class VehicleTypeModel extends DatabaseModel {
     const { id } = params;
     const { publish } = body;
 
-    await this.update(conn, tableName, { publish }, "id", id);
+    await this.update(conn, tableVehicleType, { publish }, "id", id);
     return [];
   }
 }

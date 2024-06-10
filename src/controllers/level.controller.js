@@ -1,11 +1,12 @@
 const { GET, CREATED, UPDATE, DELETE } = require("../core/success.response");
-const catchAsync = require("../helper/catch.async");
+const catchAsync = require("../helper/catchAsync.helper");
 const levelService = require("../services/level.service");
 
 class LevelController {
   getAllRows = catchAsync(async (req, res) => {
     const query = req.query;
-    const { data, totalPage } = await levelService.getallrows(query);
+    const level = req.level;
+    const { data, totalPage } = await levelService.getallrows(query, level);
     GET(res, data, totalPage);
   });
 

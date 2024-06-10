@@ -1,4 +1,4 @@
-const { DEVICE_IS_READY } = require("../constants");
+const { DEVICE_IS_READY } = require("../constants/msg.contant");
 const {
   GET,
   CREATED,
@@ -6,7 +6,7 @@ const {
   DELETE,
   OK,
 } = require("../core/success.response");
-const catchAsync = require("../helper/catch.async");
+const catchAsync = require("../helper/catchAsync.helper");
 const deviceService = require("../services/device.service");
 
 class DeviceController {

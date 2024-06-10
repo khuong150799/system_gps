@@ -1,6 +1,6 @@
 const mysql = require("mysql2");
 const dbConfig = require("../config/db.config");
-const constants = require("../constants");
+const constants = require("../constants/msg.contant");
 
 const pool = mysql.createPool(dbConfig);
 

@@ -1,31 +1,16 @@
 const driverModel = require("../models/driver.model");
 const db = require("../dbs/init.mysql");
-const { ERROR, VALIDATE_PHONE, ALREADY_EXITS } = require("../constants");
-const { regexPhoneNumber } = require("../ultils/regex");
+const { ERROR, ALREADY_EXITS } = require("../constants/msg.contant");
 const { BusinessLogicError } = require("../core/error.response");
 const DatabaseModel = require("../models/database.model");
-const tableName = "tbl_driver";
+const validateModel = require("../models/validate.model");
+const { tableDriver } = require("../constants/tableName.contant");
 
 const databaseModel = new DatabaseModel();
 
 class DriverService {
   async validate(conn, licenseNumber, phone, id = null) {
     const errors = [];
-
-    if (phone && !regexPhoneNumber(phone))
-      return {
-        result: false,
-        errors: {
-          msg: ERROR,
-          errors: [
-            {
-              value: phone,
-              msg: VALIDATE_PHONE,
-              param: "phone",
-            },
-          ],
-        },
-      };
 
     let where = `is_deleted = ?`;
     const conditions = [0];
@@ -47,12 +32,12 @@ class DriverService {
 
     const dataCheck = await databaseModel.select(
       conn,
-      tableName,
+      tableDriver,
       "license_number,phone",
       where,
       conditions
     );
-    if (dataCheck.length <= 0) return { result: true };
+    if (dataCheck.length <= 0) return [];
 
     dataCheck.forEach((item) => {
       if (item.license_number === licenseNumber) {
@@ -70,10 +55,7 @@ class DriverService {
       }
     });
 
-    return {
-      result: false,
-      errors,
-    };
+    throw { msg: ERROR, errors };
   }
 
   //getallrow
@@ -116,6 +98,10 @@ class DriverService {
       const { conn } = await db.getConnection();
       try {
         const { license_number, phone } = body;
+
+        if (phone) {
+          await validateModel.checkRegexPhone(phone);
+        }
 
         const isCheck = await this.validate(conn, license_number, phone);
         if (!isCheck.result) {
@@ -185,7 +171,7 @@ class DriverService {
       const { is_actived } = body;
 
       const { conn } = await db.getConnection();
-      await this.update(conn, tableName, { is_actived }, "id", id);
+      await this.update(conn, tableDriver, { is_actived }, "id", id);
       conn.release();
       return [];
     } catch (error) {

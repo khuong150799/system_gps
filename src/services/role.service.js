@@ -1,51 +1,16 @@
 const db = require("../dbs/init.mysql");
-const { ERROR, ALREADY_EXITS } = require("../constants");
 const { BusinessLogicError } = require("../core/error.response");
-const DatabaseModel = require("../models/database.model");
 const roleModel = require("../models/role.model");
-const tableName = "tbl_role";
-
-const databaseModel = new DatabaseModel();
+const { tableRole } = require("../constants/tableName.contant");
+const validateModel = require("../models/validate.model");
 
 class RoleService {
-  async validate(conn, name, id = null) {
-    let where = `name = ? AND is_deleted = ?`;
-    const conditions = [name, 0];
-    if (id) {
-      where += ` AND id <> ?`;
-      conditions.push(id);
-    }
-
-    const dataCheck = await databaseModel.select(
-      conn,
-      tableName,
-      "id",
-      where,
-      conditions
-    );
-    if (dataCheck.length <= 0) return { result: true };
-
-    return {
-      result: false,
-      errors: {
-        msg: ERROR,
-        errors: [
-          {
-            value: name,
-            msg: `Tên ${ALREADY_EXITS}`,
-            param: "name",
-          },
-        ],
-      },
-    };
-  }
-
   //getallrow
-  async getallrows(query) {
+  async getallrows(query, role) {
     try {
       const { conn } = await db.getConnection();
       try {
-        const data = await roleModel.getallrows(conn, query);
+        const data = await roleModel.getallrows(conn, query, role);
         return data;
       } catch (error) {
         throw error;
@@ -98,10 +63,15 @@ class RoleService {
       try {
         const { name } = body;
 
-        const isCheck = await this.validate(conn, name);
-        if (!isCheck.result) {
-          throw isCheck.errors;
-        }
+        await validateModel.checkExitValue(
+          conn,
+          tableRole,
+          "name",
+          name,
+          "Tên",
+          "name"
+        );
+
         const data = await roleModel.register(conn, body);
         return data;
       } catch (error) {
@@ -142,10 +112,15 @@ class RoleService {
         const { name } = body;
         const { id } = params;
 
-        const isCheck = await this.validate(conn, name, id);
-        if (!isCheck.result) {
-          throw isCheck.errors;
-        }
+        await validateModel.checkExitValue(
+          conn,
+          tableRole,
+          "name",
+          name,
+          "Tên",
+          "name",
+          id
+        );
 
         const data = await roleModel.updateById(conn, body, params);
         return data;

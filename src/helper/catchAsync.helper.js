@@ -1,7 +1,7 @@
 const { validationResult } = require("express-validator");
 const { BusinessLogicError } = require("../core/error.response");
-const constants = require("../constants");
-const statusCodes = require("../core/statusCodes");
+const constants = require("../constants/msg.contant");
+// const statusCodes = require("../core/statusCodes");
 
 const catchAsync = (fn) => async (req, res, next) => {
   try {
@@ -11,7 +11,6 @@ const catchAsync = (fn) => async (req, res, next) => {
     }
     return await Promise.resolve(fn(req, res, next));
   } catch (err) {
-    console.log("err", err);
     // return next(
     //   new BusinessLogicError(
     //     err?.msg ||

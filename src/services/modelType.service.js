@@ -1,45 +1,10 @@
 const db = require("../dbs/init.mysql");
-const { ERROR, ALREADY_EXITS } = require("../constants");
 const { BusinessLogicError } = require("../core/error.response");
-const DatabaseModel = require("../models/database.model");
 const modelTypeModel = require("../models/modelType.model");
-const tableName = "tbl_model_type";
-
-const databaseModel = new DatabaseModel();
+const validateModel = require("../models/validate.model");
+const { tableModelType } = require("../constants/tableName.contant");
 
 class ModelTypeService {
-  async validate(conn, name, id = null) {
-    let where = `name = ? AND is_deleted = ?`;
-    const conditions = [name, 0];
-    if (id) {
-      where += ` AND id <> ?`;
-      conditions.push(id);
-    }
-
-    const dataCheck = await databaseModel.select(
-      conn,
-      tableName,
-      "id",
-      where,
-      conditions
-    );
-    if (dataCheck.length <= 0) return { result: true };
-
-    return {
-      result: false,
-      errors: {
-        msg: ERROR,
-        errors: [
-          {
-            value: name,
-            msg: `Tên ${ALREADY_EXITS}`,
-            param: "name",
-          },
-        ],
-      },
-    };
-  }
-
   //getallrow
   async getallrows(query) {
     try {
@@ -81,10 +46,15 @@ class ModelTypeService {
       try {
         const { name } = body;
 
-        const isCheck = await this.validate(conn, name);
-        if (!isCheck.result) {
-          throw isCheck.errors;
-        }
+        await validateModel.checkExitValue(
+          conn,
+          tableModelType,
+          "name",
+          name,
+          "Tên",
+          "name"
+        );
+
         const modelType = await modelTypeModel.register(conn, body);
         return modelType;
       } catch (error) {
@@ -106,10 +76,15 @@ class ModelTypeService {
         const { name } = body;
         const { id } = params;
 
-        const isCheck = await this.validate(conn, name, id);
-        if (!isCheck.result) {
-          throw isCheck.errors;
-        }
+        await validateModel.checkExitValue(
+          conn,
+          tableModelType,
+          "name",
+          name,
+          "Tên",
+          "name",
+          id
+        );
 
         const modelType = await modelTypeModel.updateById(conn, body, params);
         return modelType;

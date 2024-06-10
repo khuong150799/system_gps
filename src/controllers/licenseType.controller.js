@@ -1,5 +1,5 @@
 const { GET } = require("../core/success.response");
-const catchAsync = require("../helper/catch.async");
+const catchAsync = require("../helper/catchAsync.helper");
 const licenseTypeService = require("../services/licenseType.service");
 
 class LicenseTypeController {

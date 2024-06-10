@@ -1,50 +1,15 @@
 const db = require("../dbs/init.mysql");
 const levelModel = require("../models/level.model");
-const { ERROR, ALREADY_EXITS } = require("../constants");
 const { BusinessLogicError } = require("../core/error.response");
-const DatabaseModel = require("../models/database.model");
-const tableName = "tbl_level";
-
-const databaseModel = new DatabaseModel();
+const validateModel = require("../models/validate.model");
+const { tableLevel } = require("../constants/tableName.contant");
 
 class LevelService {
-  async validate(conn, name, id = null) {
-    let where = `name = ? AND is_deleted = ?`;
-    const conditions = [name, 0];
-    if (id) {
-      where += ` AND id <> ?`;
-      conditions.push(id);
-    }
-
-    const dataCheck = await databaseModel.select(
-      conn,
-      tableName,
-      "id",
-      where,
-      conditions
-    );
-    if (dataCheck.length <= 0) return { result: true };
-
-    return {
-      result: false,
-      errors: {
-        msg: ERROR,
-        errors: [
-          {
-            value: name,
-            msg: `Tên ${ALREADY_EXITS}`,
-            param: "name",
-          },
-        ],
-      },
-    };
-  }
-
-  async getallrows(query) {
+  async getallrows(query, level) {
     try {
       const { conn } = await db.getConnection();
       try {
-        const data = await levelModel.getallrows(conn, query);
+        const data = await levelModel.getallrows(conn, query, level);
         return data;
       } catch (error) {
         throw error;
@@ -114,10 +79,14 @@ class LevelService {
       try {
         const { name } = body;
 
-        const isCheck = await this.validate(conn, name);
-        if (!isCheck.result) {
-          throw isCheck.errors;
-        }
+        await validateModel.checkExitValue(
+          conn,
+          tableLevel,
+          "name",
+          name,
+          "Tên",
+          "name"
+        );
         const level = await levelModel.register(conn, body);
         return level;
       } catch (error) {
@@ -173,10 +142,15 @@ class LevelService {
         const { name } = body;
         const { id } = params;
 
-        const isCheck = await this.validate(conn, name, id);
-        if (!isCheck.result) {
-          throw isCheck.errors;
-        }
+        await validateModel.checkExitValue(
+          conn,
+          tableLevel,
+          "name",
+          name,
+          "Tên",
+          "name",
+          id
+        );
 
         const level = await levelModel.updateById(conn, body, params);
         return level;

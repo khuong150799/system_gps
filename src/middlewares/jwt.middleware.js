@@ -1,4 +1,4 @@
-const constants = require("../constants");
+const constants = require("../constants/msg.contant");
 const { Api401Error, Api403Error } = require("../core/error.response");
 const { checkToken } = require("../helper/auth.helper");
 const { ACCESS_TOKEN_SECRET_KEY } = constants;
@@ -18,7 +18,6 @@ const isAuth = async function (req, res, next) {
       req.clientId = clientId;
       req.parentId = parentId;
       req.attchPath = req.baseUrl + req.route.path;
-      // console.log(data);
       next();
     } else {
       return next(new Api403Error());

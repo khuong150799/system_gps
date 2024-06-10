@@ -1,45 +1,10 @@
 const db = require("../dbs/init.mysql");
-const { ERROR, ALREADY_EXITS } = require("../constants");
 const { BusinessLogicError } = require("../core/error.response");
-const DatabaseModel = require("../models/database.model");
 const ordersStatusModel = require("../models/ordersStatus.model");
-const tableName = "tbl_orders_status";
-
-const databaseModel = new DatabaseModel();
+const validateModel = require("../models/validate.model");
+const { tableOrdersStatus } = require("../constants/tableName.contant");
 
 class OrdersStatusService {
-  async validate(conn, title, id = null) {
-    let where = `title = ? AND is_deleted = ?`;
-    const conditions = [title, 0];
-    if (id) {
-      where += ` AND id <> ?`;
-      conditions.push(id);
-    }
-
-    const dataCheck = await databaseModel.select(
-      conn,
-      tableName,
-      "id",
-      where,
-      conditions
-    );
-    if (dataCheck.length <= 0) return { result: true };
-
-    return {
-      result: false,
-      errors: {
-        msg: ERROR,
-        errors: [
-          {
-            value: title,
-            msg: `Tiêu đề ${ALREADY_EXITS}`,
-            param: "title",
-          },
-        ],
-      },
-    };
-  }
-
   //getallrow
   async getallrows(query) {
     try {
@@ -81,10 +46,15 @@ class OrdersStatusService {
       try {
         const { title } = body;
 
-        const isCheck = await this.validate(conn, title);
-        if (!isCheck.result) {
-          throw isCheck.errors;
-        }
+        await validateModel.checkExitValue(
+          conn,
+          tableOrdersStatus,
+          "title",
+          title,
+          "Tiêu đề",
+          "title"
+        );
+
         const data = await ordersStatusModel.register(conn, body);
 
         return data;
@@ -107,10 +77,16 @@ class OrdersStatusService {
         const { title } = body;
         const { id } = params;
 
-        const isCheck = await this.validate(conn, title, id);
-        if (!isCheck.result) {
-          throw isCheck.errors;
-        }
+        await validateModel.checkExitValue(
+          conn,
+          tableOrdersStatus,
+          "title",
+          title,
+          "Tiêu đề",
+          "title",
+          id
+        );
+
         const data = await ordersStatusModel.updateById(conn, body, params);
 
         return data;

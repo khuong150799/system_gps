@@ -1,17 +1,17 @@
 const db = require("../dbs/init.mysql");
-const { ERROR, ALREADY_EXITS } = require("../constants");
+const { ERROR, ALREADY_EXITS } = require("../constants/msg.contant");
 const { BusinessLogicError } = require("../core/error.response");
 
 const permissionModel = require("../models/permission.model");
 const DatabaseModel = require("../models/database.model");
-const tableName = "tbl_permission";
+const { tablePermission } = require("../constants/tableName.contant");
 
 const databaseModel = new DatabaseModel();
 
 class PermissionService {
-  async validate(conn, name, id = null) {
-    let where = `name = ? AND is_deleted = ?`;
-    const conditions = [name, 0];
+  async validate(conn, name, router, id = null) {
+    let where = `(name = ? OR router = ?) AND is_deleted = ?`;
+    const conditions = [name, router, 0];
     if (id) {
       where += ` AND id <> ?`;
       conditions.push(id);
@@ -19,27 +19,34 @@ class PermissionService {
 
     const dataCheck = await databaseModel.select(
       conn,
-      tableName,
+      tablePermission,
       "id",
       where,
       conditions
     );
-    if (dataCheck.length > 0) {
-      return {
-        result: false,
-        errors: {
-          msg: ERROR,
-          errors: [
-            {
-              value: name,
-              msg: `Tên ${ALREADY_EXITS}`,
-              param: "name",
-            },
-          ],
-        },
-      };
-    }
-    return { result: true };
+
+    if (dataCheck.length <= 0) return [];
+
+    const errors = dataCheck.map((item) => {
+      if (item.name) {
+        return {
+          value: name,
+          msg: `Tên ${ALREADY_EXITS}`,
+          param: "name",
+        };
+      } else if (item.router) {
+        return {
+          value: router,
+          msg: `Router ${ALREADY_EXITS}`,
+          param: "router",
+        };
+      }
+    });
+
+    throw {
+      msg: ERROR,
+      errors,
+    };
   }
 
   async init() {
@@ -98,12 +105,10 @@ class PermissionService {
     try {
       const { conn } = await db.getConnection();
       try {
-        const { name } = body;
+        const { name, router } = body;
 
-        const isCheck = await this.validate(conn, name);
-        if (!isCheck.result) {
-          throw isCheck.errors;
-        }
+        await this.validate(conn, name, router);
+
         const data = await permissionModel.register(conn, body);
         return data;
       } catch (error) {
@@ -122,13 +127,10 @@ class PermissionService {
     try {
       const { conn } = await db.getConnection();
       try {
-        const { name } = body;
+        const { name, router } = body;
         const { id } = params;
 
-        const isCheck = await this.validate(conn, name, id);
-        if (!isCheck.result) {
-          throw isCheck.errors;
-        }
+        await this.validate(conn, name, router, id);
 
         const data = await permissionModel.updateById(conn, body, params);
         return data;

@@ -1,8 +1,10 @@
+const {
+  tableModule,
+  tableLevelModule,
+  tableLevel,
+} = require("../constants/tableName.contant");
 const DatabaseModel = require("./database.model");
 const ModuleSchema = require("./schema/module.schema");
-const tableName = "tbl_module";
-const tableLevelModule = "tbl_level_module";
-const tableLevel = "tbl_level";
 
 class ModuleModel extends DatabaseModel {
   constructor() {
@@ -11,14 +13,14 @@ class ModuleModel extends DatabaseModel {
   async getTree(conn, connPromise, query, level) {
     const isDeleted = query.is_deleted || 0;
 
-    const joinTable = `${tableName} INNER JOIN ${tableLevelModule} ON ${tableName}.id = ${tableLevelModule}.module_id 
+    const joinTable = `${tableModule} INNER JOIN ${tableLevelModule} ON ${tableModule}.id = ${tableLevelModule}.module_id 
     INNER JOIN ${tableLevel} ON ${tableLevelModule}.level_id = ${tableLevel}.id`;
-    const where = `${tableName}.parent_id = ? AND ${tableName}.publish = ? AND ${tableName}.is_deleted = ? AND ${tableLevel}.sort <= ? AND ${tableName}.publish = ? AND ${tableLevel}.is_deleted = ? AND ${tableLevelModule}.is_deleted = ?`;
+    const where = `${tableModule}.parent_id = ? AND ${tableModule}.publish = ? AND ${tableModule}.is_deleted = ? AND ${tableLevel}.sort <= ? AND ${tableModule}.publish = ? AND ${tableLevel}.is_deleted = ? AND ${tableLevelModule}.is_deleted = ?`;
     const conditions = [0, 1, isDeleted, level, 1, isDeleted, isDeleted];
-    const whereDequy = `AND ${tableName}.publish = ? AND ${tableName}.is_deleted = ? AND ${tableLevel}.sort <= ? AND ${tableName}.publish = ? AND ${tableLevel}.is_deleted = ? AND ${tableLevelModule}.is_deleted = ?`;
+    const whereDequy = `AND ${tableModule}.publish = ? AND ${tableModule}.is_deleted = ? AND ${tableLevel}.sort <= ? AND ${tableModule}.publish = ? AND ${tableLevel}.is_deleted = ? AND ${tableLevelModule}.is_deleted = ?`;
     const conditionsDequy = [1, isDeleted, level, 1, isDeleted, isDeleted];
 
-    const select = `${tableName}.id,${tableName}.parent_id,${tableName}.name,${tableName}.link,${tableName}.icon,${tableName}.type`;
+    const select = `${tableModule}.id,${tableModule}.parent_id,${tableModule}.name,${tableModule}.link,${tableModule}.icon,${tableModule}.type`;
 
     const res_ = await this.createTreeMenu(
       connPromise,
@@ -27,14 +29,14 @@ class ModuleModel extends DatabaseModel {
       select,
       where,
       conditions,
-      `${tableName}.sort`,
+      `${tableModule}.sort`,
       "ASC",
       0,
       10000,
       select,
       whereDequy,
       conditionsDequy,
-      `${tableName}.sort`,
+      `${tableModule}.sort`,
       "ASC"
     );
     return res_;
@@ -49,7 +51,7 @@ class ModuleModel extends DatabaseModel {
 
     const res_ = await this.getAllRowsMenu(
       conn,
-      tableName,
+      tableModule,
       "*",
       where,
       conditions,
@@ -73,7 +75,7 @@ class ModuleModel extends DatabaseModel {
 
     const res_ = await this.select(
       conn,
-      tableName,
+      tableModule,
       selectData,
       where,
       conditions
@@ -99,7 +101,7 @@ class ModuleModel extends DatabaseModel {
     });
     delete module.updated_at;
 
-    const res_ = await this.insert(conn, tableName, module);
+    const res_ = await this.insert(conn, tableModule, module);
     module.id = res_;
     delete module.is_deleted;
     return module;
@@ -127,7 +129,7 @@ class ModuleModel extends DatabaseModel {
     delete module.sort;
     delete module.is_deleted;
 
-    await this.update(conn, tableName, module, "id", id);
+    await this.update(conn, tableModule, module, "id", id);
     module.id = id;
     return module;
   }
@@ -135,7 +137,7 @@ class ModuleModel extends DatabaseModel {
   //delete
   async deleteById(conn, params) {
     const { id } = params;
-    await this.update(conn, tableName, { is_deleted: 1 }, "id", id);
+    await this.update(conn, tableModule, { is_deleted: 1 }, "id", id);
     return [];
   }
 
@@ -143,7 +145,7 @@ class ModuleModel extends DatabaseModel {
   async updatePublish(conn, body, params) {
     const { id } = params;
     const { publish } = body;
-    await this.update(conn, tableName, { publish }, "id", id);
+    await this.update(conn, tableModule, { publish }, "id", id);
     return [];
   }
 
@@ -152,7 +154,7 @@ class ModuleModel extends DatabaseModel {
     const { id } = params;
     const { sort } = body;
 
-    await this.update(conn, tableName, { sort }, "id", id);
+    await this.update(conn, tableModule, { sort }, "id", id);
     return [];
   }
 }

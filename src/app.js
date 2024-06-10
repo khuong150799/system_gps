@@ -61,7 +61,7 @@ const {
   is404Handler,
   logErrorMiddleware,
   returnError,
-} = require("./middlewares/handleErrors");
+} = require("./middlewares/handleErrors.middleware");
 
 app.use(is404Handler);
 app.use(logErrorMiddleware);

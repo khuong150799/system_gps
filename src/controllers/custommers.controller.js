@@ -1,5 +1,5 @@
 const { GET, CREATED, UPDATE, DELETE } = require("../core/success.response");
-const catchAsync = require("../helper/catch.async");
+const catchAsync = require("../helper/catchAsync.helper");
 const customersService = require("../services/customers.service");
 
 class CustomersController {
@@ -19,7 +19,8 @@ class CustomersController {
   register = catchAsync(async (req, res) => {
     const body = req.body;
     const userId = req.userId;
-    const data = await customersService.register(body, userId);
+    const level = req.level;
+    const data = await customersService.register(body, userId, level);
     CREATED(res, [data]);
   });
 

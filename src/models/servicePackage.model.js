@@ -1,7 +1,6 @@
+const { tableServicePackage } = require("../constants/tableName.contant");
 const DatabaseModel = require("./database.model");
 const ServicePackageSchema = require("./schema/servicePackage.schema");
-
-const tableName = "tbl_service_package";
 
 class ServicePackageModel extends DatabaseModel {
   constructor() {
@@ -37,7 +36,7 @@ class ServicePackageModel extends DatabaseModel {
     const [res_, count] = await Promise.all([
       this.select(
         conn,
-        tableName,
+        tableServicePackage,
         select,
         where,
         conditions,
@@ -46,7 +45,7 @@ class ServicePackageModel extends DatabaseModel {
         offset,
         limit
       ),
-      this.count(conn, tableName, "*", where, conditions),
+      this.count(conn, tableServicePackage, "*", where, conditions),
     ]);
 
     const totalPage = Math.ceil(count?.[0]?.total / limit);
@@ -65,7 +64,7 @@ class ServicePackageModel extends DatabaseModel {
 
     const res_ = await this.select(
       conn,
-      tableName,
+      tableServicePackage,
       selectData,
       where,
       conditions
@@ -103,7 +102,7 @@ class ServicePackageModel extends DatabaseModel {
     });
     delete servicePackage.updated_at;
 
-    const res_ = await this.insert(conn, tableName, servicePackage);
+    const res_ = await this.insert(conn, tableServicePackage, servicePackage);
     servicePackage.id = res_;
     delete servicePackage.is_deleted;
     return servicePackage;
@@ -142,7 +141,7 @@ class ServicePackageModel extends DatabaseModel {
     delete servicePackage.created_at;
     delete servicePackage.is_deleted;
 
-    await this.update(conn, tableName, servicePackage, "id", id);
+    await this.update(conn, tableServicePackage, servicePackage, "id", id);
     servicePackage.id = id;
     return servicePackage;
   }
@@ -150,7 +149,7 @@ class ServicePackageModel extends DatabaseModel {
   //delete
   async deleteById(conn, params) {
     const { id } = params;
-    await this.update(conn, tableName, { is_deleted: 1 }, "id", id);
+    await this.update(conn, tableServicePackage, { is_deleted: 1 }, "id", id);
     return [];
   }
 
@@ -159,7 +158,7 @@ class ServicePackageModel extends DatabaseModel {
     const { id } = params;
     const { publish } = body;
 
-    await this.update(conn, tableName, { publish }, "id", id);
+    await this.update(conn, tableServicePackage, { publish }, "id", id);
     return [];
   }
 }

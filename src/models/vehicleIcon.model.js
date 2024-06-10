@@ -1,7 +1,6 @@
+const { tableVehicleIcon } = require("../constants/tableName.contant");
 const DatabaseModel = require("./database.model");
 const VehicleIconSchema = require("./schema/vehicleIcon.schema");
-
-const tableName = "tbl_vehicle_icon";
 
 class VehicleIconModel extends DatabaseModel {
   constructor() {
@@ -31,7 +30,7 @@ class VehicleIconModel extends DatabaseModel {
     const [res_, count] = await Promise.all([
       this.select(
         conn,
-        tableName,
+        tableVehicleIcon,
         select,
         where,
         conditions,
@@ -40,7 +39,7 @@ class VehicleIconModel extends DatabaseModel {
         offset,
         limit
       ),
-      this.count(conn, tableName, "*", where, conditions),
+      this.count(conn, tableVehicleIcon, "*", where, conditions),
     ]);
 
     const totalPage = Math.ceil(count?.[0]?.total / limit);
@@ -58,7 +57,7 @@ class VehicleIconModel extends DatabaseModel {
 
     const res_ = await this.select(
       conn,
-      tableName,
+      tableVehicleIcon,
       selectData,
       where,
       conditions
@@ -78,7 +77,7 @@ class VehicleIconModel extends DatabaseModel {
     });
     delete verhicleIcon.updated_at;
 
-    const res_ = await this.insert(conn, tableName, verhicleIcon);
+    const res_ = await this.insert(conn, tableVehicleIcon, verhicleIcon);
     verhicleIcon.id = res_;
     delete verhicleIcon.is_deleted;
     return verhicleIcon;
@@ -99,7 +98,7 @@ class VehicleIconModel extends DatabaseModel {
     delete vehicleIcon.created_at;
     delete vehicleIcon.is_deleted;
 
-    await this.update(conn, tableName, vehicleIcon, "id", id);
+    await this.update(conn, tableVehicleIcon, vehicleIcon, "id", id);
     vehicleIcon.id = id;
     return vehicleIcon;
   }
@@ -107,7 +106,7 @@ class VehicleIconModel extends DatabaseModel {
   //delete
   async deleteById(conn, params) {
     const { id } = params;
-    await this.update(conn, tableName, { is_deleted: 1 }, "id", id);
+    await this.update(conn, tableVehicleIcon, { is_deleted: 1 }, "id", id);
     return [];
   }
 
@@ -116,7 +115,7 @@ class VehicleIconModel extends DatabaseModel {
     const { id } = params;
     const { publish } = body;
 
-    await this.update(conn, tableName, { publish }, "id", id);
+    await this.update(conn, tableVehicleIcon, { publish }, "id", id);
     return [];
   }
 }

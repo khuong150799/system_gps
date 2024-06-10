@@ -1,9 +1,11 @@
 const DatabaseModel = require("./database.model");
 const RoleSchema = require("./schema/role.schema");
 const permissionModel = require("./permission.model");
-const tableName = "tbl_role";
-const tableRolePermission = "tbl_role_permission";
-const tablePermission = "tbl_permission";
+const {
+  tableRole,
+  tableRolePermission,
+  tablePermission,
+} = require("../constants/tableName.contant");
 
 class RoleModel extends DatabaseModel {
   constructor() {
@@ -11,12 +13,12 @@ class RoleModel extends DatabaseModel {
   }
 
   //getallrow
-  async getallrows(conn, query) {
+  async getallrows(conn, query, role) {
     const offset = query.offset || 0;
     const limit = query.limit || 10;
     const isDeleted = query.is_deleted || 0;
-    let where = `is_deleted = ?`;
-    const conditions = [isDeleted];
+    let where = `sort <= ? AND is_deleted = ?`;
+    const conditions = [role, isDeleted];
 
     if (query.keyword) {
       where += ` AND name LIKE ?`;
@@ -32,16 +34,16 @@ class RoleModel extends DatabaseModel {
     const [res_, count] = await Promise.all([
       this.select(
         conn,
-        tableName,
+        tableRole,
         select,
         where,
         conditions,
-        "id",
-        "DESC",
+        "sort",
+        "ASC",
         offset,
         limit
       ),
-      this.count(conn, tableName, "*", where, conditions),
+      this.count(conn, tableRole, "*", where, conditions),
     ]);
 
     const totalPage = Math.ceil(count?.[0]?.total / limit);
@@ -59,7 +61,7 @@ class RoleModel extends DatabaseModel {
 
     const res_ = await this.select(
       conn,
-      tableName,
+      tableRole,
       selectData,
       where,
       conditions
@@ -76,7 +78,7 @@ class RoleModel extends DatabaseModel {
 
     const roleInfo = await this.select(
       conn,
-      tableName,
+      tableRole,
       "sort",
       where,
       conditions
@@ -86,14 +88,14 @@ class RoleModel extends DatabaseModel {
     const role = roleInfo[0]?.sort || 0;
 
     const select = `${tablePermission}.id`;
-    const joinTable = `${tableName} INNER JOIN ${tableRolePermission} ON ${tableName}.id = ${tableRolePermission}.role_id 
+    const joinTable = `${tableRole} INNER JOIN ${tableRolePermission} ON ${tableRole}.id = ${tableRolePermission}.role_id 
         INNER JOIN ${tablePermission} ON ${tableRolePermission}.permission_id = ${tablePermission}.id`;
 
     const res_ = await this.select(
       conn,
       joinTable,
       select,
-      `${tableName}.sort <= ? AND ${tablePermission}.is_deleted = ? AND ${tablePermission}.publish = ? AND ${tableRolePermission}.is_deleted = ?`,
+      `${tableRole}.sort <= ? AND ${tablePermission}.is_deleted = ? AND ${tablePermission}.publish = ? AND ${tableRolePermission}.is_deleted = ?`,
       [role, isDeleted, 1, isDeleted],
       `${tablePermission}.id`,
       "DESC",
@@ -117,7 +119,7 @@ class RoleModel extends DatabaseModel {
     });
     delete level.updated_at;
 
-    const res_ = await this.insert(conn, tableName, level);
+    const res_ = await this.insert(conn, tableRole, level);
     level.id = res_;
     delete level.is_deleted;
     return level;
@@ -164,7 +166,7 @@ class RoleModel extends DatabaseModel {
     delete role.sort;
     delete role.is_deleted;
 
-    await this.update(conn, tableName, role, "id", id);
+    await this.update(conn, tableRole, role, "id", id);
     await permissionModel.init(conn);
     role.id = id;
     return role;
@@ -173,7 +175,7 @@ class RoleModel extends DatabaseModel {
   //delete
   async deleteById(conn, params) {
     const { id } = params;
-    await this.update(conn, tableName, { is_deleted: 1 }, "id", id);
+    await this.update(conn, tableRole, { is_deleted: 1 }, "id", id);
     await permissionModel.init(conn);
     return [];
   }
@@ -186,9 +188,9 @@ class RoleModel extends DatabaseModel {
 
     const roleParent = await this.select(
       conn,
-      tableName,
+      tableRole,
       "id",
-      `sort > (SELECT sort FROM ${tableName} WHERE id = ?)`,
+      `sort > (SELECT sort FROM ${tableRole} WHERE id = ?)`,
       id,
       "id",
       "ASC",
@@ -225,7 +227,7 @@ class RoleModel extends DatabaseModel {
     const { id } = params;
     const { publish } = body;
 
-    await this.update(conn, tableName, { publish }, "id", id);
+    await this.update(conn, tableRole, { publish }, "id", id);
     await permissionModel.init(conn);
     return [];
   }
@@ -235,7 +237,7 @@ class RoleModel extends DatabaseModel {
     const { id } = params;
     const { sort } = body;
 
-    await this.update(conn, tableName, { sort }, "id", id);
+    await this.update(conn, tableRole, { sort }, "id", id);
     await permissionModel.init(conn);
     return [];
   }

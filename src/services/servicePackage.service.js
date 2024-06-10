@@ -1,48 +1,10 @@
 const db = require("../dbs/init.mysql");
-const { ERROR, ALREADY_EXITS } = require("../constants");
 const { BusinessLogicError } = require("../core/error.response");
-const DatabaseModel = require("../models/database.model");
 const servicePackageModel = require("../models/servicePackage.model");
-const tableName = "tbl_service_package";
-
-const databaseModel = new DatabaseModel();
+const { tableServicePackage } = require("../constants/tableName.contant");
+const validateModel = require("../models/validate.model");
 
 class ServicePackageService {
-  async validate(conn, name, id = null) {
-    let where = `(name = ?) AND is_deleted = ?`;
-    const conditions = [name, 0];
-
-    if (id) {
-      where += ` AND id <> ?`;
-      conditions.push(id);
-    }
-
-    const dataCheck = await databaseModel.select(
-      conn,
-      tableName,
-      "id",
-      where,
-      conditions
-    );
-
-    if (dataCheck.length > 0) {
-      return {
-        result: false,
-        errors: {
-          msg: ERROR,
-          errors: [
-            {
-              value: name,
-              msg: `Tên gói ${ALREADY_EXITS}`,
-              param: "name",
-            },
-          ],
-        },
-      };
-    }
-    return { result: true };
-  }
-
   //getallrow
   async getallrows(query) {
     try {
@@ -83,11 +45,16 @@ class ServicePackageService {
       const { conn } = await db.getConnection();
       try {
         const { name } = body;
-        const isCheck = await this.validate(conn, name);
-        if (!isCheck.result) {
-          conn.release();
-          throw isCheck.errors;
-        }
+
+        await validateModel.checkExitValue(
+          conn,
+          tableServicePackage,
+          "name",
+          name,
+          "Tên",
+          "name"
+        );
+
         const data = await servicePackageModel.register(conn, body);
         return data;
       } catch (error) {
@@ -109,11 +76,15 @@ class ServicePackageService {
         const { id } = params;
         const { name } = body;
 
-        const isCheck = await this.validate(conn, name, id);
-        if (!isCheck.result) {
-          conn.release();
-          throw isCheck.errors;
-        }
+        await validateModel.checkExitValue(
+          conn,
+          tableServicePackage,
+          "name",
+          name,
+          "Tên",
+          "name",
+          id
+        );
 
         const data = await servicePackageModel.updateById(conn, body, params);
         return data;

@@ -1,6 +1,6 @@
+const { tableDisk } = require("../constants/tableName.contant");
 const DatabaseModel = require("./database.model");
 const DiskSchema = require("./schema/disk.schema");
-const tableName = "tbl_disk";
 
 class DiskModel extends DatabaseModel {
   constructor() {
@@ -30,7 +30,7 @@ class DiskModel extends DatabaseModel {
     const [res_, count] = await Promise.all([
       this.select(
         conn,
-        tableName,
+        tableDisk,
         select,
         where,
         conditions,
@@ -39,7 +39,7 @@ class DiskModel extends DatabaseModel {
         offset,
         limit
       ),
-      this.count(conn, tableName, "*", where, conditions),
+      this.count(conn, tableDisk, "*", where, conditions),
     ]);
 
     const totalPage = Math.ceil(count?.[0]?.total / limit);
@@ -57,7 +57,7 @@ class DiskModel extends DatabaseModel {
 
     const res_ = await this.select(
       conn,
-      tableName,
+      tableDisk,
       selectData,
       where,
       conditions
@@ -76,7 +76,7 @@ class DiskModel extends DatabaseModel {
     });
     delete disk.updated_at;
 
-    const res_ = await this.insert(conn, tableName, disk);
+    const res_ = await this.insert(conn, tableDisk, disk);
     disk.id = res_;
     delete disk.is_deleted;
     return disk;
@@ -97,7 +97,7 @@ class DiskModel extends DatabaseModel {
     delete disk.sort;
     delete disk.is_deleted;
 
-    await this.update(conn, tableName, disk, "id", id);
+    await this.update(conn, tableDisk, disk, "id", id);
     disk.id = id;
     return disk;
   }
@@ -105,7 +105,7 @@ class DiskModel extends DatabaseModel {
   //delete
   async deleteById(conn, params) {
     const { id } = params;
-    await this.update(conn, tableName, { is_deleted: 1 }, "id", id);
+    await this.update(conn, tableDisk, { is_deleted: 1 }, "id", id);
     return [];
   }
 
@@ -113,7 +113,7 @@ class DiskModel extends DatabaseModel {
   async updatePublish(conn, body, params) {
     const { id } = params;
     const { publish } = body;
-    await this.update(conn, tableName, { publish }, "id", id);
+    await this.update(conn, tableDisk, { publish }, "id", id);
     return [];
   }
 }

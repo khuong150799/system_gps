@@ -1,4 +1,4 @@
-const { ERROR, NOT_EXITS } = require("../constants");
+const { ERROR, NOT_EXITS } = require("../constants/msg.contant");
 
 class DatabaseModel {
   //get all + get by id + get where in

@@ -1,6 +1,6 @@
+const { tableModelType } = require("../constants/tableName.contant");
 const DatabaseModel = require("./database.model");
 const ModelTypeSchema = require("./schema/modelType.schema");
-const tableName = "tbl_model_type";
 
 class ModelTypeModel extends DatabaseModel {
   constructor() {
@@ -29,7 +29,7 @@ class ModelTypeModel extends DatabaseModel {
     const [res_, count] = await Promise.all([
       this.select(
         conn,
-        tableName,
+        tableModelType,
         select,
         where,
         conditions,
@@ -38,7 +38,7 @@ class ModelTypeModel extends DatabaseModel {
         offset,
         limit
       ),
-      this.count(conn, tableName, "*", where, conditions),
+      this.count(conn, tableModelType, "*", where, conditions),
     ]);
 
     const totalPage = Math.ceil(count?.[0]?.total / limit);
@@ -56,7 +56,7 @@ class ModelTypeModel extends DatabaseModel {
 
     const res_ = await this.select(
       conn,
-      tableName,
+      tableModelType,
       selectData,
       where,
       conditions
@@ -76,7 +76,7 @@ class ModelTypeModel extends DatabaseModel {
     });
     delete modelType.updated_at;
 
-    const res_ = await this.insert(conn, tableName, modelType);
+    const res_ = await this.insert(conn, tableModelType, modelType);
     modelType.id = res_;
     delete modelType.is_deleted;
     return modelType;
@@ -98,7 +98,7 @@ class ModelTypeModel extends DatabaseModel {
     delete modelType.sort;
     delete modelType.is_deleted;
 
-    await this.update(conn, tableName, modelType, "id", id);
+    await this.update(conn, tableModelType, modelType, "id", id);
     modelType.id = id;
     return modelType;
   }
@@ -106,7 +106,7 @@ class ModelTypeModel extends DatabaseModel {
   //delete
   async deleteById(conn, params) {
     const { id } = params;
-    await this.update(conn, tableName, { is_deleted: 1 }, "id", id);
+    await this.update(conn, tableModelType, { is_deleted: 1 }, "id", id);
     return [];
   }
 
@@ -114,7 +114,7 @@ class ModelTypeModel extends DatabaseModel {
   async updatePublish(conn, body, params) {
     const { id } = params;
     const { publish } = body;
-    await this.update(conn, tableName, { publish }, "id", id);
+    await this.update(conn, tableModelType, { publish }, "id", id);
     return [];
   }
 }

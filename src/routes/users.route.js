@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const { VALIDATE_DATA, NOT_EMPTY } = require("../constants");
+const { VALIDATE_DATA, NOT_EMPTY } = require("../constants/msg.contant");
 const usersController = require("../controllers/users.controller");
 const { body, query, param } = require("express-validator");
 const { isAuth } = require("../middlewares/jwt.middleware");
@@ -18,6 +18,14 @@ module.exports = (app) => {
     isAuth,
     checkPermission,
     usersController.getAllRows
+  );
+
+  router.get(
+    "/children",
+
+    isAuth,
+    checkPermission,
+    usersController.getaListWithUser
   );
   router.get(
     "/detail/:id",
@@ -63,6 +71,23 @@ module.exports = (app) => {
     usersController.registerDevices
   );
 
+  router.post(
+    "/move",
+    [
+      body("reciver", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA),
+      body("user_is_moved", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+    ],
+    isAuth,
+    checkPermission,
+    usersController.move
+  );
   router.post(
     "/register",
     [

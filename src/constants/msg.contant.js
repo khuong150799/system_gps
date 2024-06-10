@@ -59,6 +59,8 @@ const constants = {
   DEVICE_IS_READY: "Thiết bị đã sẳn sàng kích hoạt",
   DEVICE_CANNOT_ACTIVATE: "Thiết bị Không thể kích hoạt",
   NOT_ADD_DEVICE: "Thiết bị này không thể gán",
+  MOVE_SUCCESS: "Chuyển thành công",
+  CHOOSE_ERROR: "Không thể gán",
 };
 
 module.exports = constants;

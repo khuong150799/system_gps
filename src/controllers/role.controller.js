@@ -1,11 +1,12 @@
 const { GET, CREATED, UPDATE, DELETE } = require("../core/success.response");
-const catchAsync = require("../helper/catch.async");
+const catchAsync = require("../helper/catchAsync.helper");
 const roleService = require("../services/role.service");
 
 class RoleController {
   getAllRows = catchAsync(async (req, res) => {
     const query = req.query;
-    const { data, totalPage } = await roleService.getallrows(query);
+    const role = req.role;
+    const { data, totalPage } = await roleService.getallrows(query, role);
 
     GET(res, data, totalPage);
   });

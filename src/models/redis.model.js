@@ -78,6 +78,7 @@ class RedisModel {
       const { instanceConnect: client } = this.redis;
 
       const data = await client.exists(key);
+      console.log({ data });
       return { result: true, data: data === 1 ? true : false };
     } catch (error) {
       return { result: false, error };

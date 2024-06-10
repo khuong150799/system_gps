@@ -5,21 +5,23 @@ const {
   IS_ACTIVED,
   DEVICE_CANNOT_ACTIVATE,
   ERROR,
-} = require("../constants");
+} = require("../constants/msg.contant");
 const customersModel = require("./customers.model");
-const { makeCode } = require("../ultils/makeCode");
 const VehicleSchema = require("./Schema/vehicle.schema");
-const tableName = "tbl_device";
-const tableModel = "tbl_model";
-const tableOrders = "tbl_orders";
-const tableOrdersDevice = "tbl_orders_device";
-const tableCustomers = "tbl_customers";
-const tableUsersDevice = "tbl_users_devices";
-const tableUsersCustomers = "tbl_users_customers";
-const tableFirmware = "tbl_firmware";
-const tableLevel = "tbl_level";
-const tableVehicle = "tbl_vehicle";
-const tableServicePackage = "tbl_service_package";
+const {
+  tableDevice,
+  tableOrders,
+  tableCustomers,
+  tableUsersDevices,
+  tableUsersCustomers,
+  tableOrdersDevice,
+  tableFirmware,
+  tableModel,
+  tableLevel,
+  tableVehicle,
+  tableServicePackage,
+  tableDeviceStatus,
+} = require("../constants/tableName.contant");
 
 class DeviceModel extends DatabaseModel {
   constructor() {
@@ -28,11 +30,11 @@ class DeviceModel extends DatabaseModel {
 
   async validateCheckOutside(conn, imei) {
     let errors = {};
-    const where = `${tableName}.imei = ? AND ${tableName}.is_deleted = ? AND ${tableUsersDevice}.is_moved = ?`;
+    const where = `${tableDevice}.imei = ? AND ${tableDevice}.is_deleted = ? AND ${tableUsersDevices}.is_moved = ?`;
     const conditions = [imei, 0, 0];
-    // const joinTable = `${tableName} LEFT JOIN ${tableVehicle} ON ${tableName}.id = ${tableVehicle}.device_id`;
-    const select = `${tableName}.id,${tableName}.device_status_id,${tableUsersDevice}.user_id`;
-    const joinTable = `${tableName} INNER JOIN ${tableUsersDevice} ON ${tableName}.id = ${tableUsersDevice}.device_id`;
+    // const joinTable = `${tableDevice} LEFT JOIN ${tableVehicle} ON ${tableDevice}.id = ${tableVehicle}.device_id`;
+    const select = `${tableDevice}.id,${tableDevice}.device_status_id,${tableUsersDevices}.user_id`;
+    const joinTable = `${tableDevice} INNER JOIN ${tableUsersDevices} ON ${tableDevice}.id = ${tableUsersDevices}.device_id`;
 
     const res = await this.select(
       conn,
@@ -40,7 +42,7 @@ class DeviceModel extends DatabaseModel {
       select,
       where,
       conditions,
-      `${tableName}.id`
+      `${tableDevice}.id`
     );
 
     if (!res || res?.length <= 0) {
@@ -61,10 +63,10 @@ class DeviceModel extends DatabaseModel {
   async validateCheckInside(conn, imei, userId, parentId) {
     console.log({ imei, userId, parentId });
     let errors = {};
-    const where = `${tableName}.imei = ? AND ${tableName}.is_deleted = ? AND ${tableUsersDevice}.is_moved = ?`;
+    const where = `${tableDevice}.imei = ? AND ${tableDevice}.is_deleted = ? AND ${tableUsersDevices}.is_moved = ?`;
     const conditions = [imei, 0, 0];
-    const joinTable = `${tableName} INNER JOIN ${tableUsersDevice} ON ${tableName}.id = ${tableUsersDevice}.device_id`;
-    const select = `${tableName}.id,${tableName}.device_status_id,${tableUsersDevice}.user_id`;
+    const joinTable = `${tableDevice} INNER JOIN ${tableUsersDevices} ON ${tableDevice}.id = ${tableUsersDevices}.device_id`;
+    const select = `${tableDevice}.id,${tableDevice}.device_status_id,${tableUsersDevices}.user_id`;
 
     const res = await this.select(
       conn,
@@ -72,7 +74,7 @@ class DeviceModel extends DatabaseModel {
       select,
       where,
       conditions,
-      `${tableName}.id`
+      `${tableDevice}.id`
     );
     console.log({ res });
     if (
@@ -102,6 +104,7 @@ class DeviceModel extends DatabaseModel {
     const {
       is_deleted,
       keyword,
+      customer_id,
       model_id,
       start_warranty_expired_on,
       end_warranty_expired_on,
@@ -110,11 +113,12 @@ class DeviceModel extends DatabaseModel {
     } = query;
 
     const isDeleted = is_deleted || 0;
-    let where = `${tableName}.is_deleted = ? AND c.id = ?`;
-    const conditions = [isDeleted, customerId];
+    let where = `${tableDevice}.is_deleted = ? AND c.id = ?`;
+    const customer = customer_id || customerId;
+    const conditions = [isDeleted, customer];
 
     if (keyword) {
-      where += ` AND (${tableName}.dev_id LIKE ? OR ${tableName}.imei LIKE ? OR ${tableOrders}.code LIKE ? OR ${tableCustomers}.name LIKE ?)`;
+      where += ` AND (${tableDevice}.dev_id LIKE ? OR ${tableDevice}.imei LIKE ? OR ${tableOrders}.code LIKE ? OR ${tableCustomers}.name LIKE ?)`;
       conditions.push(
         `%${keyword}%`,
         `%${keyword}%`,
@@ -124,32 +128,34 @@ class DeviceModel extends DatabaseModel {
     }
 
     if (model_id) {
-      where += ` AND ${tableName}.model_id = ?`;
+      where += ` AND ${tableDevice}.model_id = ?`;
       conditions.push(model_id);
     }
 
     if (start_warranty_expired_on && end_warranty_expired_on) {
-      where += ` AND ${tableName}.warranty_expired_on BETWEEN ? AND ?`;
+      where += ` AND ${tableDevice}.warranty_expired_on BETWEEN ? AND ?`;
       conditions.push(start_warranty_expired_on, end_warranty_expired_on);
     }
 
     if (start_activation_date && end_activation_date) {
-      where += ` AND ${tableName}.activation_date BETWEEN ? AND ?`;
+      where += ` AND ${tableDevice}.activation_date BETWEEN ? AND ?`;
       conditions.push(start_activation_date, end_activation_date);
     }
 
-    const joinTable = `${tableName} INNER JOIN ${tableModel} ON ${tableName}.model_id = ${tableModel}.id 
-      INNER JOIN ${tableUsersDevice} ON ${tableName}.id = ${tableUsersDevice}.device_id 
-      INNER JOIN ${tableUsersCustomers} ON ${tableUsersDevice}.user_id = ${tableUsersCustomers}.user_id 
+    const joinTable = `${tableDevice} INNER JOIN ${tableModel} ON ${tableDevice}.model_id = ${tableModel}.id 
+      INNER JOIN ${tableUsersDevices} ON ${tableDevice}.id = ${tableUsersDevices}.device_id 
+      INNER JOIN ${tableUsersCustomers} ON ${tableUsersDevices}.user_id = ${tableUsersCustomers}.user_id 
       INNER JOIN ${tableCustomers} c ON ${tableUsersCustomers}.customer_id = c.id 
-      LEFT JOIN ${tableOrdersDevice} ON ${tableName}.id = ${tableOrdersDevice}.device_id 
+      INNER JOIN ${tableDeviceStatus} ON ${tableDevice}.device_status_id = ${tableDeviceStatus}.id 
+      LEFT JOIN ${tableVehicle} ON ${tableDevice}.id = ${tableVehicle}.id 
+      LEFT JOIN ${tableOrdersDevice} ON ${tableDevice}.id = ${tableOrdersDevice}.device_id 
       LEFT JOIN ${tableOrders} ON ${tableOrdersDevice}.orders_id = ${tableOrders}.id 
       LEFT JOIN ${tableCustomers} ON ${tableOrders}.reciver = ${tableCustomers}.id 
       LEFT JOIN ${tableFirmware} ON ${tableModel}.id = ${tableFirmware}.model_id`;
 
-    const select = `${tableName}.id,${tableName}.dev_id,${tableName}.imei,${tableModel}.name as model_name,
-    ${tableFirmware}.version_hardware,${tableFirmware}.version_software,COALESCE(${tableFirmware}.updated_at,${tableFirmware}.created_at) as time_update_version,${tableOrders}.code,
-    ${tableCustomers}.name as customer_name,${tableName}.warranty_expired_on,${tableName}.activation_date,${tableName}.created_at,${tableName}.updated_at`;
+    const select = `${tableDevice}.id,${tableDevice}.dev_id,${tableDevice}.imei,${tableModel}.name as model_name,
+    ${tableFirmware}.version_hardware,${tableFirmware}.version_software,COALESCE(${tableFirmware}.updated_at,${tableFirmware}.created_at) as time_update_version,${tableOrders}.code orders_code,
+    COALESCE(c.company,c.name) as customer_name,${tableDevice}.created_at,${tableDevice}.updated_at,${tableDeviceStatus}.title as device_status_name,${tableVehicle}.expired_on,${tableVehicle}.warranty_expired_on,${tableVehicle}.activation_date`;
 
     const [res_, count] = await Promise.all([
       this.select(
@@ -158,7 +164,7 @@ class DeviceModel extends DatabaseModel {
         select,
         where,
         conditions,
-        `${tableName}.id`,
+        `${tableDevice}.id`,
         "DESC",
         offset,
         limit
@@ -176,18 +182,18 @@ class DeviceModel extends DatabaseModel {
     // console.log("customerId", customerId);
     const { id } = params;
     const isDeleted = query.is_deleted || 0;
-    const where = `${tableName}.is_deleted = ? AND ${tableName}.id = ? AND c.id = ?`;
+    const where = `${tableDevice}.is_deleted = ? AND ${tableDevice}.id = ? AND c.id = ?`;
     const conditions = [isDeleted, id, customerId];
 
-    const joinTable = `${tableName} INNER JOIN ${tableModel} ON ${tableName}.model_id = ${tableModel}.id 
-    INNER JOIN ${tableUsersDevice} ON ${tableName}.id = ${tableUsersDevice}.device_id 
-    INNER JOIN ${tableUsersCustomers} ON ${tableUsersDevice}.user_id = ${tableUsersCustomers}.user_id 
+    const joinTable = `${tableDevice} INNER JOIN ${tableModel} ON ${tableDevice}.model_id = ${tableModel}.id 
+    INNER JOIN ${tableUsersDevices} ON ${tableDevice}.id = ${tableUsersDevices}.device_id 
+    INNER JOIN ${tableUsersCustomers} ON ${tableUsersDevices}.user_id = ${tableUsersCustomers}.user_id 
     INNER JOIN ${tableCustomers} c ON ${tableUsersCustomers}.customer_id = c.id 
     LEFT JOIN ${tableFirmware} ON ${tableModel}.id = ${tableFirmware}.model_id`;
 
-    const selectData = `${tableName}.id,${tableName}.dev_id,${tableName}.imei,${tableName}.model_id,
-      ${tableName}.serial,${tableName}.device_name,${tableFirmware}.version_hardware,${tableFirmware}.version_software,
-      ${tableName}.device_status_id,${tableName}.package_service_id,${tableName}.expired_on,${tableName}.vehicle_type_id,${tableName}.note`;
+    const selectData = `${tableDevice}.id,${tableDevice}.dev_id,${tableDevice}.imei,${tableDevice}.model_id,
+      ${tableDevice}.serial,${tableDevice}.device_name,${tableFirmware}.version_hardware,${tableFirmware}.version_software,
+      ${tableDevice}.device_status_id,${tableDevice}.package_service_id,${tableDevice}.expired_on,${tableDevice}.vehicle_type_id,${tableDevice}.note`;
 
     const res_ = await this.select(
       conn,
@@ -202,17 +208,17 @@ class DeviceModel extends DatabaseModel {
   async reference(conn, params, parentId) {
     const { id } = params;
 
-    const joinTable = `${tableUsersDevice} INNER JOIN ${tableUsersCustomers} ON ${tableUsersDevice}.user_id = ${tableUsersCustomers}.user_id 
+    const joinTable = `${tableUsersDevices} INNER JOIN ${tableUsersCustomers} ON ${tableUsersDevices}.user_id = ${tableUsersCustomers}.user_id 
       INNER JOIN ${tableCustomers} ON ${tableUsersCustomers}.customer_id = ${tableCustomers}.id 
       INNER JOIN ${tableLevel} ON ${tableCustomers}.level_id = ${tableLevel}.id`;
 
     const data = await this.select(
       conn,
       joinTable,
-      `${tableUsersDevice}.user_id,COALESCE(${tableCustomers}.company,${tableCustomers}.name) as customer_name,${tableLevel}.name as level_name`,
-      `${tableUsersDevice}.device_id = ? AND ${tableUsersDevice}.is_deleted = ?`,
+      `${tableUsersDevices}.user_id,COALESCE(${tableCustomers}.company,${tableCustomers}.name) as customer_name,${tableLevel}.name as level_name`,
+      `${tableUsersDevices}.device_id = ? AND ${tableUsersDevices}.is_deleted = ?`,
       [id, 0],
-      `${tableUsersDevice}.id`,
+      `${tableUsersDevices}.id`,
       "ASC",
       0,
       10000
@@ -345,7 +351,7 @@ class DeviceModel extends DatabaseModel {
 
     await this.update(
       conn,
-      tableUsersDevice,
+      tableUsersDevices,
       { is_moved: 1 },
       "device_id",
       device_id
@@ -354,7 +360,7 @@ class DeviceModel extends DatabaseModel {
     const usersDevicesInsert = [[userId, device_id, 1, 0, 0, Date.now()]];
     await this.insertDuplicate(
       conn,
-      tableUsersDevice,
+      tableUsersDevices,
       "user_id,device_id,is_main,is_deleted,is_moved,created_at",
       usersDevicesInsert,
       `is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved)`
@@ -430,7 +436,7 @@ class DeviceModel extends DatabaseModel {
     await this.insert(conn, tableVehicle, vehicle_);
     await this.update(
       conn,
-      tableName,
+      tableDevice,
       { device_status_id: 4 },
       "id",
       device_id
@@ -438,7 +444,7 @@ class DeviceModel extends DatabaseModel {
 
     await this.update(
       conn,
-      tableUsersDevice,
+      tableUsersDevices,
       { is_moved: 1 },
       "device_id",
       device_id
@@ -447,7 +453,7 @@ class DeviceModel extends DatabaseModel {
     const usersDevicesInsert = [[userId, device_id, 1, 0, 0, Date.now()]];
     await this.insertDuplicate(
       conn,
-      tableUsersDevice,
+      tableUsersDevices,
       "user_id,device_id,is_main,is_deleted,is_moved,created_at",
       usersDevicesInsert,
       `is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved)`
@@ -482,7 +488,7 @@ class DeviceModel extends DatabaseModel {
     delete device.updated_at;
     const res_ = await this.insertDuplicate(
       conn,
-      tableName,
+      tableDevice,
       ` dev_id,
           imei,
           model_id,
@@ -508,7 +514,7 @@ class DeviceModel extends DatabaseModel {
 
     await this.insertDuplicate(
       conn,
-      tableUsersDevice,
+      tableUsersDevices,
       "user_id,device_id,is_deleted,is_main,is_moved,created_at",
       [[userId, res_, 0, 1, 0, Date.now()]],
       "is_deleted=VALUES(is_deleted)"
@@ -545,7 +551,7 @@ class DeviceModel extends DatabaseModel {
     delete device.is_deleted;
     delete device.created_at;
 
-    await this.update(conn, tableName, device, "id", id);
+    await this.update(conn, tableDevice, device, "id", id);
     device.id = id;
     return device;
   }
@@ -555,10 +561,10 @@ class DeviceModel extends DatabaseModel {
     const { id } = params;
     await connPromise.beginTransaction();
 
-    await this.update(conn, tableName, { is_deleted: 1 }, "id", id);
+    await this.update(conn, tableDevice, { is_deleted: 1 }, "id", id);
     await this.update(
       conn,
-      tableUsersDevice,
+      tableUsersDevices,
       { is_deleted: 1 },
       "device_id",
       id

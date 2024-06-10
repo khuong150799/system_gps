@@ -1,5 +1,5 @@
 const db = require("../dbs/init.mysql");
-const { ERROR, ALREADY_EXITS, NOT_EMPTY } = require("../constants");
+const { ERROR, ALREADY_EXITS, NOT_EMPTY } = require("../constants/msg.contant");
 const { BusinessLogicError } = require("../core/error.response");
 const DatabaseModel = require("../models/database.model");
 const modelModel = require("../models/model.model");
@@ -44,7 +44,7 @@ class ModelService {
       where,
       conditions
     );
-    if (dataCheck.length <= 0) return { result: true };
+    if (dataCheck.length <= 0) return [];
 
     errors.push({
       value: name,
@@ -52,12 +52,9 @@ class ModelService {
       param: "name",
     });
 
-    return {
-      result: false,
-      errors: {
-        msg: ERROR,
-        errors,
-      },
+    throw {
+      msg: ERROR,
+      errors,
     };
   }
 
@@ -102,16 +99,8 @@ class ModelService {
       try {
         const { name, type, disk_id, quantity_channel } = body;
 
-        const isCheck = await this.validate(
-          conn,
-          name,
-          type,
-          disk_id,
-          quantity_channel
-        );
-        if (!isCheck.result) {
-          throw isCheck.errors;
-        }
+        await this.validate(conn, name, type, disk_id, quantity_channel);
+
         const model = await modelModel.register(conn, connPromise, body);
         return model;
       } catch (error) {
@@ -134,17 +123,7 @@ class ModelService {
         const { name, type, disk_id, quantity_channel } = body;
         const { id } = params;
 
-        const isCheck = await this.validate(
-          conn,
-          name,
-          type,
-          disk_id,
-          quantity_channel,
-          id
-        );
-        if (!isCheck.result) {
-          throw isCheck.errors;
-        }
+        await this.validate(conn, name, type, disk_id, quantity_channel, id);
 
         const model = await modelModel.updateById(
           conn,
@@ -160,6 +139,7 @@ class ModelService {
         conn.release();
       }
     } catch (error) {
+      console.log(error);
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
     }
@@ -175,7 +155,7 @@ class ModelService {
       } catch (error) {
         throw error;
       } finally {
-        conn.register();
+        conn.release();
       }
     } catch (error) {
       throw new BusinessLogicError(error.msg);

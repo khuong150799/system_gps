@@ -1,7 +1,6 @@
+const { tableConnectionType } = require("../constants/tableName.contant");
 const DatabaseModel = require("./database.model");
 const ConnectionTypeSchema = require("./schema/connectionType.schema");
-
-const tableName = "tbl_connection_type";
 
 class ConnectionTypeModel extends DatabaseModel {
   constructor() {
@@ -30,7 +29,7 @@ class ConnectionTypeModel extends DatabaseModel {
     const [res_, count] = await Promise.all([
       this.select(
         conn,
-        tableName,
+        tableConnectionType,
         select,
         where,
         conditions,
@@ -39,7 +38,7 @@ class ConnectionTypeModel extends DatabaseModel {
         offset,
         limit
       ),
-      this.count(conn, tableName, "*", where, conditions),
+      this.count(conn, tableConnectionType, "*", where, conditions),
     ]);
     const totalPage = Math.ceil(count?.[0]?.total / limit);
     return { data: res_, totalPage };
@@ -55,7 +54,7 @@ class ConnectionTypeModel extends DatabaseModel {
 
     const res_ = await this.select(
       conn,
-      tableName,
+      tableConnectionType,
       selectData,
       where,
       conditions
@@ -74,7 +73,7 @@ class ConnectionTypeModel extends DatabaseModel {
       created_at: Date.now(),
     });
     delete connectionType.updated_at;
-    const res_ = await this.insert(conn, tableName, connectionType);
+    const res_ = await this.insert(conn, tableConnectionType, connectionType);
     connectionType.id = res_;
     delete connectionType.is_deleted;
     return connectionType;
@@ -96,7 +95,7 @@ class ConnectionTypeModel extends DatabaseModel {
     delete connectionType.sort;
     delete connectionType.is_deleted;
 
-    await this.update(conn, tableName, connectionType, "id", id);
+    await this.update(conn, tableConnectionType, connectionType, "id", id);
     connectionType.id = id;
     return connectionType;
   }
@@ -104,7 +103,7 @@ class ConnectionTypeModel extends DatabaseModel {
   //delete
   async deleteById(conn, params) {
     const { id } = params;
-    await this.update(conn, tableName, { is_deleted: 1 }, "id", id);
+    await this.update(conn, tableConnectionType, { is_deleted: 1 }, "id", id);
     return [];
   }
 
@@ -112,7 +111,7 @@ class ConnectionTypeModel extends DatabaseModel {
   async updatePublish(conn, body, params) {
     const { id } = params;
     const { publish } = body;
-    await this.update(conn, tableName, { publish }, "id", id);
+    await this.update(conn, tableConnectionType, { publish }, "id", id);
     return [];
   }
 }

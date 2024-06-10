@@ -1,6 +1,6 @@
+const { tableOrdersStatus } = require("../constants/tableName.contant");
 const DatabaseModel = require("./database.model");
 const OrdersStatusSchema = require("./schema/ordersStatus.schema");
-const tableName = "tbl_orders_status";
 
 class OrdersStatusModel extends DatabaseModel {
   constructor() {
@@ -29,7 +29,7 @@ class OrdersStatusModel extends DatabaseModel {
     const [res_, count] = await Promise.all([
       this.select(
         conn,
-        tableName,
+        tableOrdersStatus,
         select,
         where,
         conditions,
@@ -38,7 +38,7 @@ class OrdersStatusModel extends DatabaseModel {
         offset,
         limit
       ),
-      this.count(conn, tableName, "*", where, conditions),
+      this.count(conn, tableOrdersStatus, "*", where, conditions),
     ]);
 
     const totalPage = Math.ceil(count?.[0]?.total / limit);
@@ -56,7 +56,7 @@ class OrdersStatusModel extends DatabaseModel {
 
     const res_ = await this.select(
       conn,
-      tableName,
+      tableOrdersStatus,
       selectData,
       where,
       conditions
@@ -76,7 +76,7 @@ class OrdersStatusModel extends DatabaseModel {
     });
     delete ordersStatus.updated_at;
 
-    const res_ = await this.insert(conn, tableName, ordersStatus);
+    const res_ = await this.insert(conn, tableOrdersStatus, ordersStatus);
     ordersStatus.id = res_;
     delete ordersStatus.is_deleted;
     return ordersStatus;
@@ -98,7 +98,7 @@ class OrdersStatusModel extends DatabaseModel {
     delete ordersStatus.sort;
     delete ordersStatus.is_deleted;
 
-    await this.update(conn, tableName, ordersStatus, "id", id);
+    await this.update(conn, tableOrdersStatus, ordersStatus, "id", id);
     ordersStatus.id = id;
     return ordersStatus;
   }
@@ -106,7 +106,7 @@ class OrdersStatusModel extends DatabaseModel {
   //delete
   async deleteById(conn, params) {
     const { id } = params;
-    await this.update(conn, tableName, { is_deleted: 1 }, "id", id);
+    await this.update(conn, tableOrdersStatus, { is_deleted: 1 }, "id", id);
     return [];
   }
 
@@ -114,7 +114,7 @@ class OrdersStatusModel extends DatabaseModel {
   async updatePublish(conn, body, params) {
     const { id } = params;
     const { publish } = body;
-    await this.update(conn, tableName, { publish }, "id", id);
+    await this.update(conn, tableOrdersStatus, { publish }, "id", id);
     return [];
   }
 }

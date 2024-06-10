@@ -1,45 +1,10 @@
 const db = require("../dbs/init.mysql");
 const diskModel = require("../models/disk.model");
-const { ERROR, ALREADY_EXITS } = require("../constants");
 const { BusinessLogicError } = require("../core/error.response");
-const DatabaseModel = require("../models/database.model");
-const tableName = "tbl_disk";
-
-const databaseModel = new DatabaseModel();
+const { tableDisk } = require("../constants/tableName.contant");
+const validateModel = require("../models/validate.model");
 
 class DiskService {
-  async validate(conn, name, id = null) {
-    let where = `name = ? AND is_deleted = ?`;
-    const conditions = [name, 0];
-    if (id) {
-      where += ` AND id <> ?`;
-      conditions.push(id);
-    }
-
-    const dataCheck = await databaseModel.select(
-      conn,
-      tableName,
-      "id",
-      where,
-      conditions
-    );
-    if (dataCheck.length <= 0) return { result: true };
-
-    return {
-      result: false,
-      errors: {
-        msg: ERROR,
-        errors: [
-          {
-            value: name,
-            msg: `Tên ${ALREADY_EXITS}`,
-            param: "name",
-          },
-        ],
-      },
-    };
-  }
-
   //getallrow
   async getallrows(query) {
     try {
@@ -81,10 +46,15 @@ class DiskService {
       try {
         const { name } = body;
 
-        const isCheck = await this.validate(conn, name);
-        if (!isCheck.result) {
-          throw isCheck.errors;
-        }
+        await validateModel.checkExitValue(
+          conn,
+          tableDisk,
+          "name",
+          name,
+          "Tên",
+          "name"
+        );
+
         const disk = await diskModel.register(conn, body);
         return disk;
       } catch (error) {
@@ -106,10 +76,16 @@ class DiskService {
         const { name } = body;
         const { id } = params;
 
-        const isCheck = await this.validate(conn, name, id);
-        if (!isCheck.result) {
-          throw isCheck.errors;
-        }
+        await validateModel.checkExitValue(
+          conn,
+          tableDisk,
+          "name",
+          name,
+          "Tên",
+          "name",
+          id
+        );
+
         const disk = await diskModel.updateById(conn, body, params);
         return disk;
       } catch (error) {

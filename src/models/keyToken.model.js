@@ -1,6 +1,6 @@
+const { tableKeyToken } = require("../constants/tableName.contant");
 const DatabaseModel = require("./database.model");
 const KeyTokenSchema = require("./schema/keyToken.schema");
-const tableName = "tbl_key_token";
 
 class KeyTokenModel extends DatabaseModel {
   constructor() {
@@ -13,7 +13,13 @@ class KeyTokenModel extends DatabaseModel {
     const conditions = [clientId];
 
     const select = "id,publish_key_token,publish_key_refresh_token";
-    const res = await this.select(conn, tableName, select, where, conditions);
+    const res = await this.select(
+      conn,
+      tableKeyToken,
+      select,
+      where,
+      conditions
+    );
 
     return res;
   }
@@ -31,7 +37,7 @@ class KeyTokenModel extends DatabaseModel {
     });
     delete keyToken.updated_at;
 
-    const res_ = await this.insert(conn, tableName, keyToken);
+    const res_ = await this.insert(conn, tableKeyToken, keyToken);
     keyToken.id = res_;
     delete keyToken.is_deleted;
     return keyToken;
@@ -52,14 +58,14 @@ class KeyTokenModel extends DatabaseModel {
     delete keyToken.publish_key_refresh_token;
     delete keyToken.created_at;
 
-    await this.update(conn, tableName, keyToken, "client_id", client_id);
+    await this.update(conn, tableKeyToken, keyToken, "client_id", client_id);
     return keyToken;
   }
 
   //delete
   async deleteById(conn, params) {
     const { client_id } = params;
-    await this.delete(conn, tableName, "client_id = ?", [client_id]);
+    await this.delete(conn, tableKeyToken, "client_id = ?", [client_id]);
     return [];
   }
 }

@@ -1,45 +1,10 @@
 const db = require("../dbs/init.mysql");
 const deviceStatusModel = require("../models/deviceStatus.model");
-const { ERROR, ALREADY_EXITS } = require("../constants");
 const { BusinessLogicError } = require("../core/error.response");
-const DatabaseModel = require("../models/database.model");
-const tableName = "tbl_device_status";
-
-const databaseModel = new DatabaseModel();
+const validateModel = require("../models/validate.model");
+const { tableDeviceStatus } = require("../constants/tableName.contant");
 
 class DeviceStatusService {
-  async validate(conn, title, id = null) {
-    let where = `title = ? AND is_deleted = ?`;
-    const conditions = [title, 0];
-    if (id) {
-      where += ` AND id <> ?`;
-      conditions.push(id);
-    }
-
-    const dataCheck = await databaseModel.select(
-      conn,
-      tableName,
-      "id",
-      where,
-      conditions
-    );
-    if (dataCheck.length <= 0) return { result: true };
-
-    return {
-      result: false,
-      errors: {
-        msg: ERROR,
-        errors: [
-          {
-            value: title,
-            msg: `Tiêu đề ${ALREADY_EXITS}`,
-            param: "title",
-          },
-        ],
-      },
-    };
-  }
-
   //getallrow
   async getallrows(query) {
     try {
@@ -81,10 +46,15 @@ class DeviceStatusService {
       try {
         const { title } = body;
 
-        const isCheck = await this.validate(conn, title);
-        if (!isCheck.result) {
-          throw isCheck.errors;
-        }
+        await validateModel.checkExitValue(
+          conn,
+          tableDeviceStatus,
+          "title",
+          title,
+          "Tiêu đề",
+          "title"
+        );
+
         const deviceStatus = await deviceStatusModel.register(conn, body);
 
         return deviceStatus;
@@ -107,10 +77,15 @@ class DeviceStatusService {
         const { title } = body;
         const { id } = params;
 
-        const isCheck = await this.validate(conn, title, id);
-        if (!isCheck.result) {
-          throw isCheck.errors;
-        }
+        await validateModel.checkExitValue(
+          conn,
+          tableDeviceStatus,
+          "title",
+          title,
+          "Tiêu đề",
+          "title",
+          id
+        );
 
         const deviceStatus = await deviceStatusModel.updateById(
           conn,

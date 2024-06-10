@@ -2,25 +2,10 @@ const db = require("../dbs/init.mysql");
 
 const {
   ERROR,
-  VALIDATE_ACCOUNT,
-  ALREADY_EXITS,
-  VALIDATE_PASS,
-  NOT_EXITS,
-  NOT_ACTIVE_ACCOUNT,
-  DELETED_ACCOUNT,
   PASS_OLD_FAILED,
   ACCOUNT_FAILED,
-  PASS_FAILED,
-  ADD_CHILD_ERROR,
   NOT_ADD_DEVICE,
-} = require("../constants");
-const { regexAccount, regexPass } = require("../ultils/regex");
-const tableName = "tbl_users";
-const tableCustomers = "tbl_customers";
-const tableLevel = "tbl_level";
-const tableUsersCustomers = "tbl_users_customers";
-const tableRole = "tbl_role";
-const tableUsersRole = "tbl_users_role";
+} = require("../constants/msg.contant");
 
 const bcrypt = require("bcrypt");
 
@@ -30,119 +15,18 @@ const makeUsername = require("../ultils/makeUsername");
 const DatabaseModel = require("../models/database.model");
 const usersModel = require("../models/users.model");
 const validateModel = require("../models/validate.model");
+const {
+  tableUsers,
+  tableCustomers,
+  tableRole,
+  tableUsersRole,
+  tableUsersCustomers,
+  tableLevel,
+} = require("../constants/tableName.contant");
 
 const databaseModel = new DatabaseModel();
 
 class UsersService {
-  async validateUsername(username) {
-    const errors = [];
-    if (!regexAccount(username)) {
-      errors.push({
-        value: username,
-        msg: VALIDATE_ACCOUNT,
-        param: "username",
-      });
-    }
-    if (errors.length)
-      return {
-        result: false,
-        errors: {
-          msg: ERROR,
-          errors,
-        },
-      };
-
-    return { result: true };
-  }
-
-  async validatePassword(password, isNew = false) {
-    const errors = [];
-    if (!regexPass(password)) {
-      errors.push({
-        value: password,
-        msg: isNew ? VALIDATE_PASS : PASS_FAILED,
-        param: "password",
-      });
-    }
-    if (errors.length)
-      return {
-        result: false,
-        errors: {
-          msg: ERROR,
-          errors,
-        },
-      };
-
-    return { result: true };
-  }
-  async validateCheckExitUsername(conn, username, id = null) {
-    let where = `username = ? AND is_deleted = ?`;
-    const conditions = [username, 0];
-
-    if (id) {
-      where += ` AND id <> ?`;
-      conditions.push(id);
-    }
-
-    const dataCheck = await databaseModel.select(
-      conn,
-      tableName,
-      "id",
-      where,
-      conditions
-    );
-
-    if (dataCheck.length <= 0) return { result: true };
-
-    return {
-      result: false,
-      errors: {
-        msg: ERROR,
-        errors: [
-          {
-            value: username,
-            msg: `Tài khoản ${ALREADY_EXITS}`,
-            param: "username",
-          },
-        ],
-      },
-    };
-  }
-  async validateStatusUser(active = null, isDeleted = null) {
-    let errors = {};
-    if (active !== null && active === 0) {
-      errors = {
-        msg: NOT_ACTIVE_ACCOUNT,
-        errors: [
-          {
-            value: "",
-            msg: NOT_ACTIVE_ACCOUNT,
-            param: "",
-          },
-        ],
-      };
-    } else if (isDeleted === 1) {
-      errors = {
-        msg: DELETED_ACCOUNT,
-        errors: [
-          {
-            value: "",
-            msg: DELETED_ACCOUNT,
-            param: "",
-          },
-        ],
-      };
-    }
-
-    if (Object.keys(errors).length)
-      return {
-        result: false,
-        errors,
-      };
-
-    return { result: true };
-  }
-
   async validateComparePass(compare, isCompared) {
     const errors = [];
     const match = await bcrypt.compare(compare, isCompared);
@@ -164,77 +48,28 @@ class UsersService {
     return { result: true };
   }
 
-  async validateIsChild(connPromise, parent, child) {
-    const dataReturn = [];
-    const dequy = async (data) => {
-      dataReturn.push(data[0]);
-      const id = data[0].id;
-
-      if (id.toString() === parent.toString()) {
-        return true;
-      }
-
-      const dataRes = await connPromise.query(
-        `SELECT ${tableName}.id,${tableName}.parent_id FROM ${tableName} WHERE ${tableName}.parent_id = ? AND ${tableName}.is_deleted = ?`,
-        [id, 0]
-      );
-
-      if (
-        dataRes?.[0]?.[0].length > 0 &&
-        dataRes?.[0]?.[0].id.toString() !== userId.toString()
-      ) {
-        await dequy(dataRes[0]);
-      }
-      return false;
-    };
-    const result = await dequy([{ id: child }]);
-
-    if (!result)
-      return {
-        result: false,
-        errors: {
-          msg: ERROR,
-          errors: [{ value: id, msg: ADD_CHILD_ERROR, param: "parent_id" }],
-        },
-      };
-    return { result: true };
-  }
-
-  async validateUserInfo(conn, id) {
-    let errors = {};
-
-    const dataInfo = await databaseModel.select(
-      conn,
-      tableName,
-      "password,is_actived,is_deleted",
-      "id = ?",
-      [id]
-    );
-
-    if (dataInfo?.length <= 0) {
-      errors = {
-        msg: ERROR,
-        errors: [
-          {
-            value: "",
-            msg: `Tài khoản ${NOT_EXITS}`,
-            param: "",
-          },
-        ],
-      };
-    }
-
-    if (Object.keys(errors).length) return { result: false, errors };
-
-    return { result: true, data: dataInfo[0] };
-  }
-
   //getallrow
   async getallrows(query) {
     try {
       const { conn } = await db.getConnection();
       try {
         const data = await usersModel.getallrows(conn, query);
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      throw new BusinessLogicError(error.msg);
+    }
+  }
+
+  async getaListWithUser(query, userId) {
+    try {
+      const { conn } = await db.getConnection();
+      try {
+        const data = await usersModel.getaListWithUser(conn, query, userId);
         return data;
       } catch (error) {
         throw error;
@@ -278,36 +113,72 @@ class UsersService {
       throw new BusinessLogicError(error.msg);
     }
   }
+
+  async move(body, userId) {
+    try {
+      const { reciver, user_is_moved } = body;
+      const { conn, connPromise } = await db.getConnection();
+      try {
+        if (Number(userId) === Number(user_is_moved)) throw "lỗi";
+
+        await validateModel.CheckIsChild(
+          connPromise,
+          userId,
+          reciver,
+          "reciver"
+        );
+
+        await validateModel.CheckIsChild(
+          connPromise,
+          userId,
+          user_is_moved,
+          "user_is_moved"
+        );
+
+        const data = await usersModel.move(conn, connPromise, body);
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      console.log(error);
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
+    }
+  }
+
   //Register
-  async register(body, userId, customerId) {
+  async register(body, userId, customerId, role) {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
-        const { parent_id, username, password } = body;
+        const { parent_id, username, password, role_id } = body;
 
-        const isCheckUsername = await this.validateUsername(username);
-        if (!isCheckUsername.result) {
-          throw isCheckUsername.errors;
-        }
+        await validateModel.checkRegexUsername(username);
 
-        const isCheckPassword = await this.validatePassword(password, true);
-        if (!isCheckPassword.result) {
-          throw isCheckPassword.errors;
-        }
+        await validateModel.checkRegexPassword(password, true);
 
-        const isCheckChild = await this.validateIsChild(
-          connPromise,
-          userId,
-          parent_id
+        await validateModel.CheckIsChild(connPromise, userId, parent_id);
+
+        await validateModel.checkParentAndChildPermission(
+          conn,
+          tableRole,
+          role,
+          role_id,
+          "vai trò này",
+          "role_id"
         );
-        if (!isCheckChild.result) {
-          throw isCheckChild.errors;
-        }
 
-        const isCheck = await this.validateCheckExitUsername(conn, username);
-        if (!isCheck.result) {
-          throw isCheck.errors;
-        }
+        await validateModel.checkExitValue(
+          conn,
+          tableUsers,
+          "username = ?",
+          username,
+          "Tài khoản",
+          "username"
+        );
 
         const data = await usersModel.register(
           conn,
@@ -324,6 +195,7 @@ class UsersService {
         conn.release();
       }
     } catch (error) {
+      console.log(error);
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
     }
@@ -336,22 +208,19 @@ class UsersService {
       try {
         const { parent_id, name } = body;
 
-        const isCheckChild = await this.validateIsChild(
-          connPromise,
-          userId,
-          parent_id
-        );
-        if (!isCheckChild.result) {
-          throw isCheckChild.errors;
-        }
+        await validateModel.CheckIsChild(connPromise, userId, parent_id);
 
         const username = `${makeUsername(name)}${Date.now()}`;
         const password = `Mv${Date.now()}`;
 
-        const isCheck = await this.validateCheckExitUsername(conn, username);
-        if (!isCheck.result) {
-          throw isCheck.errors;
-        }
+        await validateModel.checkExitValue(
+          conn,
+          tableUsers,
+          "username = ?",
+          username,
+          "Tài khoản",
+          "username"
+        );
 
         const data = await usersModel.registerTeam(
           conn,
@@ -413,15 +282,7 @@ class UsersService {
       try {
         const { parent_id } = body;
 
-        const isCheckChild = await this.validateIsChild(
-          connPromise,
-          userId,
-          parent_id
-        );
-
-        if (!isCheckChild.result) {
-          throw isCheckChild.errors;
-        }
+        await validateModel.CheckIsChild(connPromise, userId, parent_id);
 
         const data = await usersModel.updateById(
           conn,
@@ -449,15 +310,8 @@ class UsersService {
       const { conn } = await db.getConnection();
       try {
         const { id } = params;
-        const isCheckChild = await this.validateIsChild(
-          connPromise,
-          userId,
-          id
-        );
+        await validateModel.CheckIsChild(connPromise, userId, id);
 
-        if (!isCheckChild.result) {
-          throw isCheckChild.errors;
-        }
         await usersModel.deleteById(conn, params);
         return [];
       } catch (error) {
@@ -476,15 +330,8 @@ class UsersService {
       const { conn } = await db.getConnection();
       try {
         const { id } = params;
-        const isCheckChild = await this.validateIsChild(
-          connPromise,
-          userId,
-          id
-        );
+        await validateModel.CheckIsChild(connPromise, userId, id);
 
-        if (!isCheckChild.result) {
-          throw isCheckChild.errors;
-        }
         const data = await usersModel.resetPass(conn, params);
         return data;
       } catch (error) {
@@ -505,29 +352,18 @@ class UsersService {
       try {
         const { new_password, old_password } = body;
 
-        const isCheckOldPassword = await this.validatePassword(old_password);
-        if (!isCheckOldPassword.result) {
-          throw isCheckOldPassword.errors;
-        }
+        await validateModel.checkRegexPassword(old_password);
 
-        const isCheckNewPassword = await this.validatePassword(
-          new_password,
-          true
-        );
+        await validateModel.checkRegexPassword(new_password, true);
+
         if (!isCheckNewPassword.result) {
           throw isCheckNewPassword.errors;
         }
 
-        const isCheckInfo = await this.validateUserInfo(conn, userId);
-        if (!isCheckInfo.result) throw isCheckInfo.errors;
+        const { is_actived, is_deleted, password } =
+          await validateModel.checkUserInfo(conn, userId);
 
-        const { data: dataInfo } = isCheckInfo;
-        const { is_actived, is_deleted, password } = dataInfo;
-        const isCheckStatusUser = await this.validateStatusUser(
-          is_actived,
-          is_deleted
-        );
-        if (!isCheckStatusUser.result) throw isCheckStatusUser.errors;
+        await validateModel.checkStatusUser(is_actived, is_deleted);
 
         const isCheckComparePass = await this.validateComparePass(
           old_password,
@@ -559,21 +395,22 @@ class UsersService {
       try {
         const { username, password } = body;
 
-        const isCheckUsername = await this.validateUsername(username);
-        if (!isCheckUsername.result) {
-          throw isCheckUsername.errors;
-        }
+        await validateModel.checkRegexUsername(username);
 
-        const isCheckPassword = await this.validatePassword(password);
-        if (!isCheckPassword.result) {
-          throw isCheckPassword.errors;
-        }
+        await validateModel.checkRegexPassword(password);
 
-        const joinTable = `${tableName} INNER JOIN ${tableUsersRole} ON ${tableName}.id = ${tableUsersRole}.user_id INNER JOIN ${tableRole} ON ${tableUsersRole}.role_id = ${tableRole}.id INNER JOIN ${tableUsersCustomers} ON ${tableName}.id = ${tableUsersCustomers}.user_id INNER JOIN ${tableCustomers} ON ${tableUsersCustomers}.customer_id = ${tableCustomers}.id INNER JOIN ${tableLevel} ON ${tableCustomers}.level_id = ${tableLevel}.id`;
+        const joinTable = `${tableUsers} INNER JOIN ${tableUsersRole} ON ${tableUsers}.id = ${tableUsersRole}.user_id 
+          INNER JOIN ${tableRole} ON ${tableUsersRole}.role_id = ${tableRole}.id 
+          INNER JOIN ${tableUsersCustomers} ON ${tableUsers}.id = ${tableUsersCustomers}.user_id 
+          INNER JOIN ${tableCustomers} ON ${tableUsersCustomers}.customer_id = ${tableCustomers}.id 
+          INNER JOIN ${tableLevel} ON ${tableCustomers}.level_id = ${tableLevel}.id`;
+
+        const select = `${tableUsers}.id,${tableUsers}.parent_id,${tableUsers}.password,${tableUsers}.is_actived,${tableUsers}.is_deleted,
+            ${tableRole}.sort as role,${tableCustomers}.id as customer_id,${tableLevel}.sort as level`;
         const dataaUser = await databaseModel.select(
           conn,
           joinTable,
-          `${tableName}.id,${tableName}.parent_id,${tableName}.password,${tableName}.is_actived,${tableName}.is_deleted,${tableRole}.sort as role,${tableCustomers}.id as customer_id,${tableLevel}.sort as level`,
+          select,
           "username = ?",
           [username]
         );
@@ -600,11 +437,7 @@ class UsersService {
           customer_id,
         } = dataaUser[0];
 
-        const isCheckStatusUser = await this.validateStatusUser(
-          is_actived,
-          is_deleted
-        );
-        if (!isCheckStatusUser.result) throw isCheckStatusUser.errors;
+        await validateModel.checkStatusUser(is_actived, is_deleted);
 
         const isCheckComparePass = await this.validateComparePass(
           password,
@@ -646,9 +479,16 @@ class UsersService {
   //logout
   async logout(clientId) {
     try {
-      const data = await usersModel.logout(clientId);
+      const { conn } = await db.getConnection();
+      try {
+        const data = await usersModel.logout(conn, clientId);
 
-      return data;
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }

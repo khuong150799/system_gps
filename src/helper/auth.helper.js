@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const constants = require("../constants");
+const constants = require("../constants/msg.contant");
 
 const keyTokenService = require("../services/keyToken.service");
 const {
@@ -7,11 +7,7 @@ const {
   Api403Error,
   BusinessLogicError,
 } = require("../core/error.response");
-const {
-  exists: existsRedis,
-  get: getRedis,
-  set: setRedis,
-} = require("../models/redis.model");
+const { get: getRedis, set: setRedis } = require("../models/redis.model");
 const { promisify } = require("util");
 const {
   ACCESS_TOKEN_TIME_LIFE,
@@ -53,10 +49,10 @@ class JWTService {
         throw new Api403Error();
       }
       let keyStore = {};
-      const checkExit = await existsRedis(info.clientId);
-      if (checkExit.result && checkExit.data === 1) {
-        const dataStore = await getRedis(info.clientId);
-        keyStore = JSON.parse(dataStore);
+      const dataStore = await getRedis(info.clientId);
+      // console.log("dataStore", dataStore);
+      if (dataStore.result && dataStore.data) {
+        keyStore = JSON.parse(dataStore.data);
       } else {
         const dataStore = await keyTokenService.getData(info.clientId);
         keyStore = dataStore[0] || {};
@@ -67,7 +63,7 @@ class JWTService {
           ? `${privateKey}${publish_key_token}`
           : `${privateKey}${publish_key_refresh_token}`;
         const data = await verifyAsync(token, secret);
-        if (checkExit.result && checkExit.data === 0) {
+        if (dataStore.result && !dataStore.data) {
           await setRedis(
             info.clientId,
             JSON.stringify({

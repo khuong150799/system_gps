@@ -4,7 +4,7 @@ const {
   GET_DATA_SUCCESS,
   UPDATE_DATA_SUCCESS,
   LOGIN_SUCCESS,
-} = require("../constants");
+} = require("../constants/msg.contant");
 const { StatusCodes } = require("./httpStatusCode");
 
 class SuccessResponse {

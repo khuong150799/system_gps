@@ -1,11 +1,13 @@
 const DatabaseModel = require("./database.model");
 const LevelSchema = require("./schema/level.schema");
 const permissionModel = require("./permission.model");
-const tableName = "tbl_level";
-const tableLevelPermission = "tbl_level_permission";
-const tablePermission = "tbl_permission";
-const tableLevelModule = "tbl_level_module";
-const tableModule = "tbl_module";
+const {
+  tableLevel,
+  tableLevelPermission,
+  tablePermission,
+  tableLevelModule,
+  tableModule,
+} = require("../constants/tableName.contant");
 
 class LevelModel extends DatabaseModel {
   constructor() {
@@ -13,12 +15,12 @@ class LevelModel extends DatabaseModel {
   }
 
   //getallrow
-  async getallrows(conn, query) {
+  async getallrows(conn, query, level) {
     const offset = query.offset || 0;
     const limit = query.limit || 10;
     const isDeleted = query.is_deleted || 0;
-    let where = `is_deleted = ?`;
-    const conditions = [isDeleted];
+    let where = `sort <= ? AND is_deleted = ?`;
+    const conditions = [level, isDeleted];
 
     if (query.keyword) {
       where += ` AND name LIKE ?`;
@@ -35,16 +37,16 @@ class LevelModel extends DatabaseModel {
     const [res_, count] = await Promise.all([
       this.select(
         conn,
-        tableName,
+        tableLevel,
         select,
         where,
         conditions,
-        "id",
-        "DESC",
+        "sort",
+        "ASC",
         offset,
         limit
       ),
-      this.count(conn, tableName, "*", where, conditions),
+      this.count(conn, tableLevel, "*", where, conditions),
     ]);
 
     const totalPage = Math.ceil(count?.[0]?.total / limit);
@@ -62,7 +64,7 @@ class LevelModel extends DatabaseModel {
 
     const res_ = await this.select(
       conn,
-      tableName,
+      tableLevel,
       selectData,
       where,
       conditions
@@ -79,7 +81,7 @@ class LevelModel extends DatabaseModel {
 
     const levelInfo = await this.select(
       conn,
-      tableName,
+      tableLevel,
       "sort",
       where,
       conditions
@@ -89,14 +91,14 @@ class LevelModel extends DatabaseModel {
     const level = levelInfo[0]?.sort || 0;
 
     const select = `${tablePermission}.id`;
-    const joinTable = `${tableName} INNER JOIN ${tableLevelPermission} ON ${tableName}.id = ${tableLevelPermission}.level_id 
+    const joinTable = `${tableLevel} INNER JOIN ${tableLevelPermission} ON ${tableLevel}.id = ${tableLevelPermission}.level_id 
       INNER JOIN ${tablePermission} ON ${tableLevelPermission}.permission_id = ${tablePermission}.id`;
 
     const res_ = await this.select(
       conn,
       joinTable,
       select,
-      `${tableName}.sort <= ? AND ${tablePermission}.is_deleted = ? AND ${tablePermission}.publish = ? AND ${tableLevelPermission}.is_deleted = ?`,
+      `${tableLevel}.sort <= ? AND ${tablePermission}.is_deleted = ? AND ${tablePermission}.publish = ? AND ${tableLevelPermission}.is_deleted = ?`,
       [level, isDeleted, 1, isDeleted],
       `${tablePermission}.id`,
       "DESC",
@@ -116,7 +118,7 @@ class LevelModel extends DatabaseModel {
 
     const levelInfo = await this.select(
       conn,
-      tableName,
+      tableLevel,
       "sort",
       where,
       conditions
@@ -126,14 +128,14 @@ class LevelModel extends DatabaseModel {
     const level = levelInfo[0]?.sort || 0;
 
     const select = `${tableModule}.id`;
-    const joinTable = `${tableName} INNER JOIN ${tableLevelModule} ON ${tableName}.id = ${tableLevelModule}.level_id 
+    const joinTable = `${tableLevel} INNER JOIN ${tableLevelModule} ON ${tableLevel}.id = ${tableLevelModule}.level_id 
       INNER JOIN ${tableModule} ON ${tableLevelModule}.module_id = ${tableModule}.id`;
 
     const res_ = await this.select(
       conn,
       joinTable,
       select,
-      `${tableName}.sort <= ? AND ${tableModule}.is_deleted = ? AND ${tableModule}.publish = ? AND ${tableLevelModule}.is_deleted = ?`,
+      `${tableLevel}.sort <= ? AND ${tableModule}.is_deleted = ? AND ${tableModule}.publish = ? AND ${tableLevelModule}.is_deleted = ?`,
       [level, isDeleted, 1, isDeleted],
       `${tableModule}.id`,
       "DESC",
@@ -157,7 +159,7 @@ class LevelModel extends DatabaseModel {
     });
     delete level.updated_at;
 
-    const res_ = await this.insert(conn, tableName, level);
+    const res_ = await this.insert(conn, tableLevel, level);
     level.id = res_;
     delete level.is_deleted;
     return level;
@@ -221,7 +223,7 @@ class LevelModel extends DatabaseModel {
     delete level.sort;
     delete level.is_deleted;
 
-    await this.update(conn, tableName, level, "id", id);
+    await this.update(conn, tableLevel, level, "id", id);
     await permissionModel.init(conn);
     level.id = id;
     return level;
@@ -230,7 +232,7 @@ class LevelModel extends DatabaseModel {
   //delete
   async deleteById(conn, params) {
     const { id } = params;
-    await this.update(conn, tableName, { is_deleted: 1 }, "id", id);
+    await this.update(conn, tableLevel, { is_deleted: 1 }, "id", id);
     await permissionModel.init(conn);
     return [];
   }
@@ -242,9 +244,9 @@ class LevelModel extends DatabaseModel {
 
     const levelParent = await this.select(
       conn,
-      tableName,
+      tableLevel,
       "id",
-      `sort > (SELECT sort FROM ${tableName} WHERE id = ?)`,
+      `sort > (SELECT sort FROM ${tableLevel} WHERE id = ?)`,
       id,
       "id",
       "ASC",
@@ -278,9 +280,9 @@ class LevelModel extends DatabaseModel {
     const listPermissionId = JSON.parse(permissions);
     const levelParent = await this.select(
       conn,
-      tableName,
+      tableLevel,
       "id",
-      `sort > (SELECT sort FROM ${tableName} WHERE id = ?)`,
+      `sort > (SELECT sort FROM ${tableLevel} WHERE id = ?)`,
       id,
       "id",
       "ASC",
@@ -315,7 +317,7 @@ class LevelModel extends DatabaseModel {
     const { id } = params;
     const { publish } = body;
 
-    await this.update(conn, tableName, { publish }, "id", id);
+    await this.update(conn, tableLevel, { publish }, "id", id);
     await permissionModel.init(conn);
     return [];
   }
@@ -325,7 +327,7 @@ class LevelModel extends DatabaseModel {
     const { id } = params;
     const { sort } = body;
 
-    await this.update(conn, tableName, { sort }, "id", id);
+    await this.update(conn, tableLevel, { sort }, "id", id);
     await permissionModel.init(conn);
     return [];
   }

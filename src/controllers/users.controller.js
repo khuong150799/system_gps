@@ -1,4 +1,8 @@
-const { REFRESH_TOKEN_SUCCESS, LOGOUT_SUCCESS } = require("../constants");
+const {
+  REFRESH_TOKEN_SUCCESS,
+  LOGOUT_SUCCESS,
+  MOVE_SUCCESS,
+} = require("../constants/msg.contant");
 const {
   GET,
   CREATED,
@@ -6,7 +10,7 @@ const {
   DELETE,
   OK,
 } = require("../core/success.response");
-const catchAsync = require("../helper/catch.async");
+const catchAsync = require("../helper/catchAsync.helper");
 const usersSrevice = require("../services/users.service");
 
 class CustomersController {
@@ -14,6 +18,13 @@ class CustomersController {
     const query = req.query;
     const { data, totalPage } = await usersSrevice.getallrows(query);
     GET(res, data, totalPage);
+  });
+
+  getaListWithUser = catchAsync(async (req, res) => {
+    const userId = req.userId;
+    const query = req.query;
+    const data = await usersSrevice.getaListWithUser(query, userId);
+    GET(res, data);
   });
 
   getById = catchAsync(async (req, res) => {
@@ -31,9 +42,17 @@ class CustomersController {
   register = catchAsync(async (req, res) => {
     const customerId = req.customerId;
     const userId = req.userId;
+    const role = req.role;
     const body = req.body;
-    const data = await usersSrevice.register(body, userId, customerId);
+    const data = await usersSrevice.register(body, userId, customerId, role);
     CREATED(res, [data]);
+  });
+
+  move = catchAsync(async (req, res) => {
+    const userId = req.userId;
+    const body = req.body;
+    const data = await usersSrevice.move(body, userId);
+    OK(res, [data], {}, MOVE_SUCCESS);
   });
 
   registerTeam = catchAsync(async (req, res) => {

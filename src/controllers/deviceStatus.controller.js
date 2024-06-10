@@ -1,5 +1,5 @@
 const { GET, CREATED, UPDATE, DELETE } = require("../core/success.response");
-const catchAsync = require("../helper/catch.async");
+const catchAsync = require("../helper/catchAsync.helper");
 const deviceStatusService = require("../services/deviceStatus.service");
 
 class DeviceStatusController {
