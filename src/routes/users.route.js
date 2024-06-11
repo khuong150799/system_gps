@@ -32,7 +32,7 @@ module.exports = (app) => {
     [param("id", VALIDATE_DATA).isNumeric()],
     isAuth,
     checkPermission,
-    usersController.getById
+    usersController.getInfo
   );
 
   router.get("/info", isAuth, checkPermission, usersController.getInfo);

@@ -82,21 +82,21 @@ class UsersService {
   }
 
   //getbyid
-  async getById(params, query) {
-    try {
-      const { conn } = await db.getConnection();
-      try {
-        const data = await usersModel.getById(conn, params, query);
-        return data;
-      } catch (error) {
-        throw error;
-      } finally {
-        conn.release();
-      }
-    } catch (error) {
-      throw new BusinessLogicError(error.msg);
-    }
-  }
+  // async getById(params, query) {
+  //   try {
+  //     const { conn } = await db.getConnection();
+  //     try {
+  //       const data = await usersModel.getById(conn, params, query);
+  //       return data;
+  //     } catch (error) {
+  //       throw error;
+  //     } finally {
+  //       conn.release();
+  //     }
+  //   } catch (error) {
+  //     throw new BusinessLogicError(error.msg);
+  //   }
+  // }
 
   async getInfo(userId) {
     try {

@@ -27,15 +27,19 @@ class CustomersController {
     GET(res, data);
   });
 
-  getById = catchAsync(async (req, res) => {
-    const params = req.params;
-    const query = req.query;
-    const data = await usersSrevice.getById(params, query);
-    GET(res, data);
-  });
+  // getById = catchAsync(async (req, res) => {
+  //   const params = req.params;
+  //   const query = req.query;
+  //   const data = await usersSrevice.getById(params, query);
+  //   GET(res, data);
+  // });
   getInfo = catchAsync(async (req, res) => {
     const userId = req.userId;
-    const data = await usersSrevice.getInfo(userId);
+    const { id } = req.params;
+
+    const chooseUserId = id || userId;
+
+    const data = await usersSrevice.getInfo(chooseUserId);
     GET(res, data);
   });
 

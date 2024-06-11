@@ -117,23 +117,23 @@ class UsersModel extends DatabaseModel {
   }
 
   //getbyid
-  async getById(conn, params, query) {
-    const { id } = params;
-    const isDeleted = query.is_deleted || 0;
-    const where = `${tableUsers}.is_deleted = ? AND ${tableUsers}.id = ?`;
-    const conditions = [isDeleted, id];
-    const joinTable = `${tableUsers} INNER JOIN ${tableUsersRole} ON ${tableUsers}.id = ${tableUsersRole}.user_id`;
-    const selectData = `${tableUsers}.id,${tableUsers}.username,${tableUsers}.parent_id,${tableUsers}.is_actived,${tableUsersRole}.role_id`;
+  // async getById(conn, params, query) {
+  //   const { id } = params;
+  //   const isDeleted = query.is_deleted || 0;
+  //   const where = `${tableUsers}.is_deleted = ? AND ${tableUsers}.id = ?`;
+  //   const conditions = [isDeleted, id];
+  //   const joinTable = `${tableUsers} INNER JOIN ${tableUsersRole} ON ${tableUsers}.id = ${tableUsersRole}.user_id`;
+  //   const selectData = `${tableUsers}.id,${tableUsers}.username,${tableUsers}.parent_id,${tableUsers}.is_actived,${tableUsersRole}.role_id`;
 
-    const res_ = await this.select(
-      conn,
-      joinTable,
-      selectData,
-      where,
-      conditions
-    );
-    return res_;
-  }
+  //   const res_ = await this.select(
+  //     conn,
+  //     joinTable,
+  //     selectData,
+  //     where,
+  //     conditions
+  //   );
+  //   return res_;
+  // }
 
   async getInfo(conn, userId) {
     const where = `${tableUsers}.is_deleted = ? AND ${tableUsers}.id = ?`;
