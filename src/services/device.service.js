@@ -4,7 +4,11 @@ const { ERROR, ALREADY_EXITS } = require("../constants/msg.contant");
 const { BusinessLogicError } = require("../core/error.response");
 const DatabaseModel = require("../models/database.model");
 const validateModel = require("../models/validate.model");
-const { tableUsers, tableVehicle } = require("../constants/tableName.contant");
+const {
+  tableUsers,
+  tableVehicle,
+  tableDevice,
+} = require("../constants/tableName.contant");
 
 const databaseModel = new DatabaseModel();
 
@@ -20,7 +24,7 @@ class DeviceService {
 
     const dataCheck = await databaseModel.select(
       conn,
-      tableVehicle,
+      tableDevice,
       "dev_id,imei",
       where,
       conditions
@@ -237,10 +241,7 @@ class DeviceService {
       try {
         const { dev_id, imei } = body;
 
-        const isCheck = await this.validate(conn, dev_id, imei);
-        if (!isCheck.result) {
-          throw isCheck.errors;
-        }
+        await this.validate(conn, dev_id, imei);
 
         const device = await deviceModel.register(
           conn,
@@ -269,10 +270,8 @@ class DeviceService {
         const { dev_id, imei } = body;
         const { id } = params;
 
-        const isCheck = await this.validate(conn, dev_id, imei, id);
-        if (!isCheck.result) {
-          throw isCheck.errors;
-        }
+        await this.validate(conn, dev_id, imei, id);
+
         const device = await deviceModel.updateById(conn, body, params);
         return device;
       } catch (error) {

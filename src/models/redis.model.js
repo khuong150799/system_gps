@@ -6,6 +6,7 @@ class RedisModel {
     this.redis = getRedis();
     this.get = this.get.bind(this);
     this.set = this.set.bind(this);
+    this.setWithExpired = this.setWithExpired.bind(this);
     this.setnx = this.setnx.bind(this);
     this.expire = this.expire.bind(this);
     this.ttl = this.ttl.bind(this);

@@ -153,7 +153,7 @@ class DeviceModel extends DatabaseModel {
       LEFT JOIN ${tableCustomers} ON ${tableOrders}.reciver = ${tableCustomers}.id 
       LEFT JOIN ${tableFirmware} ON ${tableModel}.id = ${tableFirmware}.model_id`;
 
-    const select = `${tableDevice}.id,${tableDevice}.dev_id,${tableDevice}.imei,${tableModel}.name as model_name,
+    const select = `${tableDevice}.id,${tableDevice}.dev_id,${tableDevice}.imei,${tableDevice}.serial,${tableModel}.name as model_name,
     ${tableFirmware}.version_hardware,${tableFirmware}.version_software,COALESCE(${tableFirmware}.updated_at,${tableFirmware}.created_at) as time_update_version,${tableOrders}.code orders_code,
     COALESCE(c.company,c.name) as customer_name,${tableDevice}.created_at,${tableDevice}.updated_at,${tableDeviceStatus}.title as device_status_name,${tableVehicle}.expired_on,${tableVehicle}.warranty_expired_on,${tableVehicle}.activation_date`;
 
@@ -162,7 +162,7 @@ class DeviceModel extends DatabaseModel {
         conn,
         joinTable,
         select,
-        where,
+        `${where}`,
         conditions,
         `${tableDevice}.id`,
         "DESC",
@@ -182,7 +182,7 @@ class DeviceModel extends DatabaseModel {
     // console.log("customerId", customerId);
     const { id } = params;
     const isDeleted = query.is_deleted || 0;
-    const where = `${tableDevice}.is_deleted = ? AND ${tableDevice}.id = ? AND c.id = ?`;
+    let where = `${tableDevice}.is_deleted = ? AND ${tableDevice}.id = ? AND c.id = ?`;
     const conditions = [isDeleted, id, customerId];
 
     const joinTable = `${tableDevice} INNER JOIN ${tableModel} ON ${tableDevice}.model_id = ${tableModel}.id 
@@ -192,8 +192,8 @@ class DeviceModel extends DatabaseModel {
     LEFT JOIN ${tableFirmware} ON ${tableModel}.id = ${tableFirmware}.model_id`;
 
     const selectData = `${tableDevice}.id,${tableDevice}.dev_id,${tableDevice}.imei,${tableDevice}.model_id,
-      ${tableDevice}.serial,${tableDevice}.device_name,${tableFirmware}.version_hardware,${tableFirmware}.version_software,
-      ${tableDevice}.device_status_id,${tableDevice}.package_service_id,${tableDevice}.expired_on,${tableDevice}.vehicle_type_id,${tableDevice}.note`;
+      ${tableDevice}.serial,${tableFirmware}.version_hardware,${tableFirmware}.version_software,
+      ${tableDevice}.device_status_id,${tableDevice}.note`;
 
     const res_ = await this.select(
       conn,
@@ -216,7 +216,7 @@ class DeviceModel extends DatabaseModel {
       conn,
       joinTable,
       `${tableUsersDevices}.user_id,COALESCE(${tableCustomers}.company,${tableCustomers}.name) as customer_name,${tableLevel}.name as level_name`,
-      `${tableUsersDevices}.device_id = ? AND ${tableUsersDevices}.is_deleted = ?`,
+      `${tableUsersDevices}.device_id = ? AND ${tableUsersDevices}.is_deleted = ? GROUP BY ${tableUsersDevices}.id`,
       [id, 0],
       `${tableUsersDevices}.id`,
       "ASC",

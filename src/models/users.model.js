@@ -98,7 +98,7 @@ class UsersModel extends DatabaseModel {
     const joinTable = `${tableUsers} INNER JOIN ${tableUsersCustomers} ON ${tableUsers}.id = ${tableUsersCustomers}.user_id 
       INNER JOIN ${tableCustomers} ON ${tableUsersCustomers}.customer_id = ${tableCustomers}.id`;
 
-    const select = `${tableUsers}.id,${tableUsers}.username,${tableUsers}.parent_id,COALESCE(${tableCustomers}.company,${tableCustomers}.name) as customer_name,${tableCustomers}.id as customer_id`;
+    const select = `${tableUsers}.id,${tableUsers}.username,${tableUsers}.parent_id,${tableUsers}.is_team,COALESCE(${tableCustomers}.company,${tableCustomers}.name) as customer_name,${tableCustomers}.id as customer_id`;
 
     const res_ = await this.getAllRowsMenu(
       conn,
