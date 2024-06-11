@@ -139,10 +139,13 @@ class UsersModel extends DatabaseModel {
     const where = `${tableUsers}.is_deleted = ? AND ${tableUsers}.id = ?`;
     const conditions = [0, userId];
     const joinTable = `${tableUsers} INNER JOIN ${tableUsersRole} ON ${tableUsers}.id = ${tableUsersRole}.user_id 
+      INNER JOIN ${tableRole} ON ${tableUsersRole}.role_id = ${tableRole}.id  
       INNER JOIN ${tableUsersCustomers} ON ${tableUsers}.id = ${tableUsersCustomers}.user_id 
-      INNER JOIN ${tableCustomers} ON ${tableUsersCustomers}.customer_id = ${tableCustomers}.id`;
+      INNER JOIN ${tableCustomers} ON ${tableUsersCustomers}.customer_id = ${tableCustomers}.id 
+      INNER JOIN ${tableLevel} ON ${tableCustomers}.level_id = ${tableLevel}.id`;
+
     const selectData = `${tableUsers}.id,${tableUsers}.username,${tableUsers}.parent_id,${tableUsers}.is_actived,
-      ${tableUsersRole}.role_id,${tableCustomers}.name as customer_name,${tableCustomers}.email,${tableCustomers}.phone,
+      ${tableUsersRole}.role_id,${tableRole}.name as role_name,${tableCustomers}.level_id,${tableLevel}.name as level_name,${tableCustomers}.name as customer_name,${tableCustomers}.email,${tableCustomers}.phone,
       ${tableCustomers}.company,${tableCustomers}.address,${tableCustomers}.tax_code,${tableCustomers}.website,${tableCustomers}.id as customer_id`;
 
     const res_ = await this.select(
