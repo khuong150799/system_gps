@@ -59,8 +59,13 @@ class DeviceController {
   activationInside = catchAsync(async (req, res) => {
     const body = req.body;
     const userId = req.userId;
+    const chosseUser = body.user_id || userId;
     const parentId = req.parentId;
-    const data = await deviceService.activationInside(body, userId, parentId);
+    const data = await deviceService.activationInside(
+      body,
+      chosseUser,
+      parentId
+    );
     CREATED(res, [data]);
   });
 

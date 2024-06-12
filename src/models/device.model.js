@@ -21,6 +21,8 @@ const {
   tableVehicle,
   tableServicePackage,
   tableDeviceStatus,
+  tableUsers,
+  tableVehicleType,
 } = require("../constants/tableName.contant");
 
 class DeviceModel extends DatabaseModel {
@@ -102,6 +104,7 @@ class DeviceModel extends DatabaseModel {
     const limit = query.limit || 10;
 
     const {
+      type, //1 : vehicle
       is_deleted,
       keyword,
       customer_id,
@@ -142,20 +145,37 @@ class DeviceModel extends DatabaseModel {
       conditions.push(start_activation_date, end_activation_date);
     }
 
-    const joinTable = `${tableDevice} INNER JOIN ${tableModel} ON ${tableDevice}.model_id = ${tableModel}.id 
+    let joinTable = `${tableDevice} INNER JOIN ${tableModel} ON ${tableDevice}.model_id = ${tableModel}.id 
       INNER JOIN ${tableUsersDevices} ON ${tableDevice}.id = ${tableUsersDevices}.device_id 
       INNER JOIN ${tableUsersCustomers} ON ${tableUsersDevices}.user_id = ${tableUsersCustomers}.user_id 
       INNER JOIN ${tableCustomers} c ON ${tableUsersCustomers}.customer_id = c.id 
-      INNER JOIN ${tableDeviceStatus} ON ${tableDevice}.device_status_id = ${tableDeviceStatus}.id 
-      LEFT JOIN ${tableVehicle} ON ${tableDevice}.id = ${tableVehicle}.id 
-      LEFT JOIN ${tableOrdersDevice} ON ${tableDevice}.id = ${tableOrdersDevice}.device_id 
-      LEFT JOIN ${tableOrders} ON ${tableOrdersDevice}.orders_id = ${tableOrders}.id 
-      LEFT JOIN ${tableCustomers} ON ${tableOrders}.reciver = ${tableCustomers}.id 
-      LEFT JOIN ${tableFirmware} ON ${tableModel}.id = ${tableFirmware}.model_id`;
+      INNER JOIN ${tableDeviceStatus} ON ${tableDevice}.device_status_id = ${tableDeviceStatus}.id `;
 
-    const select = `${tableDevice}.id,${tableDevice}.dev_id,${tableDevice}.imei,${tableDevice}.serial,${tableModel}.name as model_name,
-    ${tableFirmware}.version_hardware,${tableFirmware}.version_software,COALESCE(${tableFirmware}.updated_at,${tableFirmware}.created_at) as time_update_version,${tableOrders}.code orders_code,
-    COALESCE(c.company,c.name) as customer_name,${tableDevice}.created_at,${tableDevice}.updated_at,${tableDeviceStatus}.title as device_status_name,${tableVehicle}.expired_on,${tableVehicle}.warranty_expired_on,${tableVehicle}.activation_date`;
+    let select = `${tableDevice}.id,${tableDevice}.dev_id,${tableDevice}.imei,${tableDevice}.serial,${tableModel}.name as model_name,
+    ${tableVehicle}.expired_on,${tableVehicle}.warranty_expired_on,${tableVehicle}.activation_date`;
+
+    if (type == 1) {
+      joinTable += ` INNER JOIN ${tableVehicle} ON ${tableDevice}.id = ${tableVehicle}.device_id 
+        INNER JOIN ${tableOrdersDevice} ON ${tableDevice}.id = ${tableOrdersDevice}.device_id 
+        INNER JOIN ${tableOrders} ON ${tableOrdersDevice}.orders_id = ${tableOrders}.id 
+        INNER JOIN ${tableCustomers} ON ${tableOrders}.reciver = ${tableCustomers}.id 
+        INNER JOIN ${tableServicePackage} ON ${tableVehicle}.service_package_id = ${tableServicePackage}.id 
+        INNER JOIN ${tableVehicleType} ON ${tableVehicle}.vehicle_type_id = ${tableVehicleType}.id 
+        LEFT JOIN ${tableFirmware} ON ${tableModel}.id = ${tableFirmware}.model_id`;
+
+      select += ` ,COALESCE(c.company,c.name) as agency_name,${tableVehicle}.name as vehicle_name, ${tableVehicle}.is_checked,${tableVehicle}.is_transmission_gps,${tableVehicle}.is_transmission_image,
+        ${tableVehicleType}.name as vehicle_type_name,${tableVehicle}.quantity_channel,${tableServicePackage}.name as service_package_name,COALESCE(${tableCustomers}.company,${tableCustomers}.name) as customer_name`;
+    } else {
+      joinTable += ` LEFT JOIN ${tableVehicle} ON ${tableDevice}.id = ${tableVehicle}.device_id 
+        LEFT JOIN ${tableOrdersDevice} ON ${tableDevice}.id = ${tableOrdersDevice}.device_id 
+        LEFT JOIN ${tableOrders} ON ${tableOrdersDevice}.orders_id = ${tableOrders}.id 
+        LEFT JOIN ${tableCustomers} ON ${tableOrders}.reciver = ${tableCustomers}.id 
+        LEFT JOIN ${tableFirmware} ON ${tableModel}.id = ${tableFirmware}.model_id`;
+
+      select += ` ,${tableFirmware}.version_hardware,${tableFirmware}.version_software,COALESCE(${tableFirmware}.updated_at,
+          ${tableFirmware}.created_at) as time_update_version,${tableOrders}.code orders_code,COALESCE(c.company,c.name) as agency_name,
+          ${tableDevice}.created_at,${tableDevice}.updated_at,${tableDeviceStatus}.title as device_status_name,COALESCE(${tableCustomers}.company,${tableCustomers}.name) as customer_name`;
+    }
 
     const [res_, count] = await Promise.all([
       this.select(

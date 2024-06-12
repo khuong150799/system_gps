@@ -118,6 +118,7 @@ module.exports = (app) => {
   router.post(
     "/activation-inside",
     [
+      body("user_id").escape(),
       body("vehicle", NOT_EMPTY)
         .notEmpty()
         .isString()

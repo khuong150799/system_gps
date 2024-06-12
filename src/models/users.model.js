@@ -92,7 +92,8 @@ class UsersModel extends DatabaseModel {
   async getaListWithUser(conn, query, userId) {
     const isDeleted = query.is_deleted || 0;
     const where = `parent_id = ? AND ${tableUsers}.is_deleted = ?`;
-    const conditions = [userId, isDeleted];
+    const chosseUser = query.user_id || userId;
+    const conditions = [chosseUser, isDeleted];
     const whereDequy = `AND ${tableUsers}.is_deleted = ${isDeleted}`;
 
     const joinTable = `${tableUsers} INNER JOIN ${tableUsersCustomers} ON ${tableUsers}.id = ${tableUsersCustomers}.user_id 
