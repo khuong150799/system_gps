@@ -116,9 +116,9 @@ class DeviceModel extends DatabaseModel {
     } = query;
 
     const isDeleted = is_deleted || 0;
-    let where = `${tableDevice}.is_deleted = ? AND c.id = ?`;
+    let where = `${tableDevice}.is_deleted = ? AND c.id = ? AND ${tableUsersDevices}.is_main = ?`;
     const customer = customer_id || customerId;
-    const conditions = [isDeleted, customer];
+    const conditions = [isDeleted, customer, 1];
 
     if (keyword) {
       where += ` AND (${tableDevice}.dev_id LIKE ? OR ${tableDevice}.imei LIKE ? OR ${tableOrders}.code LIKE ? OR ${tableCustomers}.name LIKE ?)`;
@@ -136,23 +136,31 @@ class DeviceModel extends DatabaseModel {
     }
 
     if (start_warranty_expired_on && end_warranty_expired_on) {
-      where += ` AND ${tableDevice}.warranty_expired_on BETWEEN ? AND ?`;
+      where += ` AND ${tableVehicle}.warranty_expired_on BETWEEN ? AND ?`;
       conditions.push(start_warranty_expired_on, end_warranty_expired_on);
     }
 
     if (start_activation_date && end_activation_date) {
-      where += ` AND ${tableDevice}.activation_date BETWEEN ? AND ?`;
+      where += ` AND ${tableVehicle}.activation_date BETWEEN ? AND ?`;
       conditions.push(start_activation_date, end_activation_date);
     }
+    console.log(type);
+    if (type == 2) {
+      where += ` AND ${tableVehicle}.activation_date IS NULL AND ${tableUsersDevices}.is_moved = ?`;
+      conditions.push(0);
+    }
 
-    let joinTable = `${tableDevice} INNER JOIN ${tableModel} ON ${tableDevice}.model_id = ${tableModel}.id 
-      INNER JOIN ${tableUsersDevices} ON ${tableDevice}.id = ${tableUsersDevices}.device_id 
-      INNER JOIN ${tableUsersCustomers} ON ${tableUsersDevices}.user_id = ${tableUsersCustomers}.user_id 
-      INNER JOIN ${tableCustomers} c ON ${tableUsersCustomers}.customer_id = c.id 
-      INNER JOIN ${tableDeviceStatus} ON ${tableDevice}.device_status_id = ${tableDeviceStatus}.id `;
+    let joinTable = `${tableCustomers} c INNER JOIN ${tableUsersCustomers} ON c.id = ${tableUsersCustomers}.customer_id
+    INNER JOIN ${tableUsers} ON ${tableUsersCustomers}.user_id = ${tableUsers}.id 
+    INNER JOIN ${tableUsersDevices} ON ${tableUsers}.id = ${tableUsersDevices}.user_id 
+    INNER JOIN ${tableDevice} ON ${tableUsersDevices}.device_id = ${tableDevice}.id 
+    INNER JOIN ${tableModel} ON ${tableDevice}.model_id = ${tableModel}.id 
+    INNER JOIN ${tableDeviceStatus} ON ${tableDevice}.device_status_id = ${tableDeviceStatus}.id 
+    LEFT JOIN ${tableFirmware} ON ${tableModel}.id = ${tableFirmware}.model_id`;
+    // INNER JOIN ${tableUsersCustomers} ON ${tableUsersDevices}.user_id = ${tableUsersCustomers}.user_id
 
-    let select = `${tableDevice}.id,${tableDevice}.dev_id,${tableDevice}.imei,${tableDevice}.serial,${tableModel}.name as model_name,
-    ${tableVehicle}.expired_on,${tableVehicle}.warranty_expired_on,${tableVehicle}.activation_date`;
+    let select = `${tableDevice}.id,${tableDevice}.dev_id,${tableDevice}.imei,${tableDevice}.serial,${tableModel}.name as model_name, 
+     ${tableVehicle}.expired_on,${tableVehicle}.warranty_expired_on,${tableVehicle}.activation_date`;
 
     if (type == 1) {
       joinTable += ` INNER JOIN ${tableVehicle} ON ${tableDevice}.id = ${tableVehicle}.device_id 
@@ -160,18 +168,17 @@ class DeviceModel extends DatabaseModel {
         INNER JOIN ${tableOrders} ON ${tableOrdersDevice}.orders_id = ${tableOrders}.id 
         INNER JOIN ${tableCustomers} ON ${tableOrders}.reciver = ${tableCustomers}.id 
         INNER JOIN ${tableServicePackage} ON ${tableVehicle}.service_package_id = ${tableServicePackage}.id 
-        INNER JOIN ${tableVehicleType} ON ${tableVehicle}.vehicle_type_id = ${tableVehicleType}.id 
-        LEFT JOIN ${tableFirmware} ON ${tableModel}.id = ${tableFirmware}.model_id`;
+        INNER JOIN ${tableVehicleType} ON ${tableVehicle}.vehicle_type_id = ${tableVehicleType}.id`;
 
-      select += ` ,COALESCE(c.company,c.name) as agency_name,${tableVehicle}.name as vehicle_name, ${tableVehicle}.is_checked,${tableVehicle}.is_transmission_gps,${tableVehicle}.is_transmission_image,
+      select += ` ,${tableOrders}.code orders_code,COALESCE(c.company,c.name) as agency_name,${tableVehicle}.name as vehicle_name, ${tableVehicle}.is_checked,${tableVehicle}.is_transmission_gps,${tableVehicle}.is_transmission_image,
         ${tableVehicleType}.name as vehicle_type_name,${tableVehicle}.quantity_channel,${tableServicePackage}.name as service_package_name,COALESCE(${tableCustomers}.company,${tableCustomers}.name) as customer_name`;
+    } else if (type == 2) {
+      joinTable += ` LEFT JOIN ${tableVehicle} ON ${tableDevice}.id = ${tableVehicle}.device_id`;
     } else {
-      joinTable += ` LEFT JOIN ${tableVehicle} ON ${tableDevice}.id = ${tableVehicle}.device_id 
-        LEFT JOIN ${tableOrdersDevice} ON ${tableDevice}.id = ${tableOrdersDevice}.device_id 
-        LEFT JOIN ${tableOrders} ON ${tableOrdersDevice}.orders_id = ${tableOrders}.id 
-        LEFT JOIN ${tableCustomers} ON ${tableOrders}.reciver = ${tableCustomers}.id 
-        LEFT JOIN ${tableFirmware} ON ${tableModel}.id = ${tableFirmware}.model_id`;
-
+      joinTable += ` LEFT JOIN ${tableVehicle} ON ${tableDevice}.id = ${tableVehicle}.device_id
+        LEFT JOIN ${tableOrdersDevice} ON ${tableDevice}.id = ${tableOrdersDevice}.device_id
+        LEFT JOIN ${tableOrders} ON ${tableOrdersDevice}.orders_id = ${tableOrders}.id
+        LEFT JOIN ${tableCustomers} ON ${tableOrders}.reciver = ${tableCustomers}.id`;
       select += ` ,${tableFirmware}.version_hardware,${tableFirmware}.version_software,COALESCE(${tableFirmware}.updated_at,
           ${tableFirmware}.created_at) as time_update_version,${tableOrders}.code orders_code,COALESCE(c.company,c.name) as agency_name,
           ${tableDevice}.created_at,${tableDevice}.updated_at,${tableDeviceStatus}.title as device_status_name,COALESCE(${tableCustomers}.company,${tableCustomers}.name) as customer_name`;
@@ -182,7 +189,7 @@ class DeviceModel extends DatabaseModel {
         conn,
         joinTable,
         select,
-        `${where}`,
+        `${where} GROUP BY ${tableDevice}.id`,
         conditions,
         `${tableDevice}.id`,
         "DESC",

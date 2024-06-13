@@ -18,17 +18,17 @@ class OrdersModel extends DatabaseModel {
   }
 
   //getallrow
-  async getallrows(conn, query) {
+  async getallrows(conn, query, customerId) {
     const offset = query.offset || 0;
     const limit = query.limit || 10;
 
-    const { is_deleted, keyword, orders_status_id, customer_id } = query;
+    const { is_deleted, keyword, orders_status_id, reciver } = query;
     const isDeleted = is_deleted || 0;
-    let where = `${tableOrders}.is_deleted = ?`;
-    const conditions = [isDeleted];
+    let where = `${tableOrders}.is_deleted = ? AND ${tableOrders}.creator_customer_id = ?`;
+    const conditions = [isDeleted, customerId];
 
     if (keyword) {
-      where += ` AND (code LIKE ? OR ${tableCustomers}.name LIKE ? OR c.anme LIKE ? OR c.company LIKE ? OR ${tableUsers}.username LIKE ?)`;
+      where += ` AND (${tableOrders}.code LIKE ? OR ${tableCustomers}.name LIKE ? OR c.company LIKE ? OR ${tableUsers}.username LIKE ?)`;
       conditions.push(
         `%${keyword}%`,
         `%${keyword}%`,
@@ -43,9 +43,9 @@ class OrdersModel extends DatabaseModel {
       conditions.push(orders_status_id);
     }
 
-    if (customer_id) {
+    if (reciver) {
       where += ` AND ${tableOrders}.reciver = ?`;
-      conditions.push(customer_id);
+      conditions.push(reciver);
     }
 
     // const joinTable = `${tableOrders} INNER JOIN ${tableCustomers} ON ${tableOrders}.reciver = ${tableCustomers}.id
@@ -59,7 +59,7 @@ class OrdersModel extends DatabaseModel {
       INNER JOIN ${tableCustomers} c ON ${tableOrders}.creator_customer_id = c.id 
       INNER JOIN ${tableUsers} ON ${tableOrders}.creator_user_id = ${tableUsers}.id`;
 
-    const select = `${tableOrders}.id,${tableOrders}.code,${tableOrders}.quantity,COALESCE(${tableCustomers}.company, ${tableCustomers}.name) as reciver,COALESCE(c.company, c.name) as creator_customer,${tableUsers}.username as ceator_user,${tableOrders}.orders_status_id,${tableOrders}.created_at,${tableOrders}.updated_at`;
+    const select = `${tableOrders}.id,${tableOrders}.code,${tableOrders}.note,${tableOrders}.quantity,COALESCE(${tableCustomers}.company, ${tableCustomers}.name) as reciver,COALESCE(c.company, c.name) as creator_customer,${tableUsers}.username as ceator_user,${tableOrders}.orders_status_id,${tableOrders}.created_at,${tableOrders}.updated_at`;
     const [res_, count] = await Promise.all([
       this.select(
         conn,

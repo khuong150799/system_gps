@@ -5,7 +5,12 @@ const ordersService = require("../services/orders.service");
 class OrdersController {
   getAllRows = catchAsync(async (req, res) => {
     const query = req.query;
-    const { data, totalPage } = await ordersService.getallrows(query);
+    const customerId = req?.customerId;
+    const chooseCustomerId = query.customer_id || customerId;
+    const { data, totalPage } = await ordersService.getallrows(
+      query,
+      chooseCustomerId
+    );
 
     GET(res, data, totalPage);
   });

@@ -11,6 +11,7 @@ const {
   DELETED_CUSTOMER,
   NOT_PERMISSION,
   MERGE_ORDER_FAIL,
+  DEVICE_IS_ACTIVED,
 } = require("../constants/msg.contant");
 const { BusinessLogicError } = require("../core/error.response");
 const DatabaseModel = require("../models/database.model");
@@ -22,6 +23,7 @@ const {
   tableUsers,
   tableUsersCustomers,
   tableUsersDevices,
+  tableVehicle,
 } = require("../constants/tableName.contant");
 
 const databaseModel = new DatabaseModel();
@@ -41,8 +43,9 @@ class OrdersService {
     const conditions = [code, 0];
 
     const jointableUsersDevices = `${tableDevice} INNER JOIN ${tableUsersDevices} ON ${tableDevice}.id = ${tableUsersDevices}.device_id 
-      INNER JOIN ${tableUsersCustomers} ON ${tableUsersDevices}.user_id = ${tableUsersCustomers}.user_id`;
-    const selectDevice = `${tableDevice}.id,${tableDevice}.imei,${tableDevice}.activation_date`;
+      INNER JOIN ${tableUsersCustomers} ON ${tableUsersDevices}.user_id = ${tableUsersCustomers}.user_id 
+      LEFT JOIN ${tableVehicle} ON ${tableDevice}.id = ${tableVehicle}.device_id`;
+    const selectDevice = `${tableDevice}.id,${tableDevice}.imei,${tableVehicle}.activation_date`;
     let whereDevice = `${tableDevice}.id IN (?) AND ${tableDevice}.is_deleted = ? AND ${tableUsersCustomers}.customer_id = ?`;
     const conditionsDevice = [listDevice, 0, customerId];
 
@@ -300,7 +303,8 @@ class OrdersService {
     const errors = [];
 
     const jointableUsersDevicesWithUsersCustomers = `
-      ${tableUsersDevices} INNER JOIN ${tableUsersCustomers} ON ${tableUsersDevices}.user_id = ${tableUsersCustomers}.user_id`;
+      ${tableUsersDevices} INNER JOIN ${tableUsersCustomers} ON ${tableUsersDevices}.user_id = ${tableUsersCustomers}.user_id 
+      LEFT JOIN ${tableVehicle} ON ${tableUsersDevices}.device_id = ${tableVehicle}.id`;
 
     const joinTableOdersUsersWithUsersCustomersWithUsers = `
       ${tableOrders} INNER JOIN ${tableUsersCustomers} ON ${tableOrders}.creator_customer_id = ${tableUsersCustomers}.customer_id 
@@ -309,7 +313,7 @@ class OrdersService {
       databaseModel.select(
         conn,
         jointableUsersDevicesWithUsersCustomers,
-        `${tableUsersDevices}.user_id ,${tableUsersCustomers}.customer_id`,
+        `${tableUsersDevices}.user_id ,${tableUsersCustomers}.customer_id,${tableVehicle}.activation_date`,
         `${tableUsersDevices}.is_moved = ? AND ${tableUsersDevices}.device_id = ?`,
         [0, deviceId, id],
         `${tableUsersDevices}.id`
@@ -328,6 +332,8 @@ class OrdersService {
       errors.push({ msg: `Thiết bị ${NOT_EXITS}` });
     } else if (Number(customerId) !== Number(dataOwnerOrders[0].customer_id)) {
       errors.push({ msg: NOT_PERMISSION });
+    } else if (dataOwnerDevice[0].activation_date) {
+      errors.push({ msg: `${DEVICE_IS_ACTIVED} không thể xoá` });
     }
 
     if (errors.length) throw { msg: ERROR, errors };
@@ -336,11 +342,11 @@ class OrdersService {
   }
 
   //getallrow
-  async getallrows(query) {
+  async getallrows(query, customerId) {
     try {
       const { conn } = await db.getConnection();
       try {
-        const data = await ordersModel.getallrows(conn, query);
+        const data = await ordersModel.getallrows(conn, query, customerId);
         return data;
       } catch (error) {
         throw error;
@@ -405,6 +411,7 @@ class OrdersService {
         conn.release();
       }
     } catch (error) {
+      console.log("error", error);
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
     }

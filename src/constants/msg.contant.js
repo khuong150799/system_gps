@@ -57,6 +57,7 @@ const constants = {
   REFRESH_TOKEN_SUCCESS: "Lấy token thành công",
   REDIS_PROPERTY_PERMISSION: "permission",
   DEVICE_IS_READY: "Thiết bị đã sẳn sàng kích hoạt",
+  DEVICE_IS_ACTIVED: "Thiết bị đã được kích hoạt",
   DEVICE_CANNOT_ACTIVATE: "Thiết bị Không thể kích hoạt",
   NOT_ADD_DEVICE: "Thiết bị này không thể gán",
   MOVE_SUCCESS: "Chuyển thành công",
