@@ -59,7 +59,9 @@ class OrdersModel extends DatabaseModel {
       INNER JOIN ${tableCustomers} c ON ${tableOrders}.creator_customer_id = c.id 
       INNER JOIN ${tableUsers} ON ${tableOrders}.creator_user_id = ${tableUsers}.id`;
 
-    const select = `${tableOrders}.id,${tableOrders}.code,${tableOrders}.note,${tableOrders}.quantity,COALESCE(${tableCustomers}.company, ${tableCustomers}.name) as reciver,COALESCE(c.company, c.name) as creator_customer,${tableUsers}.username as ceator_user,${tableOrders}.orders_status_id,${tableOrders}.created_at,${tableOrders}.updated_at`;
+    const select = `${tableOrders}.id,${tableOrders}.code,${tableOrders}.note,${tableOrders}.quantity,COALESCE(${tableCustomers}.company,
+      ${tableCustomers}.name) as reciver,COALESCE(c.company, c.name) as creator_customer,${tableUsers}.username as creator_user,
+      ${tableOrders}.orders_status_id,${tableOrders}.created_at,${tableOrders}.updated_at`;
     const [res_, count] = await Promise.all([
       this.select(
         conn,
@@ -88,10 +90,15 @@ class OrdersModel extends DatabaseModel {
     const conditions = [isDeleted, id];
 
     const joinTable = `${tableOrders} INNER JOIN ${tableOrdersDevice} ON ${tableOrders}.id = ${tableOrdersDevice}.orders_id 
-      INNER JOIN ${tableDevice} ON ${tableOrdersDevice}.device_id = ${tableDevice}.id`;
+      INNER JOIN ${tableDevice} ON ${tableOrdersDevice}.device_id = ${tableDevice}.id 
+      INNER JOIN ${tableCustomers} ON ${tableOrders}.reciver = ${tableCustomers}.id 
+      INNER JOIN ${tableCustomers} c ON ${tableOrders}.creator_customer_id = c.id 
+      INNER JOIN ${tableUsers} ON ${tableOrders}.creator_user_id = ${tableUsers}.id`;
 
     const selectData = `${tableOrders}.id,${tableOrders}.code,${tableOrders}.reciver,${tableOrders}.note,${tableOrders}.orders_status_id,
-      JSON_ARRAYAGG(JSON_OBJECT('id', ${tableDevice}.id,'imei', ${tableDevice}.imei)) AS devices`;
+      JSON_ARRAYAGG(JSON_OBJECT('id', ${tableDevice}.id,'imei', ${tableDevice}.imei)) AS devices,
+      ${tableCustomers}.name as reciver,c.name as creator_customer,${tableUsers}.username as creator_user,
+      ${tableOrders}.created_at,${tableOrders}.updated_at`;
 
     const res_ = await this.select(
       conn,

@@ -174,7 +174,7 @@ class UsersService {
         await validateModel.checkExitValue(
           conn,
           tableUsers,
-          "username = ?",
+          "username",
           username,
           "Tài khoản",
           "username"
@@ -216,7 +216,7 @@ class UsersService {
         await validateModel.checkExitValue(
           conn,
           tableUsers,
-          "username = ?",
+          "username",
           username,
           "Tài khoản",
           "username"
