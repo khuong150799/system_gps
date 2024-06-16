@@ -6,6 +6,7 @@ const {
   tableModelType,
 } = require("../constants/tableName.contant");
 const DatabaseModel = require("./database.model");
+const deviceModel = require("./device.model");
 const ModelSchema = require("./schema/model.schema");
 
 class ModelModel extends DatabaseModel {
@@ -209,6 +210,7 @@ class ModelModel extends DatabaseModel {
       dataInsertModelConnectType
     );
     await connPromise.commit();
+    await deviceModel.getWithImei(conn);
 
     model.id = id;
     model.connection_type_id = connection_type_id;

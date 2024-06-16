@@ -62,6 +62,7 @@ const constants = {
   NOT_ADD_DEVICE: "Thiết bị này không thể gán",
   MOVE_SUCCESS: "Chuyển thành công",
   CHOOSE_ERROR: "Không thể gán",
+  NOT_OWN: "Không thuộc sở hữu",
 };
 
 module.exports = constants;

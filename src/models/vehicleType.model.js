@@ -118,6 +118,7 @@ class VehicleTypeModel extends DatabaseModel {
   async deleteById(conn, params) {
     const { id } = params;
     await this.update(conn, tableVehicleType, { is_deleted: 1 }, "id", id);
+
     return [];
   }
 

@@ -7,6 +7,7 @@ const {
   tableRole,
   tableUsers,
 } = require("../constants/tableName.contant");
+const deviceModel = require("./device.model");
 const DriverSchema = require("./schema/driver.schema");
 
 class DriverModel {
@@ -181,6 +182,7 @@ class DriverModel {
     delete driver.created_at;
 
     await this.update(conn, tableDriver, driver, "id", id);
+    await deviceModel.getWithImei(conn);
     driver.id = id;
     return driver;
   }

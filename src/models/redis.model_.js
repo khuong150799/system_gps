@@ -1,20 +1,16 @@
+const { BusinessLogicError } = require("../core/error.response");
 const { getRedis } = require("../dbs/init.redis");
 
 class RedisModel {
   constructor() {
     this.redis = getRedis();
     this.get = this.get.bind(this);
-    this.hGet = this.hGet.bind(this);
-    this.hGetAll = this.hGetAll.bind(this);
     this.set = this.set.bind(this);
     this.setWithExpired = this.setWithExpired.bind(this);
-    this.hSet = this.hSet.bind(this);
     this.setnx = this.setnx.bind(this);
     this.expire = this.expire.bind(this);
     this.ttl = this.ttl.bind(this);
     this.exists = this.exists.bind(this);
-    this.hdelOneKey = this.hdelOneKey.bind(this);
-    this.del = this.del.bind(this);
   }
   async get(key) {
     try {
@@ -26,40 +22,10 @@ class RedisModel {
     }
   }
 
-  async hGet(key, field) {
-    try {
-      const { instanceConnect: client } = this.redis;
-      const data = await client.hGet(key, field);
-      return { result: true, data };
-    } catch (error) {
-      return { result: false, error };
-    }
-  }
-
-  async hGetAll(key) {
-    try {
-      const { instanceConnect: client } = this.redis;
-      const data = await client.hGetAll(key);
-      return { result: true, data };
-    } catch (error) {
-      return { result: false, error };
-    }
-  }
-
   async set(key, value) {
     try {
       const { instanceConnect: client } = this.redis;
       await client.set(key, value);
-      return { result: true, data: [] };
-    } catch (error) {
-      return { result: false, error };
-    }
-  }
-
-  async hSet(key, field, value) {
-    try {
-      const { instanceConnect: client } = this.redis;
-      await client.hSet(key, field, value);
       return { result: true, data: [] };
     } catch (error) {
       return { result: false, error };
@@ -93,7 +59,7 @@ class RedisModel {
 
       return await client.expire(key, ttl);
     } catch (error) {
-      throw error.msg;
+      throw new BusinessLogicError(error.msg);
     }
   }
 
@@ -101,8 +67,8 @@ class RedisModel {
     try {
       const { instanceConnect: client } = this.redis;
 
-      const data = await client.ttl(key);
-      return { result: true, data };
+      await client.ttl(key);
+      return { result: true, data: [] };
     } catch (error) {
       return { result: false, error };
     }
@@ -113,27 +79,8 @@ class RedisModel {
       const { instanceConnect: client } = this.redis;
 
       const data = await client.exists(key);
-      return { result: true, data };
-    } catch (error) {
-      return { result: false, error };
-    }
-  }
-
-  async hdelOneKey(key, field) {
-    try {
-      const { instanceConnect: client } = this.redis;
-      await client.hDel(key, field);
-      return { result: true, data: [] };
-    } catch (error) {
-      return { result: false, error };
-    }
-  }
-
-  async del(key) {
-    try {
-      const { instanceConnect: client } = this.redis;
-      await client.del(key);
-      return { result: true, data: [] };
+      console.log({ data });
+      return { result: true, data: data === 1 ? true : false };
     } catch (error) {
       return { result: false, error };
     }

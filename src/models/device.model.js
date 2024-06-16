@@ -5,9 +5,10 @@ const {
   IS_ACTIVED,
   DEVICE_CANNOT_ACTIVATE,
   ERROR,
+  NOT_OWN,
 } = require("../constants/msg.contant");
 const customersModel = require("./customers.model");
-const VehicleSchema = require("./Schema/vehicle.schema");
+const VehicleSchema = require("./schema/vehicle.schema");
 const {
   tableDevice,
   tableOrders,
@@ -23,7 +24,10 @@ const {
   tableDeviceStatus,
   tableUsers,
   tableVehicleType,
+  tableVehicleIcon,
 } = require("../constants/tableName.contant");
+const { hSet: hsetRedis } = require("./redis.model");
+const { REDIS_KEY_LIST_DEVICE } = require("../constants/redis.contant");
 
 class DeviceModel extends DatabaseModel {
   constructor() {
@@ -48,7 +52,7 @@ class DeviceModel extends DatabaseModel {
     );
 
     if (!res || res?.length <= 0) {
-      errors = { msg: `Thiết bi ${NOT_EXITS}` };
+      errors = { msg: `Thiết bị ${NOT_EXITS} hoặc ${NOT_OWN}` };
     } else if (res[0].device_status_id === 4) {
       errors = { msg: `Thiết bị ${IS_ACTIVED}` };
     } else if (res[0].device_status_id === 3) {
@@ -63,28 +67,33 @@ class DeviceModel extends DatabaseModel {
   }
 
   async validateCheckInside(conn, imei, userId, parentId) {
-    console.log({ imei, userId, parentId });
+    // console.log({ imei, userId, parentId });
     let errors = {};
     const where = `${tableDevice}.imei = ? AND ${tableDevice}.is_deleted = ? AND ${tableUsersDevices}.is_moved = ?`;
     const conditions = [imei, 0, 0];
     const joinTable = `${tableDevice} INNER JOIN ${tableUsersDevices} ON ${tableDevice}.id = ${tableUsersDevices}.device_id`;
     const select = `${tableDevice}.id,${tableDevice}.device_status_id,${tableUsersDevices}.user_id`;
 
-    const res = await this.select(
-      conn,
-      joinTable,
-      select,
-      where,
-      conditions,
-      `${tableDevice}.id`
-    );
-    console.log({ res });
+    const [res, infoUser] = await Promise.all([
+      this.select(
+        conn,
+        joinTable,
+        select,
+        where,
+        conditions,
+        `${tableDevice}.id`
+      ),
+      this.select(conn, tableUsers, "parent_id", "id = ?", userId),
+    ]);
+    // console.log({ res });
     if (
       !res ||
       res?.length <= 0 ||
-      (res[0].user_id !== userId && res[0].user_id !== parentId)
+      (res[0].user_id !== userId &&
+        res[0].user_id !== parentId &&
+        res[0].user_id !== infoUser[0].parent_id) // trường hợp dùng cho khi truyền lên là user id con
     ) {
-      errors = { msg: `Thiết bi ${NOT_EXITS}` };
+      errors = { msg: `Thiết bị ${NOT_EXITS} hoặc ${NOT_OWN}` };
     } else if (res[0].device_status_id === 4) {
       errors = { msg: `Thiết bị ${IS_ACTIVED}` };
     } else if (res[0].device_status_id === 3) {
@@ -98,9 +107,45 @@ class DeviceModel extends DatabaseModel {
     return { result: true, data: res };
   }
 
+  async getWithImei(conn, imei, device_id) {
+    const joinTable = `${tableDevice} d INNER JOIN ${tableVehicle} v ON d.id = v.device_id
+      INNER JOIN ${tableVehicleType} vt ON v.vehicle_type_id = vt.id 
+      INNER JOIN ${tableVehicleIcon} vi ON vt.vehicle_icon_id = vi.id 
+      INNER JOIN ${tableModel} m ON d.model_id = m.id 
+      INNER JOIN ${tableDeviceStatus} ds ON d.device_status_id = ds.id 
+      INNER JOIN ${tableUsersDevices} ud ON d.id = ud.device_id 
+      INNER JOIN ${tableUsersCustomers} uc1 ON ud.user_id = uc1.user_id  
+      INNER JOIN ${tableCustomers} c0 ON uc1.customer_id = c0.id   
+      INNER JOIN ${tableUsers} u ON uc1.user_id = u.id 
+      LEFT JOIN ${tableUsers} u1 ON u.parent_id = u1.id 
+      LEFT JOIN ${tableUsersCustomers} uc2 ON u1.id = uc2.user_id  
+      LEFT JOIN ${tableCustomers} c ON uc2.customer_id = c.id`;
+
+    const select = `d.imei,v.expired_on,v.activation_date,v.warranty_expired_on,
+      v.name as vehicle_name,vt.name as vehicle_type_name,vt.vehicle_icon_id,
+      m.name as model_name,ds.title as device_status_name,COALESCE(c0.company,
+      c0.name) as customer_name,COALESCE(c.company, c.name) as agency_name,c.phone as agency_phone,vi.name as vehicle_icon_name`;
+
+    const data = await this.select(
+      conn,
+      joinTable,
+      select,
+      imei ? `d.imei = ?` : device_id ? "d.id = ?" : "1 = ?",
+      imei || device_id || 1,
+      `d.id`
+    );
+    if (data.length) {
+      await Promise.all(
+        data.map((item) =>
+          hsetRedis(REDIS_KEY_LIST_DEVICE, item.imei, JSON.stringify(item))
+        )
+      );
+    }
+    return data;
+  }
+
   //getallrow
   async getallrows(conn, query, customerId) {
-    console.log("customerId", customerId);
     const offset = query.offset || 0;
     const limit = query.limit || 10;
 
@@ -151,13 +196,6 @@ class DeviceModel extends DatabaseModel {
       conditions.push(0);
     }
 
-    // let joinTable = `${tableCustomers} c INNER JOIN ${tableUsersCustomers} uc ON c.id = uc.customer_id
-    // INNER JOIN ${tableUsers} u ON uc.user_id = u.id
-    // INNER JOIN ${tableUsersDevices} ud ON u.id = ud.user_id
-    // INNER JOIN ${tableDevice} d ON ud.device_id = d.id
-    // INNER JOIN ${tableModel} m ON d.model_id = m.id
-    // INNER JOIN ${tableDeviceStatus} ds ON d.device_status_id = ds.id
-    // LEFT JOIN ${tableFirmware} fw ON m.id = fw.model_id`;
     let joinTable = `${tableDevice} d INNER JOIN ${tableUsersDevices} ud ON d.id = ud.device_id
     INNER JOIN ${tableUsers} u ON ud.user_id = u.id 
     INNER JOIN ${tableUsersCustomers} uc ON u.id = uc.user_id 
@@ -174,25 +212,22 @@ class DeviceModel extends DatabaseModel {
       joinTable += ` INNER JOIN ${tableVehicle} v ON d.id = v.device_id 
         INNER JOIN ${tableServicePackage} sp ON v.service_package_id = sp.id 
         INNER JOIN ${tableVehicleType} vt ON v.vehicle_type_id = vt.id
-        INNER JOIN ${tableOrdersDevice} od ON d.id = od.device_id 
-        INNER JOIN ${tableOrders} o ON od.orders_id = o.id 
-        INNER JOIN ${tableCustomers} c1 ON o.reciver = c1.id`;
+        LEFT JOIN ${tableOrdersDevice} od ON ud.device_id = od.device_id
+        LEFT JOIN ${tableOrders} o ON od.orders_id = o.id
+        LEFT JOIN ${tableCustomers} c1 ON o.reciver = c1.id AND o.creator_customer_id = ?`;
+      conditions = [customer, ...conditions];
 
-      select += ` ,o.code orders_code,COALESCE(c.company,c.name) as agency_name,v.name as vehicle_name, v.is_checked,v.is_transmission_gps,v.is_transmission_image,
-        vt.name as vehicle_type_name,v.quantity_channel,sp.name as service_package_name,COALESCE(c1.company,c1.name) as customer_name`;
+      select += ` ,o.code orders_code,v.name as vehicle_name, v.is_checked,v.is_transmission_gps,v.is_transmission_image,
+        vt.name as vehicle_type_name,v.quantity_channel,sp.name as service_package_name,MAX(COALESCE(c1.company,c1.name)) as customer_name,c1.id as customer_id`;
     } else if (type == 2) {
       joinTable += ` LEFT JOIN ${tableVehicle} v ON d.id = v.device_id`;
     } else {
-      // joinTable += ` LEFT JOIN ${tableVehicle} v ON d.id = v.device_id
-      //   LEFT JOIN ${tableOrdersDevice} od ON d.id = od.device_id
-      //   LEFT JOIN ${tableOrders} o ON od.orders_id = o.id
-      //   LEFT JOIN ${tableCustomers} c1 ON o.reciver = c1.id`;
       joinTable += ` LEFT JOIN ${tableVehicle} v ON d.id = v.device_id
       LEFT JOIN ${tableOrdersDevice} od ON ud.device_id = od.device_id
       LEFT JOIN ${tableOrders} o ON od.orders_id = o.id
       LEFT JOIN ${tableCustomers} c1 ON  o.reciver = c1.id AND o.creator_customer_id = ?`;
       select += ` ,o.code orders_code,d.created_at,d.updated_at,
-        ds.title as device_status_name,MAX(COALESCE(c1.company,c1.name)) as customer_name`;
+        ds.title as device_status_name,MAX(COALESCE(c1.company,c1.name)) as customer_name,c1.id as customer_id`;
       conditions = [customer, ...conditions];
     }
 
@@ -323,6 +358,7 @@ class DeviceModel extends DatabaseModel {
       is_transmission_image,
       note,
       activation_date,
+      imei,
     } = body;
 
     const infoPackage = await this.select(
@@ -390,6 +426,14 @@ class DeviceModel extends DatabaseModel {
 
     await this.update(
       conn,
+      tableDevice,
+      { device_status_id: 3 },
+      "id",
+      device_id
+    );
+
+    await this.update(
+      conn,
       tableUsersDevices,
       { is_moved: 1 },
       "device_id",
@@ -406,6 +450,10 @@ class DeviceModel extends DatabaseModel {
     );
 
     await connPromise.commit();
+    await this.getWithImei(conn, imei);
+    if (vehicle) {
+      await hsetRedis(REDIS_KEY_LIST_DEVICE, imei, JSON.stringify(vehicle));
+    }
     return [];
   }
 
@@ -422,6 +470,7 @@ class DeviceModel extends DatabaseModel {
       is_transmission_image,
       note,
       activation_date,
+      imei,
     } = body;
 
     const infoPackage = await this.select(
@@ -476,7 +525,7 @@ class DeviceModel extends DatabaseModel {
     await this.update(
       conn,
       tableDevice,
-      { device_status_id: 4 },
+      { device_status_id: 3 },
       "id",
       device_id
     );
@@ -498,6 +547,7 @@ class DeviceModel extends DatabaseModel {
       `is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved)`
     );
     await connPromise.commit();
+    await this.getWithImei(conn, imei);
 
     return [];
   }
@@ -591,6 +641,7 @@ class DeviceModel extends DatabaseModel {
     delete device.created_at;
 
     await this.update(conn, tableDevice, device, "id", id);
+    await this.getWithImei(conn, null, id);
     device.id = id;
     return device;
   }
@@ -609,6 +660,7 @@ class DeviceModel extends DatabaseModel {
       id
     );
     await connPromise.commit();
+    await this.getWithImei(conn, null, id);
     return [];
   }
 }

@@ -18,7 +18,7 @@ const {
   makeRefreshToken,
   checkToken,
 } = require("../helper/auth.helper");
-const { set: setRedis, expire: expireRedis } = require("./redis.model");
+const { set: setRedis, expire: expireRedis } = require("./redis.model_");
 
 const CustomersSchema = require("./schema/customers.schema");
 const { makeCode } = require("../ultils/makeCode");

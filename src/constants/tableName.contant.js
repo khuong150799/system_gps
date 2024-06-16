@@ -31,4 +31,5 @@ module.exports = {
   tableVehicle: "tbl_vehicle",
   tableVehicleIcon: "tbl_vehicle_icon",
   tableVehicleType: "tbl_vehicle_type",
+  tableDeviceGps: "tbl_device_gps",
 };

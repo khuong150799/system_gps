@@ -7,7 +7,7 @@ const {
   Api403Error,
   BusinessLogicError,
 } = require("../core/error.response");
-const { get: getRedis, set: setRedis } = require("../models/redis.model");
+const { get: getRedis, set: setRedis } = require("../models/redis.model_");
 const { promisify } = require("util");
 const {
   ACCESS_TOKEN_TIME_LIFE,

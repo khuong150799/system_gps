@@ -229,6 +229,7 @@ class DeviceService {
         conn.release();
       }
     } catch (error) {
+      console.log(error);
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
     }

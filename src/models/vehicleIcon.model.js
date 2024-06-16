@@ -1,5 +1,6 @@
 const { tableVehicleIcon } = require("../constants/tableName.contant");
 const DatabaseModel = require("./database.model");
+const deviceModel = require("./device.model");
 const VehicleIconSchema = require("./schema/vehicleIcon.schema");
 
 class VehicleIconModel extends DatabaseModel {
@@ -99,6 +100,7 @@ class VehicleIconModel extends DatabaseModel {
     delete vehicleIcon.is_deleted;
 
     await this.update(conn, tableVehicleIcon, vehicleIcon, "id", id);
+    await deviceModel.getWithImei(conn);
     vehicleIcon.id = id;
     return vehicleIcon;
   }

@@ -1,5 +1,4 @@
 const DatabaseModel = require("./database.model");
-const db = require("../dbs/init.mysql");
 const DeviceStatusSchema = require("./schema/deviceStatus.schema");
 const { tableDeviceStatus } = require("../constants/tableName.contant");
 

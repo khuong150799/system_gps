@@ -19,4 +19,5 @@ module.exports = (app) => {
   require("./device.route")(app);
   require("./firmware.route")(app);
   require("./permission.route")(app);
+  require("./vehicle.route")(app);
 };

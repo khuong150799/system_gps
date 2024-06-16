@@ -95,7 +95,7 @@ class OrdersService {
     let dataInfo = [];
     if (reciver) {
       const joinTableUsersCustomers = `${tableUsersCustomers} INNER JOIN ${tableUsers} ON ${tableUsersCustomers}.user_id = ${tableUsers}.id`;
-      // console.log({ reciver });
+      console.log({ reciver });
       const info = await databaseModel.select(
         conn,
         joinTableUsersCustomers,
@@ -104,7 +104,7 @@ class OrdersService {
         [reciver, 1],
         `${tableUsersCustomers}.id`
       );
-      // console.log({ info });
+      console.log({ info });
       if (info?.length <= 0) {
         errors.push({
           value: reciver,
@@ -132,7 +132,7 @@ class OrdersService {
           info[0].parent_id,
           `${tableUsersCustomers}.id`
         );
-
+        console.log("dataReciverParent", dataReciverParent, customerId);
         if (
           !dataReciverParent[0]?.id ||
           dataReciverParent[0]?.id != customerId
