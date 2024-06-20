@@ -27,8 +27,8 @@ const {
 const databaseModel = new DatabaseModel();
 
 class UsersService {
-  async validateComparePass(compare, isCompared) {
-    const errors = [];
+  async validateComparePass(compare, isCompared, param) {
+    let errors = [];
     const match = await bcrypt.compare(compare, isCompared);
     if (!match) {
       errors = {
@@ -37,7 +37,7 @@ class UsersService {
           {
             value: compare,
             msg: PASS_OLD_FAILED,
-            param: "old_password",
+            param,
           },
         ],
       };
@@ -367,7 +367,8 @@ class UsersService {
 
         const isCheckComparePass = await this.validateComparePass(
           old_password,
-          password
+          password,
+          "old_password"
         );
         if (!isCheckComparePass.result) throw isCheckComparePass.errors;
 
@@ -441,7 +442,8 @@ class UsersService {
 
         const isCheckComparePass = await this.validateComparePass(
           password,
-          passwordDB
+          passwordDB,
+          "password"
         );
         if (!isCheckComparePass.result) throw isCheckComparePass.errors;
 

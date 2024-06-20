@@ -1,4 +1,7 @@
+const configureEnvironment = require("../config/dotenv.config");
 const { ERROR, NOT_EXITS } = require("../constants/msg.contant");
+
+const { DB_NAME } = configureEnvironment();
 
 class DatabaseModel {
   //get all + get by id + get where in
@@ -16,6 +19,49 @@ class DatabaseModel {
     return await new Promise((resolve, reject) => {
       const query = `SELECT ${fields} FROM ${tableName} WHERE ${where} ORDER BY ${orderByField} ${orderBySort} LIMIT ${offset},${limit}`;
       db.query(query, conditions, (err, dataRes) => {
+        // console.log(query);
+        // console.log(conditions);
+        if (err) {
+          console.log(err);
+          return reject({ msg: ERROR });
+        }
+        // console.log(dataRes);
+        return resolve(dataRes);
+      });
+    });
+  }
+
+  async selectUnion(
+    db,
+    tableNames = [],
+    fields = "*",
+    where = "",
+    conditions = [],
+    orderByField = "id",
+    orderBySort = "DESC",
+    offset = 0,
+    limit = 10
+  ) {
+    return await new Promise((resolve, reject) => {
+      const { query: arrQuery, conditions: conditionsConvert } =
+        tableNames.reduce(
+          (result, item) => {
+            result.query = [
+              ...result.query,
+              `SELECT ${fields} FROM ${item} WHERE ${where}`,
+            ];
+            result.conditions = [...result.conditions, ...conditions];
+
+            return result;
+          },
+          { query: [], conditions: [] }
+        );
+
+      const query =
+        arrQuery.join(" UNION ") +
+        `  ORDER BY ${orderByField} ${orderBySort} LIMIT ${offset},${limit}`;
+
+      db.query(query, conditionsConvert, (err, dataRes) => {
         // console.log(query);
         // console.log(conditions);
         if (err) {
@@ -349,6 +395,74 @@ class DatabaseModel {
         // console.log(error);
         return reject(error);
       }
+    });
+  }
+
+  async createTableDeviceGps(db, tableName) {
+    return await new Promise((resolve, reject) => {
+      const query = `
+        SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+        START TRANSACTION;
+        SET time_zone = "+00:00";
+        CREATE TABLE ${tableName} (
+          id bigint UNSIGNED NOT NULL,
+          idx int NOT NULL,
+          imei varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+          license_number varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+          latitude double NOT NULL,
+          longitude double NOT NULL,
+          speed double NOT NULL,
+          signal_quality int NOT NULL,
+          rotation double NOT NULL,
+          status int NOT NULL,
+          status_device int DEFAULT NULL,
+          distance double DEFAULT NULL,
+          acc int NOT NULL,
+          syn int NOT NULL,
+          time bigint NOT NULL,
+          is_error_insert tinyint(1) NOT NULL,
+          is_error_address tinyint(1) NOT NULL,
+          address text COLLATE utf8mb4_unicode_ci,
+          created_at bigint NOT NULL,
+          updated_at bigint DEFAULT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+        ALTER TABLE ${tableName}
+          ADD PRIMARY KEY (id),
+          ADD UNIQUE KEY imei (imei,time);
+
+        ALTER TABLE ${tableName}
+          MODIFY id bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
+
+        COMMIT;
+`;
+      db.query(query, (err, dataRes) => {
+        // console.log(query);
+        if (err) {
+          console.log(err);
+          return reject({ msg: ERROR });
+        }
+        return resolve(dataRes);
+      });
+    });
+  }
+
+  async checkTableExit(db, tableName) {
+    return await new Promise((resolve, reject) => {
+      const query = `
+      SELECT TABLE_NAME 
+      FROM information_schema.tables
+      WHERE table_schema = "${DB_NAME}"
+          AND table_name = "${tableName}"
+      LIMIT 1;`;
+      db.query(query, (err, dataRes) => {
+        // console.log(query);
+        if (err) {
+          console.log(err);
+          return reject({ msg: ERROR });
+        }
+        return resolve(dataRes);
+      });
     });
   }
 }

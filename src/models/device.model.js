@@ -28,6 +28,7 @@ const {
 } = require("../constants/tableName.contant");
 const { hSet: hsetRedis } = require("./redis.model");
 const { REDIS_KEY_LIST_DEVICE } = require("../constants/redis.contant");
+const getTableNameDeviceGps = require("../ultils/getTableNameDeviceGps");
 
 class DeviceModel extends DatabaseModel {
   constructor() {
@@ -167,13 +168,19 @@ class DeviceModel extends DatabaseModel {
     let conditions = [isDeleted, customer, 1];
 
     if (keyword) {
-      where += ` AND (d.dev_id LIKE ? OR d.imei LIKE ? OR o.code LIKE ? OR c.name LIKE ?)`;
+      where += ` AND (d.dev_id LIKE ? OR d.imei LIKE ? OR o.code LIKE ? OR c.name LIKE ?`;
       conditions.push(
         `%${keyword}%`,
         `%${keyword}%`,
         `%${keyword}%`,
         `%${keyword}%`
       );
+      if (type == 1) {
+        where += ` OR v.name LIKE ?)`;
+        conditions.push(`%${keyword}%`);
+      } else {
+        where += `)`;
+      }
     }
 
     if (model_id) {
@@ -546,6 +553,12 @@ class DeviceModel extends DatabaseModel {
       usersDevicesInsert,
       `is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved)`
     );
+
+    const tableGps = getTableNameDeviceGps();
+    const checkExitTable = await this.checkTableExit(conn, tableGps);
+    if (checkExitTable?.length <= 0) {
+      await this.createTableDeviceGps(conn, tableGps);
+    }
     await connPromise.commit();
     await this.getWithImei(conn, imei);
 

@@ -21,8 +21,8 @@ class Datatbase {
         return console.log("error when connecting to Database", err);
       } else {
         console.log(`SUCCESS:: CONNECTED TO DATABASE >> ${dbConfig.host}`);
+        conn.release();
       }
-      conn.release();
     });
   }
   async getActiveConnections() {

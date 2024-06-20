@@ -224,6 +224,7 @@ class DeviceService {
         );
         return data;
       } catch (error) {
+        await connPromise.rollback();
         throw error;
       } finally {
         conn.release();

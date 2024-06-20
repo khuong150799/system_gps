@@ -17,6 +17,7 @@ class KeyTokenService {
         conn.release();
       }
     } catch (error) {
+      console.log("error", error);
       throw new BusinessLogicError(error.msg);
     }
   }
