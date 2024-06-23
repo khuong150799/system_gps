@@ -13,9 +13,9 @@ const server = http.createServer(app).listen(PORT, () => {
   console.log(`Domain server :::: ${DOMAIN_NAME}:${PORT}`);
 });
 
-const task = require("./src/tasks/issure.task");
+// const task = require("./src/tasks/issure.task");
 process.on("SIGINT", () => {
-  task.checkOverload().stop();
+  // task.checkOverload().stop();
   server.close(() => console.log("Exit server express"));
   process.exit();
 

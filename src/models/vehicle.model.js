@@ -29,7 +29,7 @@ class VehicleModel extends DatabaseModel {
     const joinTableStart = handleJoinTable(tableNameStart);
     const joinTableEnd = handleJoinTable(tableNameEnd);
 
-    const select = `${tableDevice}.imei,license_number,latitude,longitude,speed,signal_quality,rotation,status,acc,time,address`;
+    const select = `${tableDevice}.imei,license_number,latitude,longitude,speed,signal_quality,rotation,status,acc,syn,time,address`;
 
     const chooseQuery =
       joinTableStart !== joinTableEnd
