@@ -48,6 +48,7 @@ class Redis {
           },
         },
       });
+
       client.instanceConnect = instanceRedis;
       handleEventConnectiion(instanceRedis);
     } catch (error) {

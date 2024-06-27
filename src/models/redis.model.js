@@ -69,7 +69,8 @@ class RedisModel {
   async setWithExpired(key, value, times = 30) {
     try {
       const { instanceConnect: client } = this.redis;
-      await client.set(key, value, "EX", times);
+      // console.log({ key, value, times, path, requestId });
+      await client.setEx(key, times, value);
       return { result: true, data: [] };
     } catch (error) {
       return { result: false, error };

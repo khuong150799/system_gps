@@ -26,8 +26,11 @@ const {
   tableVehicleType,
   tableVehicleIcon,
 } = require("../constants/tableName.contant");
-const { hSet: hsetRedis } = require("./redis.model");
-const { REDIS_KEY_LIST_DEVICE } = require("../constants/redis.contant");
+const { hSet: hsetRedis, expire: expireRedis } = require("./redis.model");
+const {
+  REDIS_KEY_LIST_DEVICE,
+  REDIS_KEY_DEVICE_SPAM,
+} = require("../constants/redis.contant");
 const getTableNameDeviceGps = require("../ultils/getTableNameDeviceGps");
 
 class DeviceModel extends DatabaseModel {
@@ -457,10 +460,14 @@ class DeviceModel extends DatabaseModel {
     );
 
     await connPromise.commit();
-    await this.getWithImei(conn, imei);
-    if (vehicle) {
-      await hsetRedis(REDIS_KEY_LIST_DEVICE, imei, JSON.stringify(vehicle));
+
+    if (imei) {
+      await Promise.all([
+        this.getWithImei(conn, imei),
+        expireRedis(`${REDIS_KEY_DEVICE_SPAM}/${imei}`, 0),
+      ]);
     }
+
     return [];
   }
 
@@ -560,7 +567,13 @@ class DeviceModel extends DatabaseModel {
       await this.createTableDeviceGps(conn, tableGps);
     }
     await connPromise.commit();
-    await this.getWithImei(conn, imei);
+
+    if (imei) {
+      await Promise.all([
+        this.getWithImei(conn, imei),
+        expireRedis(`${REDIS_KEY_DEVICE_SPAM}/${imei}`, 0),
+      ]);
+    }
 
     return [];
   }
