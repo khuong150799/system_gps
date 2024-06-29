@@ -84,11 +84,11 @@ class CustomersService {
   }
 
   //getallrow
-  async getallrows(query) {
+  async getallrows(query, userId) {
     try {
       const { conn } = await db.getConnection();
       try {
-        const data = await customersModel.getallrows(conn, query);
+        const data = await customersModel.getallrows(conn, query, userId);
         return data;
       } catch (error) {
         throw error;
@@ -96,6 +96,7 @@ class CustomersService {
         conn.release();
       }
     } catch (error) {
+      console.log(error);
       throw new BusinessLogicError(error.msg);
     }
   }
@@ -182,10 +183,7 @@ class CustomersService {
         const { company, email, phone } = body;
 
         if (company || email || phone) {
-          const isCheck = await this.validate(conn, company, email, phone, id);
-          if (!isCheck.result) {
-            throw isCheck.errors;
-          }
+          await this.validate(conn, company, email, phone, id);
         }
 
         const customer = await customersModel.updateById(
@@ -202,6 +200,7 @@ class CustomersService {
         conn.release();
       }
     } catch (error) {
+      console.log(error);
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
     }

@@ -65,11 +65,27 @@ class UsersService {
     }
   }
 
-  async getaListWithUser(query, userId) {
+  async getallChild(query, customerId) {
     try {
       const { conn } = await db.getConnection();
       try {
-        const data = await usersModel.getaListWithUser(conn, query, userId);
+        const data = await usersModel.getallChild(conn, query, customerId);
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      throw new BusinessLogicError(error.msg);
+    }
+  }
+
+  async getListWithUser(query, userId) {
+    try {
+      const { conn } = await db.getConnection();
+      try {
+        const data = await usersModel.getListWithUser(conn, query, userId);
         return data;
       } catch (error) {
         throw error;

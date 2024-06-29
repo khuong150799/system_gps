@@ -42,22 +42,24 @@ class UsersModel extends DatabaseModel {
     const offset = query.offset || 0;
     const limit = query.limit || 10;
     const isDeleted = query.is_deleted || 0;
+
+    const { keyword, level_id, role_id } = query;
     let where = `${tableUsers}.is_deleted = ?`;
     const conditions = [isDeleted];
 
-    if (query.keyword) {
+    if (keyword) {
       where += ` AND (${tableUsers}.name LIKE ? OR ${tableCustomers}.name LIKE ?)`;
-      conditions.push(`%${query.keyword}%`, `%${query.keyword}%`);
+      conditions.push(`%${keyword}%`, `%${keyword}%`);
     }
 
-    if (query.level_id) {
+    if (level_id) {
       where += ` AND ${tableCustomers}.level_id = ?`;
-      conditions.push(query.level_id);
+      conditions.push(level_id);
     }
 
-    if (query.role_id) {
+    if (role_id) {
       where += ` AND ${tableUsersRole}.role_id = ?`;
-      conditions.push(query.role_id);
+      conditions.push(role_id);
     }
 
     const joinTable = `${tableUsers} INNER JOIN ${tableUsersCustomers} ON ${tableUsers}.id = ${tableUsersCustomers}.user_id 
@@ -89,7 +91,56 @@ class UsersModel extends DatabaseModel {
     return { data: res_, totalPage };
   }
 
-  async getaListWithUser(conn, query, userId) {
+  //getallrow
+  async getallChild(conn, query, customerId) {
+    const offset = query.offset || 0;
+    const limit = query.limit || 10;
+    const isTeam = query.is_team || 0;
+    const { customer_id, is_deleted, keyword, role_id } = query;
+    const isDeleted = is_deleted || 0;
+
+    const chooseCustomer = customer_id || customerId;
+
+    let where = `${tableUsers}.is_deleted = ? AND ${tableUsers}.is_team = ? AND ${tableUsers}.is_main = ? AND ${tableUsersCustomers}.customer_id = ?`;
+    const conditions = [isDeleted, isTeam, 0, chooseCustomer];
+
+    if (keyword) {
+      where += ` AND (${tableUsers}.username LIKE ?)`;
+      conditions.push(`%${keyword}%`);
+    }
+
+    if (role_id) {
+      where += ` AND ${tableUsersRole}.role_id = ?`;
+      conditions.push(role_id);
+    }
+
+    const joinTable = `${tableUsers} INNER JOIN ${tableUsersCustomers} ON ${tableUsers}.id = ${tableUsersCustomers}.user_id 
+      INNER JOIN ${tableUsersRole} ON ${tableUsers}.id = ${tableUsersRole}.user_id 
+      INNER JOIN ${tableRole} ON ${tableUsersRole}.role_id = ${tableRole}.id `;
+
+    const select = `${tableUsers}.id,${tableUsers}.username,${tableRole}.name as role_name,${tableUsers}.created_at,${tableUsers}.updated_at`;
+
+    const [res_, count] = await Promise.all([
+      this.select(
+        conn,
+        joinTable,
+        select,
+        where,
+        conditions,
+        `${tableUsers}.id`,
+        "DESC",
+        offset,
+        limit
+      ),
+      this.count(conn, joinTable, "*", where, conditions),
+    ]);
+
+    const totalPage = Math.ceil(count?.[0]?.total / limit);
+
+    return { data: res_, totalPage };
+  }
+
+  async getListWithUser(conn, query, userId) {
     const isDeleted = query.is_deleted || 0;
     const where = `parent_id = ? AND ${tableUsers}.is_deleted = ?`;
     const chosseUser = query.user_id || userId;

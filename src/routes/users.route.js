@@ -21,11 +21,24 @@ module.exports = (app) => {
   );
 
   router.get(
+    "/owner",
+    [
+      query("keyword", VALIDATE_DATA).isString().escape(),
+      query("customer_id", VALIDATE_DATA).isString().escape(),
+      query("role_id", VALIDATE_DATA).isString().escape(),
+      query("is_team", VALIDATE_DATA).isString().escape(),
+    ],
+    isAuth,
+    checkPermission,
+    usersController.getallChild
+  );
+
+  router.get(
     "/children",
 
     isAuth,
     checkPermission,
-    usersController.getaListWithUser
+    usersController.getListWithUser
   );
   router.get(
     "/detail/:id",

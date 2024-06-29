@@ -6,6 +6,8 @@ const usersModel = require("./users.model");
 const {
   tableCustomers,
   tableLevel,
+  tableUsersCustomers,
+  tableUsers,
 } = require("../constants/tableName.contant");
 const deviceModel = require("./device.model");
 
@@ -16,32 +18,59 @@ class CustomersModel extends DatabaseSchema {
   }
 
   //getallrow
-  async getallrows(conn, query) {
+  async getallrows(conn, query, userId) {
     const offset = query.offset || 0;
     const limit = query.limit || 10;
 
-    const isDeleted = query.is_deleted || 0;
-    let where = `${tableCustomers}.is_deleted = ?`;
-    const conditions = [isDeleted];
+    const { keyword, is_deleted, user_id, level_id } = query;
 
-    if (query.keyword) {
-      where += ` AND (${tableCustomers}.name LIKE ? OR ${tableCustomers}.company LIKE ? OR ${tableCustomers}.email LIKE ? OR ${tableCustomers}.phone LIKE ? OR ${tableCustomers}.address LIKE ? OR ${tableCustomers}.tax_code LIKE ?)`;
-      conditions.push(
-        `%${query.keyword}%`,
-        `%${query.keyword}%`,
-        `%${query.keyword}%`,
-        `%${query.keyword}%`,
-        `%${query.keyword}%`,
-        `%${query.keyword}%`
+    const isDeleted = is_deleted || 0;
+
+    const where = `parent_id = ? AND is_deleted = ? AND is_main = ? AND is_team = ?`;
+    const chosseUser = user_id || userId;
+    const conditions = [chosseUser, isDeleted, 1, 0];
+    const whereDequy = `AND is_deleted = ${isDeleted} AND is_main = 1 AND is_team = 0`;
+
+    const ListUserId = await this.getAllRowsMenu(
+      conn,
+      tableUsers,
+      "id",
+      where,
+      conditions,
+      `id`,
+      "ASC",
+      "id",
+      whereDequy,
+      `id`,
+      "ASC"
+    );
+    if (!ListUserId?.length) return { data: [], totalPage: 0 };
+
+    const arrUserId = ListUserId.map((item) => item.id);
+
+    let where_ = `${tableCustomers}.is_deleted = ? AND ${tableUsers}.id IN (?)`;
+    const conditions_ = [isDeleted, arrUserId];
+
+    if (keyword) {
+      where_ += ` AND (${tableCustomers}.name LIKE ? OR ${tableCustomers}.company LIKE ? OR ${tableCustomers}.email LIKE ? OR ${tableCustomers}.phone LIKE ? OR ${tableCustomers}.address LIKE ? OR ${tableCustomers}.tax_code LIKE ?)`;
+      conditions_.push(
+        `%${keyword}%`,
+        `%${keyword}%`,
+        `%${keyword}%`,
+        `%${keyword}%`,
+        `%${keyword}%`,
+        `%${keyword}%`
       );
     }
 
-    if (query.level_id) {
-      where += ` AND level_id = ?`;
-      conditions.push(query.level_id);
+    if (level_id) {
+      where_ += ` AND level_id = ?`;
+      conditions_.push(level_id);
     }
 
-    const joinTable = `${tableCustomers} INNER JOIN ${tableLevel} ON ${tableCustomers}.level_id = ${tableLevel}.id`;
+    const joinTable = `${tableUsers} INNER JOIN ${tableUsersCustomers} ON ${tableUsers}.id = ${tableUsersCustomers}.user_id 
+      INNER JOIN ${tableCustomers} ON ${tableUsersCustomers}.customer_id = ${tableCustomers}.id
+      INNER JOIN ${tableLevel} ON ${tableCustomers}.level_id = ${tableLevel}.id`;
 
     const select = `${tableCustomers}.id,${tableCustomers}.name,${tableCustomers}.company,${tableCustomers}.email,${tableCustomers}.phone,${tableCustomers}.address,
       ${tableCustomers}.tax_code,${tableCustomers}.website,${tableLevel}.name as level_name,${tableCustomers}.created_at,${tableCustomers}.updated_at`;
@@ -51,14 +80,14 @@ class CustomersModel extends DatabaseSchema {
         conn,
         joinTable,
         select,
-        where,
-        conditions,
+        where_,
+        conditions_,
         `${tableCustomers}.id`,
         "DESC",
         offset,
         limit
       ),
-      this.count(conn, joinTable, "*", where, conditions),
+      this.count(conn, joinTable, "*", where_, conditions_),
     ]);
 
     const totalPage = Math.ceil(count?.[0]?.total / limit);

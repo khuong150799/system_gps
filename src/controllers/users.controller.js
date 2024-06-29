@@ -20,10 +20,20 @@ class CustomersController {
     GET(res, data, totalPage);
   });
 
-  getaListWithUser = catchAsync(async (req, res) => {
+  getallChild = catchAsync(async (req, res) => {
+    const query = req.query;
+    const customerId = req.customerId;
+    const { data, totalPage } = await usersSrevice.getallChild(
+      query,
+      customerId
+    );
+    GET(res, data, totalPage);
+  });
+
+  getListWithUser = catchAsync(async (req, res) => {
     const userId = req.userId;
     const query = req.query;
-    const data = await usersSrevice.getaListWithUser(query, userId);
+    const data = await usersSrevice.getListWithUser(query, userId);
     GET(res, data);
   });
 

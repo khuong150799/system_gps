@@ -371,7 +371,7 @@ class DatabaseModel {
           orderByField,
           orderBySort,
           0,
-          100000
+          1000000000
         );
 
         const newArr = [];
