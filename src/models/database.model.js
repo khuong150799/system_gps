@@ -58,8 +58,10 @@ class DatabaseModel {
         );
 
       const query =
-        arrQuery.join(" UNION ") +
-        `  ORDER BY ${orderByField} ${orderBySort} LIMIT ${offset},${limit}`;
+        arrQuery?.length > 1
+          ? arrQuery.join(" UNION ")
+          : arrQuery.join("") +
+            `  ORDER BY ${orderByField} ${orderBySort} LIMIT ${offset},${limit}`;
 
       db.query(query, conditionsConvert, (err, dataRes) => {
         // console.log(query);
