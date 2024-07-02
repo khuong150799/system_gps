@@ -125,7 +125,7 @@ class DeviceModel extends DatabaseModel {
       LEFT JOIN ${tableUsersCustomers} uc2 ON u1.id = uc2.user_id  
       LEFT JOIN ${tableCustomers} c ON uc2.customer_id = c.id`;
 
-    const select = `d.imei,v.expired_on,v.activation_date,v.warranty_expired_on,
+    const select = `d.id as device_id,d.imei,v.expired_on,v.activation_date,v.warranty_expired_on,
       v.name as vehicle_name,vt.name as vehicle_type_name,vt.vehicle_icon_id,
       m.name as model_name,ds.title as device_status_name,COALESCE(c0.company,
       c0.name) as customer_name,COALESCE(c.company, c.name) as agency_name,c.phone as agency_phone,vi.name as vehicle_icon_name`;

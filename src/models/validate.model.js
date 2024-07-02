@@ -23,8 +23,8 @@ const {
 const {
   regexAccount,
   regexPass,
-  regexPhone,
   regexEmail,
+  regexPhoneNumber,
 } = require("../ultils/regex");
 const DatabaseModel = require("./database.model");
 
@@ -203,7 +203,7 @@ class ValidateModel extends DatabaseModel {
 
   async checkRegexPhone(phone) {
     const errors = [];
-    if (!regexPhone(phone)) {
+    if (!regexPhoneNumber(phone)) {
       errors.push({
         value: phone,
         msg: VALIDATE_PHONE,

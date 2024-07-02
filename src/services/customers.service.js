@@ -7,6 +7,7 @@ const validateModel = require("../models/validate.model");
 const {
   tableCustomers,
   tableLevel,
+  tableUsers,
 } = require("../constants/tableName.contant");
 
 const databaseModel = new DatabaseModel();
@@ -133,11 +134,11 @@ class CustomersService {
           parent_id,
         } = body;
         if (email) {
-          await validateModel.regexEmail(email);
+          await validateModel.checkRegexEmial(email);
         }
 
         if (phone) {
-          await validateModel.regexEmail(phone);
+          await validateModel.checkRegexPhone(phone);
         }
 
         await validateModel.checkRegexUsername(username);
@@ -154,6 +155,15 @@ class CustomersService {
         );
 
         await this.validate(conn, company, email, phone);
+
+        await validateModel.checkExitValue(
+          conn,
+          tableUsers,
+          "username",
+          username,
+          "Tài khoản",
+          "username"
+        );
 
         await validateModel.CheckIsChild(connPromise, userId, parent_id);
 
