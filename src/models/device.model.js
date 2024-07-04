@@ -32,7 +32,13 @@ const {
   REDIS_KEY_DEVICE_SPAM,
   REDIS_KEY_LIST_IMEI_OF_USERS,
 } = require("../constants/redis.contant");
-const getTableNameDeviceGps = require("../ultils/getTableNameDeviceGps");
+const getTableName = require("../ultils/getTableName");
+const {
+  initialNameOfTableGps,
+  initialNameOfTableSpeed,
+  initialNameOfTableReportOneDay,
+  initialNameOfTableRunning,
+} = require("../constants/setting.constant");
 
 class DeviceModel extends DatabaseModel {
   constructor() {
@@ -223,7 +229,6 @@ class DeviceModel extends DatabaseModel {
       where += ` AND v.activation_date BETWEEN ? AND ?`;
       conditions.push(start_activation_date, end_activation_date);
     }
-    console.log(type);
     if (type == 2) {
       where += ` AND v.activation_date IS NULL AND ud.is_moved = ?`;
       conditions.push(0);
@@ -585,10 +590,34 @@ class DeviceModel extends DatabaseModel {
       `is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved)`
     );
 
-    const tableGps = getTableNameDeviceGps();
-    const checkExitTable = await this.checkTableExit(conn, tableGps);
-    if (checkExitTable?.length <= 0) {
-      await this.createTableDeviceGps(conn, tableGps);
+    const tableGps = getTableName(initialNameOfTableGps, device_id);
+    const tableSpeed = getTableName(initialNameOfTableSpeed, device_id);
+    const tableReportOneDay = getTableName(
+      initialNameOfTableReportOneDay,
+      device_id
+    );
+    const tableContinuous = getTableName(initialNameOfTableRunning, device_id);
+
+    const listTable = await Promise.all([
+      this.checkTableExit(conn, tableGps),
+      this.checkTableExit(conn, tableSpeed),
+      this.checkTableExit(conn, tableReportOneDay),
+      this.checkTableExit(conn, tableContinuous),
+    ]);
+
+    const listTableCreate = listTable.map((item, i) => {
+      if (item?.length <= 0 && i === 0)
+        return this.createTableDeviceGps(conn, tableGps);
+      if (item?.length <= 0 && i === 1)
+        return this.createTableDeviceSpeed(conn, tableSpeed);
+      if (item?.length <= 0 && i === 2)
+        return this.createTableReportOneDay(conn, tableReportOneDay);
+      if (item?.length <= 0 && i === 3)
+        return this.createTableReportOneDay(conn, tableContinuous);
+    });
+
+    if (listTableCreate?.length > 0) {
+      await Promise.all(listTableCreate);
     }
     await connPromise.commit();
 

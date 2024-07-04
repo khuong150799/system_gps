@@ -449,6 +449,133 @@ class DatabaseModel {
     });
   }
 
+  async createTableDeviceSpeed(db, tableName) {
+    return await new Promise((resolve, reject) => {
+      const query = `
+        SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+        START TRANSACTION;
+        SET time_zone = "+00:00";
+          CREATE TABLE ${tableName} (
+            id int UNSIGNED NOT NULL,
+            idx int NOT NULL,
+            device_id int NOT NULL,
+            imei varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+            speed varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+            syn tinyint(1) NOT NULL,
+            time bigint NOT NULL,
+            created_at bigint NOT NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+        ALTER TABLE ${tableName}
+          ADD PRIMARY KEY (id),
+          ADD UNIQUE KEY imei (imei,time);
+          
+
+        ALTER TABLE ${tableName}
+          MODIFY id bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
+
+        COMMIT;
+`;
+      db.query(query, (err, dataRes) => {
+        // console.log(query);
+        if (err) {
+          console.log(err);
+          return reject({ msg: ERROR });
+        }
+        return resolve(dataRes);
+      });
+    });
+  }
+
+  async createTableReportOneDay(db, tableName) {
+    return await new Promise((resolve, reject) => {
+      const query = `
+        SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+        START TRANSACTION;
+        SET time_zone = "+00:00";
+          CREATE TABLE ${tableName} (
+            id int UNSIGNED NOT NULL,
+            imei varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+            start_idx int NOT NULL,
+            start_time bigint NOT NULL,
+            end_idx int NOT NULL,
+            end_time bigint NOT NULL,
+            number_stop int DEFAULT NULL,
+            total_stop_time_in_cycle int DEFAULT NULL,
+            distance double DEFAULT NULL,
+            default_speed double DEFAULT NULL,
+            count varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+            avg_speed double DEFAULT NULL,
+            type tinyint NOT NULL COMMENT '0:offline,1:lost_gps,3:route,4:over speed',
+            created_at bigint NOT NULL
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+        ALTER TABLE ${tableName}
+          ADD PRIMARY KEY (id),
+          ADD UNIQUE KEY idx_start_time_end_time_start_idx_end_idx_imei (start_time,end_time,start_idx,end_idx,imei);
+          
+
+        ALTER TABLE ${tableName}
+          MODIFY id bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
+
+        COMMIT;
+`;
+      db.query(query, (err, dataRes) => {
+        // console.log(query);
+        if (err) {
+          console.log(err);
+          return reject({ msg: ERROR });
+        }
+        return resolve(dataRes);
+      });
+    });
+  }
+
+  async createTableReportContinuous(db, tableName) {
+    return await new Promise((resolve, reject) => {
+      const query = `
+        SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+        START TRANSACTION;
+        SET time_zone = "+00:00";
+          CREATE TABLE ${tableName} (
+            id bigint UNSIGNED NOT NULL,
+            idx int NOT NULL,
+            imei varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+            device_id int NOT NULL,
+            license_number varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+            start_location varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+            end_location varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+            start_time bigint NOT NULL,
+            end_time bigint NOT NULL,
+            start_address text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+            end_address text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+            syn int NOT NULL,
+            type tinyint(1) NOT NULL,
+            created_at bigint NOT NULL,
+            updated_at bigint DEFAULT NULL
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+        ALTER TABLE ${tableName}
+          ADD PRIMARY KEY (id),
+          ADD UNIQUE KEY imei (imei,start_time,end_time);
+          
+
+        ALTER TABLE ${tableName}
+          MODIFY id bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
+
+        COMMIT;
+`;
+      db.query(query, (err, dataRes) => {
+        // console.log(query);
+        if (err) {
+          console.log(err);
+          return reject({ msg: ERROR });
+        }
+        return resolve(dataRes);
+      });
+    });
+  }
+
   async checkTableExit(db, tableName) {
     return await new Promise((resolve, reject) => {
       const query = `

@@ -1,10 +1,10 @@
+const { initialNameOfTableGps } = require("../constants/setting.constant");
 const {
-  tableDeviceGps,
   tableDevice,
   tableVehicle,
   tableUsersDevices,
 } = require("../constants/tableName.contant");
-const getTableNameDeviceGps = require("../ultils/getTableNameDeviceGps");
+const getTableName = require("../ultils/getTableName");
 const DatabaseModel = require("./database.model");
 
 class VehicleModel extends DatabaseModel {
@@ -15,8 +15,16 @@ class VehicleModel extends DatabaseModel {
     const { imei } = params;
     const { start_date, end_date, device_id } = query;
 
-    const tableNameStart = getTableNameDeviceGps(device_id, start_date * 1000);
-    const tableNameEnd = getTableNameDeviceGps(device_id, end_date * 1000);
+    const tableNameStart = getTableName(
+      initialNameOfTableGps,
+      device_id,
+      start_date * 1000
+    );
+    const tableNameEnd = getTableName(
+      initialNameOfTableGps,
+      device_id,
+      end_date * 1000
+    );
 
     const joinTableGetVehicle = `${tableDevice} INNER JOIN ${tableVehicle} ON ${tableDevice}.id = ${tableVehicle}.device_id 
         INNER JOIN ${tableUsersDevices} ON ${tableDevice}.id = ${tableUsersDevices}.device_id`;

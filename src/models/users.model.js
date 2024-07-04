@@ -155,7 +155,7 @@ class UsersModel extends DatabaseModel {
     let joinTable = `${tableUsers} INNER JOIN ${tableUsersCustomers} ON ${tableUsers}.id = ${tableUsersCustomers}.user_id 
       INNER JOIN ${tableCustomers} ON ${tableUsersCustomers}.customer_id = ${tableCustomers}.id`;
 
-    let select = `${tableUsers}.id,${tableUsers}.username,${tableUsers}.parent_id,${tableUsers}.is_team,${tableCustomers}.name as customer_name,${tableCustomers}.id as customer_id`;
+    let select = `${tableUsers}.id,${tableUsers}.username,${tableUsers}.is_main,${tableUsers}.parent_id,${tableUsers}.is_team,${tableCustomers}.name as customer_name,${tableCustomers}.id as customer_id`;
 
     const res_ = await this.getAllRowsMenu(
       conn,
@@ -473,7 +473,7 @@ class UsersModel extends DatabaseModel {
   //delete
   async deleteById(conn, params) {
     const { id } = params;
-    await this.update(conn, tableUsers, { is_deleted: 1 }, "id", id);
+    await this.update(conn, tableUsers, { is_deleted: Date.now() }, "id", id);
     return [];
   }
 
