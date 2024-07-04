@@ -14,12 +14,14 @@ class SuccessResponse {
     data = {},
     options = {},
     totalPage = -1,
+    totalRecord = -1,
   }) {
     this.result = true;
     this.message = message;
     this.status = status;
     if (totalPage >= 0) {
       this.totalPage = totalPage;
+      this.totalRecord = totalRecord;
     }
     this.data = data;
     this.options = options;
@@ -43,8 +45,21 @@ class Update extends SuccessResponse {
 }
 
 class Get extends SuccessResponse {
-  constructor({ data = {}, totalPage = 0, options = {}, message }) {
-    super({ message, status: StatusCodes.OK, data, options, totalPage });
+  constructor({
+    data = {},
+    totalPage = 0,
+    totalRecord = 0,
+    options = {},
+    message,
+  }) {
+    super({
+      message,
+      status: StatusCodes.OK,
+      data,
+      options,
+      totalPage,
+      totalRecord,
+    });
   }
 }
 
@@ -80,6 +95,7 @@ const GET = (
   res,
   data,
   totalPage = 0,
+  totalRecord = 0,
   options = {},
   message = GET_DATA_SUCCESS
 ) => {
@@ -87,6 +103,7 @@ const GET = (
     message,
     data,
     totalPage,
+    totalRecord,
     options,
   }).send(res);
 };

@@ -155,7 +155,7 @@ class CustomersService {
         );
 
         if (company || email || phone) {
-          await this.validate(conn, company, email, phone, id);
+          await this.validate(conn, company, email, phone);
         }
 
         await validateModel.checkExitValue(

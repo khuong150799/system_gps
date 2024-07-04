@@ -45,7 +45,7 @@ class VehicleIconModel extends DatabaseModel {
 
     const totalPage = Math.ceil(count?.[0]?.total / limit);
 
-    return { data: res_, totalPage };
+    return { data: res_, totalPage, totalRecaord: count?.[0]?.total };
   }
 
   //getbyid
