@@ -31,6 +31,7 @@ const {
   tableRole,
   tableUsersRole,
 } = require("../constants/tableName.contant");
+const validateModel = require("./validate.model");
 
 class UsersModel extends DatabaseModel {
   constructor() {
@@ -118,7 +119,7 @@ class UsersModel extends DatabaseModel {
       INNER JOIN ${tableUsersRole} ON ${tableUsers}.id = ${tableUsersRole}.user_id 
       INNER JOIN ${tableRole} ON ${tableUsersRole}.role_id = ${tableRole}.id `;
 
-    const select = `${tableUsers}.id,${tableUsers}.username,${tableRole}.name as role_name,${tableUsers}.created_at,${tableUsers}.updated_at`;
+    const select = `${tableUsers}.id,${tableUsers}.username,${tableUsers}.is_actived,${tableRole}.name as role_name,${tableUsers}.created_at,${tableUsers}.updated_at`;
 
     const [res_, count] = await Promise.all([
       this.select(
@@ -141,16 +142,20 @@ class UsersModel extends DatabaseModel {
   }
 
   async getListWithUser(conn, query, userId) {
-    const isDeleted = query.is_deleted || 0;
+    const { is_deleted, user_id } = query;
+
+    const isDeleted = is_deleted || 0;
+
     const where = `parent_id = ? AND ${tableUsers}.is_deleted = ?`;
-    const chosseUser = query.user_id || userId;
+    const chosseUser = user_id || userId;
+
     const conditions = [chosseUser, isDeleted];
     const whereDequy = `AND ${tableUsers}.is_deleted = ${isDeleted}`;
 
-    const joinTable = `${tableUsers} INNER JOIN ${tableUsersCustomers} ON ${tableUsers}.id = ${tableUsersCustomers}.user_id 
+    let joinTable = `${tableUsers} INNER JOIN ${tableUsersCustomers} ON ${tableUsers}.id = ${tableUsersCustomers}.user_id 
       INNER JOIN ${tableCustomers} ON ${tableUsersCustomers}.customer_id = ${tableCustomers}.id`;
 
-    const select = `${tableUsers}.id,${tableUsers}.username,${tableUsers}.parent_id,${tableUsers}.is_team,COALESCE(${tableCustomers}.company,${tableCustomers}.name) as customer_name,${tableCustomers}.id as customer_id`;
+    let select = `${tableUsers}.id,${tableUsers}.username,${tableUsers}.parent_id,${tableUsers}.is_team,${tableCustomers}.name as customer_name,${tableCustomers}.id as customer_id`;
 
     const res_ = await this.getAllRowsMenu(
       conn,
@@ -212,8 +217,15 @@ class UsersModel extends DatabaseModel {
   }
   //Register
   async register(conn, connPromise, body, customerId, isCommit = true) {
-    const { parent_id, username, password, role_id, customer_id, is_actived } =
-      body;
+    const {
+      parent_id,
+      username,
+      password,
+      role_id,
+      customer_id,
+      is_actived,
+      is_child,
+    } = body;
     const createdAt = Date.now();
 
     const salt = await bcrypt.genSalt(12);
@@ -225,7 +237,7 @@ class UsersModel extends DatabaseModel {
       text_pass: password,
       is_actived,
       is_deleted: 0,
-      is_main: Number(customerId) === Number(customer_id) ? 0 : 1,
+      is_main: is_child ? 0 : 1,
       is_team: 0,
       created_at: createdAt,
     });
@@ -422,6 +434,7 @@ class UsersModel extends DatabaseModel {
     delete user.expired_on;
     delete user.is_deleted;
     delete user.created_at;
+    delete user.is_main;
     await this.update(conn, tableUsers, user, "id", id);
 
     const usersRole = new UsersRoleSchema({
@@ -553,15 +566,28 @@ class UsersModel extends DatabaseModel {
   }
 
   //refreshToken
-  async refreshToken(body) {
+  async refreshToken(conn, body) {
     const { refresh_token } = body;
     const { data, keyRefreshToken } = await checkToken(
       refresh_token,
       REFRESH_TOKEN_SECRET_KEY,
       false
     );
+
     const keyToken = md5(Date.now());
     const { userId, role, clientId, level, customerId } = data;
+
+    const dataInfo = await this.select(
+      conn,
+      tableUsers,
+      "is_actived,is_deleted",
+      "id = ?",
+      userId
+    );
+    await validateModel.checkStatusUser(
+      dataInfo[0].is_actived,
+      dataInfo[0].is_deleted
+    );
 
     const token = await makeAccessToken(
       {
@@ -599,8 +625,15 @@ class UsersModel extends DatabaseModel {
       client_id: clientId,
     });
 
-    await expireRedis(clientId, 0);
+    await expireRedis(clientId, -1);
 
+    return [];
+  }
+
+  async updateActive(conn, body, params) {
+    const { id } = params;
+    const { is_actived } = body;
+    await this.update(conn, tableUsers, { is_actived }, "id", id);
     return [];
   }
 }

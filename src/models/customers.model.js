@@ -22,12 +22,26 @@ class CustomersModel extends DatabaseSchema {
     const offset = query.offset || 0;
     const limit = query.limit || 10;
 
-    const { keyword, is_deleted, user_id, level_id } = query;
+    const { keyword, is_deleted, customer_id, level_id } = query;
 
+    const joinTableUsersCustomer = `${tableUsersCustomers} INNER JOIN ${tableUsers} ON ${tableUsersCustomers}.user_id = ${tableUsers}.id`;
+
+    const dataUser = await this.select(
+      conn,
+      joinTableUsersCustomer,
+      "user_id",
+      `${tableUsersCustomers}.customer_id = ? AND ${tableUsers}.is_main = ? AND ${tableUsers}.is_deleted = 0`,
+      [customer_id, 1],
+      `${tableUsers}.id`
+    );
+
+    console.log("dataUser", dataUser);
+
+    if (!dataUser.length) return { data: [], totalPage: 0 };
     const isDeleted = is_deleted || 0;
 
     const where = `parent_id = ? AND is_deleted = ? AND is_main = ? AND is_team = ?`;
-    const chosseUser = user_id || userId;
+    const chosseUser = dataUser[0].user_id;
     const conditions = [chosseUser, isDeleted, 1, 0];
     const whereDequy = `AND is_deleted = ${isDeleted} AND is_main = 1 AND is_team = 0`;
 
@@ -72,7 +86,7 @@ class CustomersModel extends DatabaseSchema {
       INNER JOIN ${tableCustomers} ON ${tableUsersCustomers}.customer_id = ${tableCustomers}.id
       INNER JOIN ${tableLevel} ON ${tableCustomers}.level_id = ${tableLevel}.id`;
 
-    const select = `${tableCustomers}.id,${tableCustomers}.name,${tableCustomers}.company,${tableCustomers}.email,${tableCustomers}.phone,${tableCustomers}.address,
+    const select = `${tableUsers}.username,${tableUsers}.id as user_id,${tableUsers}.is_actived,${tableCustomers}.id ,${tableCustomers}.name,${tableCustomers}.company,${tableCustomers}.email,${tableCustomers}.phone,${tableCustomers}.address,
       ${tableCustomers}.tax_code,${tableCustomers}.website,${tableLevel}.name as level_name,${tableCustomers}.created_at,${tableCustomers}.updated_at`;
 
     const [res_, count] = await Promise.all([

@@ -154,7 +154,9 @@ class CustomersService {
           "level_id"
         );
 
-        await this.validate(conn, company, email, phone);
+        if (company || email || phone) {
+          await this.validate(conn, company, email, phone, id);
+        }
 
         await validateModel.checkExitValue(
           conn,

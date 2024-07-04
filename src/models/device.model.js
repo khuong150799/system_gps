@@ -30,6 +30,7 @@ const { hSet: hsetRedis, expire: expireRedis } = require("./redis.model");
 const {
   REDIS_KEY_LIST_DEVICE,
   REDIS_KEY_DEVICE_SPAM,
+  REDIS_KEY_LIST_IMEI_OF_USERS,
 } = require("../constants/redis.contant");
 const getTableNameDeviceGps = require("../ultils/getTableNameDeviceGps");
 
@@ -126,9 +127,10 @@ class DeviceModel extends DatabaseModel {
       LEFT JOIN ${tableCustomers} c ON uc2.customer_id = c.id`;
 
     const select = `d.id as device_id,d.imei,v.expired_on,v.activation_date,v.warranty_expired_on,
-      v.name as vehicle_name,vt.name as vehicle_type_name,vt.vehicle_icon_id,
+      v.name as vehicle_name,vt.name as vehicle_type_name,vt.vehicle_icon_id,vt.max_speed,
       m.name as model_name,ds.title as device_status_name,COALESCE(c0.company,
-      c0.name) as customer_name,COALESCE(c.company, c.name) as agency_name,c.phone as agency_phone,vi.name as vehicle_icon_name`;
+      c0.name) as customer_name,COALESCE(c.company, c.name) as agency_name,c.phone as agency_phone,vi.name as vehicle_icon_name,
+      c0.id as customer_id,c.id as agency_id`;
 
     const data = await this.select(
       conn,
@@ -146,6 +148,27 @@ class DeviceModel extends DatabaseModel {
       );
     }
     return data;
+  }
+
+  async removeListDeviceOfUsersRedis(conn, deviceId) {
+    const listUserId = await this.select(
+      conn,
+      tableUsersDevices,
+      "user_id",
+      "device_id = ? AND is_deleted = ?",
+      [deviceId, 0],
+      "user_id",
+      "ASC",
+      0,
+      99999
+    );
+    if (!listUserId?.length) return null;
+
+    await Promise.all([
+      listUserId.map(({ user_id }) =>
+        expireRedis(`${REDIS_KEY_LIST_IMEI_OF_USERS}/${user_id}`, -1)
+      ),
+    ]);
   }
 
   //getallrow
@@ -464,7 +487,8 @@ class DeviceModel extends DatabaseModel {
     if (imei) {
       await Promise.all([
         this.getWithImei(conn, imei),
-        expireRedis(`${REDIS_KEY_DEVICE_SPAM}/${imei}`, 0),
+        expireRedis(`${REDIS_KEY_DEVICE_SPAM}/${imei}`, -1),
+        this.removeListDeviceOfUsersRedis(conn, device_id),
       ]);
     }
 
@@ -571,7 +595,8 @@ class DeviceModel extends DatabaseModel {
     if (imei) {
       await Promise.all([
         this.getWithImei(conn, imei),
-        expireRedis(`${REDIS_KEY_DEVICE_SPAM}/${imei}`, 0),
+        expireRedis(`${REDIS_KEY_DEVICE_SPAM}/${imei}`, -1),
+        this.removeListDeviceOfUsersRedis(conn, device_id),
       ]);
     }
 

@@ -128,6 +128,13 @@ class CustomersController {
     const data = await usersSrevice.logout(clientId);
     OK(res, data, {}, LOGOUT_SUCCESS);
   });
+
+  updateActive = catchAsync(async (req, res) => {
+    const body = req.body;
+    const params = req.params;
+    const data = await usersSrevice.updateActive(body, params);
+    UPDATE(res, data);
+  });
 }
 
 module.exports = new CustomersController();

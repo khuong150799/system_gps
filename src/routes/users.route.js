@@ -14,6 +14,8 @@ module.exports = (app) => {
       query("keyword", VALIDATE_DATA).isString().escape(),
       query("level_id").escape(),
       query("role_id").escape(),
+      query("is_team").escape(),
+      query("role_id").escape(),
     ],
     isAuth,
     checkPermission,
@@ -207,6 +209,17 @@ module.exports = (app) => {
   );
 
   router.delete("/logout", isAuth, usersController.logout);
+
+  router.patch(
+    "/update-actived/:id",
+    [
+      param("id", VALIDATE_DATA).isNumeric(),
+      body("is_actived", VALIDATE_DATA).isNumeric(),
+    ],
+    isAuth,
+    checkPermission,
+    usersController.updateActive
+  );
 
   app.use("/api/v1/users", router);
 };

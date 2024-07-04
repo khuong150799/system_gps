@@ -323,7 +323,7 @@ class UsersService {
   //delete
   async deleteById(params, userId) {
     try {
-      const { conn } = await db.getConnection();
+      const { conn, connPromise } = await db.getConnection();
       try {
         const { id } = params;
         await validateModel.CheckIsChild(connPromise, userId, id);
@@ -336,6 +336,7 @@ class UsersService {
         conn.release();
       }
     } catch (error) {
+      console.log(error);
       throw new BusinessLogicError(error.msg);
     }
   }
@@ -343,7 +344,7 @@ class UsersService {
   //reset pass
   async resetPass(params, userId) {
     try {
-      const { conn } = await db.getConnection();
+      const { conn, connPromise } = await db.getConnection();
       try {
         const { id } = params;
         await validateModel.CheckIsChild(connPromise, userId, id);
@@ -356,6 +357,7 @@ class UsersService {
         conn.release();
       }
     } catch (error) {
+      console.log(error);
       const { msg } = error;
       throw new BusinessLogicError(msg);
     }
@@ -487,8 +489,16 @@ class UsersService {
   //refreshToken
   async refreshToken(body) {
     try {
-      const data = await usersModel.refreshToken(body);
-      return data;
+      const { conn } = await db.getConnection();
+      try {
+        const data = await usersModel.refreshToken(conn, body);
+
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }
@@ -502,6 +512,22 @@ class UsersService {
         const data = await usersModel.logout(conn, clientId);
 
         return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      throw new BusinessLogicError(error.msg);
+    }
+  }
+
+  async updateActive(body, params) {
+    try {
+      const { conn } = await db.getConnection();
+      try {
+        await usersModel.updateActive(conn, body, params);
+        return [];
       } catch (error) {
         throw error;
       } finally {
