@@ -420,11 +420,12 @@ class DatabaseModel {
           status_device int DEFAULT NULL,
           distance double DEFAULT NULL,
           acc int NOT NULL,
+          io int NOT NULL,
           syn int NOT NULL,
           time bigint NOT NULL,
           is_error_insert tinyint(1) NOT NULL,
           is_error_address tinyint(1) NOT NULL,
-          address text COLLATE utf8mb4_unicode_ci,
+          address text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
           created_at bigint NOT NULL,
           updated_at bigint DEFAULT NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -7,10 +7,11 @@ const {
   tableRole,
   tableUsers,
 } = require("../constants/tableName.contant");
+const DatabaseModel = require("./database.model");
 const deviceModel = require("./device.model");
 const DriverSchema = require("./schema/driver.schema");
 
-class DriverModel {
+class DriverModel extends DatabaseModel {
   //getallrow
   async getallrows(conn, query) {
     const offset = query.offset || 0;
@@ -48,7 +49,7 @@ class DriverModel {
     const select = `${tableDriver}.id,${tableDriver}.name,${tableDriver}.license_number,${tableDriver}.is_actived,${tableDriver}.is_check,
       ${tableDriver}.phone,${tableDriver}.address,${tableDriver}.birthday,${tableDriver}.expired_on,${tableDriver}.activation_date,
       ${tableLicenseType}.title as license_type_name,${tableCustomers}.name,${tableDriver}.gender,
-      CONCAT(${tableUsers}.username,"(",${tableRole}.name,") ",COALESCE(c.company, c.name)) as ceator,${tableDriver}.citizen_identity_card,${tableDriver}.created_at,${tableDriver}.updated_at`;
+      CONCAT(${tableUsers}.username,"(",${tableRole}.name,") ",COALESCE(c.company, c.name)) as creator,${tableDriver}.citizen_identity_card,${tableDriver}.created_at,${tableDriver}.updated_at`;
 
     const [res_, count] = await Promise.all([
       this.select(
@@ -190,7 +191,7 @@ class DriverModel {
   //delete
   async deleteById(conn, params) {
     const { id } = params;
-    await this.update(conn, tableDriver, { is_deleted: 1 }, "id", id);
+    await this.update(conn, tableDriver, { is_deleted: Date.now() }, "id", id);
     return [];
   }
 
