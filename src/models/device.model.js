@@ -613,7 +613,7 @@ class DeviceModel extends DatabaseModel {
       if (item?.length <= 0 && i === 2)
         return this.createTableReportOneDay(conn, tableReportOneDay);
       if (item?.length <= 0 && i === 3)
-        return this.createTableReportOneDay(conn, tableContinuous);
+        return this.createTableReportContinuous(conn, tableContinuous);
     });
 
     if (listTableCreate?.length > 0) {

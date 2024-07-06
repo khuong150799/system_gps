@@ -42,6 +42,17 @@ module.exports = (app) => {
     checkPermission,
     usersController.getListWithUser
   );
+
+  router.get(
+    "/teams",
+    [
+      query("keyword", VALIDATE_DATA).isString().escape(),
+      query("user_id", VALIDATE_DATA).isString().escape(),
+    ],
+    isAuth,
+    checkPermission,
+    usersController.getTeamsWithUser
+  );
   router.get(
     "/detail/:id",
     [param("id", VALIDATE_DATA).isNumeric()],

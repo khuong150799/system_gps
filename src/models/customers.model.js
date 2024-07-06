@@ -35,8 +35,6 @@ class CustomersModel extends DatabaseSchema {
       `${tableUsers}.id`
     );
 
-    console.log("dataUser", dataUser);
-
     if (!dataUser.length) return { data: [], totalPage: 0 };
     const isDeleted = is_deleted || 0;
 

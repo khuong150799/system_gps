@@ -48,7 +48,7 @@ class DriverModel extends DatabaseModel {
 
     const select = `${tableDriver}.id,${tableDriver}.name,${tableDriver}.license_number,${tableDriver}.is_actived,${tableDriver}.is_check,
       ${tableDriver}.phone,${tableDriver}.address,${tableDriver}.birthday,${tableDriver}.expired_on,${tableDriver}.activation_date,
-      ${tableLicenseType}.title as license_type_name,${tableCustomers}.name,${tableDriver}.gender,
+      ${tableLicenseType}.title as license_type_name,${tableCustomers}.name as customer_name,${tableDriver}.gender,
       CONCAT(${tableUsers}.username,"(",${tableRole}.name,") ",COALESCE(c.company, c.name)) as creator,${tableDriver}.citizen_identity_card,${tableDriver}.created_at,${tableDriver}.updated_at`;
 
     const [res_, count] = await Promise.all([

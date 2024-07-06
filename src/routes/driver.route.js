@@ -97,7 +97,7 @@ module.exports = (app) => {
     driverController.deleteById
   );
   router.patch(
-    "/update-active/:id",
+    "/update-actived/:id",
     [
       param("id", VALIDATE_DATA).isNumeric(),
       body("is_actived", VALIDATE_DATA).isNumeric(),

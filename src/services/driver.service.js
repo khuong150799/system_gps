@@ -104,10 +104,7 @@ class DriverService {
           await validateModel.checkRegexPhone(phone);
         }
 
-        const isCheck = await this.validate(conn, license_number, phone);
-        if (!isCheck.result) {
-          throw isCheck.errors;
-        }
+        await this.validate(conn, license_number, phone);
 
         const driver = await driverModel.register(conn, body, accId);
         return driver;
@@ -130,10 +127,7 @@ class DriverService {
         const { license_number, phone } = body;
         const { id } = params;
 
-        const isCheck = await this.validate(conn, license_number, phone, id);
-        if (!isCheck.result) {
-          throw isCheck.errors;
-        }
+        await this.validate(conn, license_number, phone, id);
 
         const driver = await driverModel.updateById(conn, body, params);
         return driver;
@@ -168,13 +162,15 @@ class DriverService {
   //updateActived
   async updateActived(body, params) {
     try {
-      const { id } = params;
-      const { is_actived } = body;
-
       const { conn } = await db.getConnection();
-      await this.update(conn, tableDriver, { is_actived }, "id", id);
-      conn.release();
-      return [];
+      try {
+        await driverModel.updateActived(conn, body, params);
+        return [];
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
     } catch (error) {
       throw new BusinessLogicError(error.msg);
     }

@@ -11,18 +11,58 @@ class VehicleModel extends DatabaseModel {
   constructor() {
     super();
   }
+  handleGetListDeviceId = async (
+    conn,
+    imei,
+    userId,
+    offset = 0,
+    limit = 999999999
+  ) => {
+    const joinTableDeviceAnUsersDevice = `${tableDevice} INNER JOIN ${tableUsersDevices} ON ${tableDevice}.id = ${tableUsersDevices}.device_id`;
+
+    const where = `${tableDevice}.imei IN (?) AND ${tableDevice}.is_deleted = ? AND ${tableUsersDevices}.user_id = ? AND ${tableDevice}.device_status_id = ?`;
+
+    const conditions = [imei.split(","), 0, userId, 3];
+
+    const [listDeviceId, count] = await Promise.all([
+      this.select(
+        conn,
+        joinTableDeviceAnUsersDevice,
+        `${tableDevice}.id`,
+        where,
+        conditions,
+        `${tableDevice}.id`,
+        "ASC",
+        offset,
+        limit
+      ),
+      this.count(conn, joinTableDeviceAnUsersDevice, "*", where, conditions),
+    ]);
+    const totalPage = Math.ceil(count?.[0]?.total / limit);
+    return { data: listDeviceId, totalPage };
+  };
   async playback(conn, userId, query, params) {
     const { imei } = params;
-    const { start_date, end_date, device_id } = query;
+    const { start_date, end_date } = query;
+
+    const { data: listDeviceId } = await this.handleGetListDeviceId(
+      conn,
+      imei,
+      userId
+    );
+
+    if (listDeviceId?.length <= 0) return [];
+
+    const deviceId = listDeviceId[0].id;
 
     const tableNameStart = getTableName(
       initialNameOfTableGps,
-      device_id,
+      deviceId,
       start_date * 1000
     );
     const tableNameEnd = getTableName(
       initialNameOfTableGps,
-      device_id,
+      deviceId,
       end_date * 1000
     );
 

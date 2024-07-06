@@ -16,18 +16,20 @@ const usersSrevice = require("../services/users.service");
 class CustomersController {
   getAllRows = catchAsync(async (req, res) => {
     const query = req.query;
-    const { data, totalPage } = await usersSrevice.getallrows(query);
-    GET(res, data, totalPage);
+    const { data, totalPage, totalRecaord } = await usersSrevice.getallrows(
+      query
+    );
+    GET(res, data, totalPage, totalRecaord);
   });
 
   getallChild = catchAsync(async (req, res) => {
     const query = req.query;
     const customerId = req.customerId;
-    const { data, totalPage } = await usersSrevice.getallChild(
+    const { data, totalPage, totalRecaord } = await usersSrevice.getallChild(
       query,
       customerId
     );
-    GET(res, data, totalPage);
+    GET(res, data, totalPage, totalRecaord);
   });
 
   getListWithUser = catchAsync(async (req, res) => {
@@ -35,6 +37,14 @@ class CustomersController {
     const query = req.query;
     const data = await usersSrevice.getListWithUser(query, userId);
     GET(res, data);
+  });
+
+  getTeamsWithUser = catchAsync(async (req, res) => {
+    const userId = req.userId;
+    const query = req.query;
+    const { data, totalPage, totalRecaord } =
+      await usersSrevice.getTeamsWithUser(query, userId);
+    GET(res, data, totalPage, totalRecaord);
   });
 
   // getById = catchAsync(async (req, res) => {

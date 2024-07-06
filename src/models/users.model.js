@@ -89,7 +89,7 @@ class UsersModel extends DatabaseModel {
 
     const totalPage = Math.ceil(count?.[0]?.total / limit);
 
-    return { data: res_, totalPage };
+    return { data: res_, totalPage, totalRecaord: count?.[0]?.total };
   }
 
   //getallrow
@@ -130,6 +130,48 @@ class UsersModel extends DatabaseModel {
         conditions,
         `${tableUsers}.id`,
         "DESC",
+        offset,
+        limit
+      ),
+      this.count(conn, joinTable, "*", where, conditions),
+    ]);
+
+    const totalPage = Math.ceil(count?.[0]?.total / limit);
+
+    return { data: res_, totalPage, totalRecaord: count?.[0]?.total };
+  }
+
+  async getTeamsWithUser(conn, query, userId) {
+    const { is_deleted, user_id, keyword } = query;
+    const offset = query.offset || 0;
+    const limit = query.limit || 10;
+
+    const isDeleted = is_deleted || 0;
+
+    let where = `parent_id = ? AND ${tableUsers}.is_deleted = ? AND ${tableUsers}.is_team = ?`;
+    const chosseUser = user_id || userId;
+
+    const conditions = [chosseUser, isDeleted, 1];
+
+    if (keyword) {
+      where += ` AND ${tableCustomers}.name LIKE ?`;
+      conditions.push(`%${keyword}%`);
+    }
+
+    const joinTable = `${tableUsers} INNER JOIN ${tableUsersCustomers} ON ${tableUsers}.id = ${tableUsersCustomers}.user_id 
+      INNER JOIN ${tableCustomers} ON ${tableUsersCustomers}.customer_id = ${tableCustomers}.id`;
+
+    const select = `${tableUsers}.id,${tableUsers}.is_actived,${tableCustomers}.name ,${tableCustomers}.id as customer_id,${tableCustomers}.created_at`;
+
+    const [res_, count] = await Promise.all([
+      this.select(
+        conn,
+        joinTable,
+        select,
+        where,
+        conditions,
+        `${tableUsers}.id`,
+        "ASC",
         offset,
         limit
       ),

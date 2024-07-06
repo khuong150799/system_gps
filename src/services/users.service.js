@@ -97,6 +97,21 @@ class UsersService {
     }
   }
 
+  async getTeamsWithUser(query, userId) {
+    try {
+      const { conn } = await db.getConnection();
+      try {
+        const data = await usersModel.getTeamsWithUser(conn, query, userId);
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      throw new BusinessLogicError(error.msg);
+    }
+  }
   //getbyid
   // async getById(params, query) {
   //   try {
