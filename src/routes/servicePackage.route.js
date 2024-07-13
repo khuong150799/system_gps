@@ -15,8 +15,8 @@ module.exports = (app) => {
       query("is_deleted").escape(),
       query("publish").escape(),
     ],
-    isAuth,
-    checkPermission,
+    // isAuth,
+    // checkPermission,
     servicePackageService.getAllRows
   );
   router.get(

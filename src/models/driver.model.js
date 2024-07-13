@@ -1,3 +1,4 @@
+const { REDIS_KEY_LIST_DRIVER } = require("../constants/redis.contant");
 const {
   tableDriver,
   tableLicenseType,
@@ -9,6 +10,7 @@ const {
 } = require("../constants/tableName.contant");
 const DatabaseModel = require("./database.model");
 const deviceModel = require("./device.model");
+const { hSet } = require("./redis.model");
 const DriverSchema = require("./schema/driver.schema");
 
 class DriverModel extends DatabaseModel {

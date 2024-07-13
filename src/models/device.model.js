@@ -7,7 +7,6 @@ const {
   ERROR,
   NOT_OWN,
 } = require("../constants/msg.contant");
-const customersModel = require("./customers.model");
 const VehicleSchema = require("./schema/vehicle.schema");
 const {
   tableDevice,
@@ -39,6 +38,8 @@ const {
   initialNameOfTableReportOneDay,
   initialNameOfTableRunning,
 } = require("../constants/setting.constant");
+const usersModel = require("./users.model");
+const { makeCode } = require("../ultils/makeCode");
 
 class DeviceModel extends DatabaseModel {
   constructor() {
@@ -419,20 +420,35 @@ class DeviceModel extends DatabaseModel {
       };
 
     await connPromise.beginTransaction();
-    const { id: userId } = await customersModel.register(
+    const code = makeCode();
+    const res_ = await this.insert(conn, tableCustomers, {
+      code,
+      name,
+      level_id: 6,
+      publish: 1,
+      is_deleted: 0,
+      created_at: Date.now(),
+    });
+
+    const dataInsertUser = {
+      parent_id,
+      username,
+      password,
+      role_id: 3,
+      customer_id: res_,
+      is_actived: 1,
+    };
+
+    const user = await usersModel.register(
       conn,
       connPromise,
-      {
-        name,
-        level_id: 6,
-        publish: 1,
-        parent_id,
-        username,
-        password,
-        role_id: 1,
-      },
+      dataInsertUser,
+      -1,
       false
     );
+
+    const userId = user[0].id;
+
     const { times } = infoPackage[0];
     const date = new Date(activation_date || Date.now());
     const date_ = new Date(activation_date || Date.now());

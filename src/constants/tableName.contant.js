@@ -32,4 +32,7 @@ module.exports = {
   tableVehicleIcon: "tbl_vehicle_icon",
   tableVehicleType: "tbl_vehicle_type",
   tableDeviceGps: "tbl_device_gps",
+  tableSettingCate: "tbl_setting_cate",
+  tableSetting: "tbl_setting",
+  tableUsersSetting: "tbl_users_setting",
 };

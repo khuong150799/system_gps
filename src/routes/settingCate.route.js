@@ -1,96 +1,67 @@
 const router = require("express").Router();
 const { VALIDATE_DATA, NOT_EMPTY } = require("../constants/msg.contant");
-const vehicleTypeController = require("../controllers/vehicleType.controller");
 const { body, query, param } = require("express-validator");
 const { isAuth } = require("../middlewares/jwt.middleware");
 const {
   checkPermission,
 } = require("../middlewares/checkPermission.middleware");
+const settingCateController = require("../controllers/settingCate.controller");
 
 module.exports = (app) => {
   router.get(
     "/rows",
     [
       query("keyword", VALIDATE_DATA).isString().escape(),
-      query("vehicle_icon_id").escape(),
       query("is_deleted").escape(),
       query("publish").escape(),
     ],
-    // isAuth,
-    // checkPermission,
-    vehicleTypeController.getAllRows
+    isAuth,
+    checkPermission,
+    settingCateController.getAllRows
   );
   router.get(
     "/detail/:id",
     [param("id", VALIDATE_DATA).isNumeric()],
     isAuth,
     checkPermission,
-    vehicleTypeController.getById
+    settingCateController.getById
   );
+
   router.post(
     "/register",
     [
-      body("name", NOT_EMPTY)
+      body("title", NOT_EMPTY)
         .notEmpty()
         .isString()
-        .withMessage(VALIDATE_DATA)
-        .escape(),
-      body("vehicle_icon_id", NOT_EMPTY)
-        .notEmpty()
-        .isNumeric()
-        .withMessage(VALIDATE_DATA)
-        .escape(),
-      body("max_speed", NOT_EMPTY)
-        .notEmpty()
-        .isNumeric()
-        .withMessage(VALIDATE_DATA)
-        .escape(),
-      body("rule", NOT_EMPTY)
-        .notEmpty()
-        .isNumeric()
         .withMessage(VALIDATE_DATA)
         .escape(),
     ],
 
     isAuth,
     checkPermission,
-    vehicleTypeController.register
+    settingCateController.register
   );
   router.put(
     "/update/:id",
     [
       param("id", VALIDATE_DATA).isNumeric(),
-      body("name", NOT_EMPTY)
+      body("title", NOT_EMPTY)
         .notEmpty()
         .isString()
-        .withMessage(VALIDATE_DATA)
-        .escape(),
-      body("vehicle_icon_id", NOT_EMPTY)
-        .notEmpty()
-        .isNumeric()
-        .withMessage(VALIDATE_DATA)
-        .escape(),
-      body("max_speed", NOT_EMPTY)
-        .notEmpty()
-        .isNumeric()
-        .withMessage(VALIDATE_DATA)
-        .escape(),
-      body("rule", NOT_EMPTY)
-        .notEmpty()
-        .isNumeric()
         .withMessage(VALIDATE_DATA)
         .escape(),
     ],
     isAuth,
     checkPermission,
-    vehicleTypeController.updateById
+    settingCateController.updateById
   );
+
   router.delete(
     "/delete/:id",
     [param("id", VALIDATE_DATA).isNumeric()],
     isAuth,
     checkPermission,
-    vehicleTypeController.deleteById
+    settingCateController.deleteById
   );
   router.patch(
     "/update-publish/:id",
@@ -100,8 +71,19 @@ module.exports = (app) => {
     ],
     isAuth,
     checkPermission,
-    vehicleTypeController.updatePublish
+    settingCateController.updatePublish
   );
 
-  app.use("/api/v1/vehicle-type", router);
+  router.patch(
+    "/update-sort/:id",
+    [
+      param("id", VALIDATE_DATA).isNumeric(),
+      body("sort", VALIDATE_DATA).isNumeric(),
+    ],
+    isAuth,
+    checkPermission,
+    settingCateController.updateSort
+  );
+
+  app.use("/api/v1/setting-cate", router);
 };

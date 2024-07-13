@@ -109,7 +109,7 @@ class RoleModel extends DatabaseModel {
   //Register
   async register(conn, body) {
     const { name, des, publish } = body;
-    const level = new RoleSchema({
+    const role = new RoleSchema({
       name,
       des: des || null,
       publish,
@@ -117,12 +117,12 @@ class RoleModel extends DatabaseModel {
       is_deleted: 0,
       created_at: Date.now(),
     });
-    delete level.updated_at;
+    delete role.updated_at;
 
-    const res_ = await this.insert(conn, tableRole, level);
-    level.id = res_;
-    delete level.is_deleted;
-    return level;
+    const res_ = await this.insert(conn, tableRole, role);
+    role.id = res_;
+    delete role.is_deleted;
+    return role;
   }
 
   //Register permission

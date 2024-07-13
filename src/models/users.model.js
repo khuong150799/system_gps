@@ -412,17 +412,34 @@ class UsersModel extends DatabaseModel {
 
   async move(conn, connPromise, body) {
     const { reciver, user_is_moved } = body;
-    const listDevices = await this.select(
-      conn,
-      tableUsersDevices,
-      "device_id",
-      "user_id = ?",
-      user_is_moved,
-      "id",
-      "ASC",
-      0,
-      1000000000
-    );
+
+    const joinTableUsers = `${tableUsers} u1 INNER JOIN ${tableUsers} u2 ON u1.parent_id = u2.id`;
+    const whereTableUsers = "u1.id = ?";
+    const conditionTableUsers = [user_is_moved];
+    const selectTableUsers = "u2.parent_id,u2.id";
+
+    const [listDevices, infoUserMove, infoReciver] = await Promise.all([
+      this.select(
+        conn,
+        tableUsersDevices,
+        "device_id",
+        "user_id = ?",
+        user_is_moved,
+        "id",
+        "ASC",
+        0,
+        1000000000
+      ),
+      this.select(
+        conn,
+        joinTableUsers,
+        selectTableUsers,
+        whereTableUsers,
+        conditionTableUsers,
+        "u2,id"
+      ),
+      this.select(conn, tableUsers, "parent_id", "id = ?", reciver),
+    ]);
 
     await connPromise.beginTransaction();
     await this.update(
@@ -434,6 +451,19 @@ class UsersModel extends DatabaseModel {
     );
 
     if (listDevices.length) {
+      if (infoUserMove[0]?.parent_id == infoReciver[0]?.parent_id) {
+        await this.update(
+          conn,
+          tableUsersDevices,
+          { is_deleted: 1 },
+          "",
+          [infoUserMove[0]?.id, listDevices],
+          "ID",
+          false,
+          `user_id = ? device_id IN (?)`
+        );
+      }
+
       const dataInsert = listDevices.map((item) => [
         reciver,
         item.device_id,
@@ -578,6 +608,7 @@ class UsersModel extends DatabaseModel {
       },
       keyRefreshToken
     );
+    console.log(123456);
     await keyTokenModel.register(conn, {
       user_id: id,
       client_id: clientId,
@@ -593,7 +624,7 @@ class UsersModel extends DatabaseModel {
         publish_key_refresh_token: keyRefreshToken,
       })
     );
-
+    console.log(1234567890);
     return [
       {
         token,

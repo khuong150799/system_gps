@@ -127,7 +127,7 @@ class CustomersModel extends DatabaseSchema {
   }
 
   //Register
-  async register(conn, connPromise, body, isCommit = true) {
+  register = async (conn, connPromise, body, isCommit = true) => {
     const {
       level_id,
       name,
@@ -189,7 +189,7 @@ class CustomersModel extends DatabaseSchema {
     delete customer.is_deleted;
     customer = { ...customer, ...user[0] };
     return customer;
-  }
+  };
 
   //update
   async updateById(conn, connPromise, body, params) {

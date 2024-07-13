@@ -20,4 +20,5 @@ module.exports = (app) => {
   require("./firmware.route")(app);
   require("./permission.route")(app);
   require("./vehicle.route")(app);
+  require("./settingCate.route")(app);
 };

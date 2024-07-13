@@ -80,12 +80,13 @@ class DatabaseModel {
   async insert(db, tableName, data) {
     return await new Promise((resolve, reject) => {
       const query = `INSERT INTO ${tableName} SET ?`;
+      console.log("query", query);
       db.query(query, data, (err, dataRes) => {
         if (err) {
           console.log(err);
           return reject({ msg: ERROR });
         }
-        // console.log('dataRes.insertId', dataRes.insertId);
+        console.log("dataRes.insertId", dataRes.insertId);
         return resolve(dataRes.insertId);
       });
     });
@@ -145,12 +146,15 @@ class DatabaseModel {
     field,
     condition,
     fieldNameError = "ID",
-    checkExit = true
+    checkExit = true,
+    where = ""
   ) {
     return await new Promise((resolve, reject) => {
       const query =
         typeof data === "string"
           ? `UPDATE ${tableName} SET ${data} WHERE ${field} IN (?)`
+          : where
+          ? `UPDATE ${tableName} SET ? WHERE ${where}`
           : `UPDATE ${tableName} SET ? WHERE ${field} IN (?)`;
       db.query(
         query,
