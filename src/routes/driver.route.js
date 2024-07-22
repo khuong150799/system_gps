@@ -27,6 +27,8 @@ module.exports = (app) => {
     checkPermission,
     driverController.getById
   );
+
+  router.get("/tree", isAuth, checkPermission, driverController.getTree);
   router.post(
     "/register",
     [

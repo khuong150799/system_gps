@@ -5,9 +5,11 @@ const modelTypeService = require("../services/modelType.service");
 class ModelTypeController {
   getAllRows = catchAsync(async (req, res) => {
     const query = req.query;
-    const { data, totalPage } = await modelTypeService.getallrows(query);
+    const { data, totalPage, totalRecord } = await modelTypeService.getallrows(
+      query
+    );
 
-    GET(res, data, totalPage);
+    GET(res, data, totalPage, totalRecord);
   });
 
   getById = catchAsync(async (req, res) => {

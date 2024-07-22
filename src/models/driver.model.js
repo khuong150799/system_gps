@@ -1,3 +1,5 @@
+const driverApi = require("../api/driverApi");
+const { ERROR, WRITE_CARD_FAIL } = require("../constants/msg.contant");
 const { REDIS_KEY_LIST_DRIVER } = require("../constants/redis.contant");
 const {
   tableDriver,
@@ -7,10 +9,10 @@ const {
   tableUsersRole,
   tableRole,
   tableUsers,
+  tableDevice,
 } = require("../constants/tableName.contant");
 const DatabaseModel = require("./database.model");
-const deviceModel = require("./device.model");
-const { hSet } = require("./redis.model");
+const { hSet, hdelOneKey, hGet } = require("./redis.model");
 const DriverSchema = require("./schema/driver.schema");
 
 class DriverModel extends DatabaseModel {
@@ -70,7 +72,38 @@ class DriverModel extends DatabaseModel {
 
     const totalPage = Math.ceil(count?.[0]?.total / limit);
 
-    return { data: res_, totalPage, totalRecaord: count?.[0]?.total };
+    return { data: res_, totalPage, totalRecord: count?.[0]?.total };
+  }
+
+  //get tree
+  async getTree(conn, query, userId) {
+    const offset = query.offset || 0;
+    const limit = query.limit || 10;
+    const isDeleted = query.is_deleted || 0;
+    let where = `u.parent_id = ? AND dr.is_deleted = ?`;
+    const conditions = [userId, isDeleted];
+    const whereDequy = `AND dr.is_deleted = ${isDeleted}`;
+
+    const joinTable = `${tableDriver} dr INNER JOIN ${tableUsersCustomers} uc ON dr.customer_id = uc.customer_id
+     INNER JOIN ${tableUsers} u ON uc.user_id = u.id`;
+
+    const select = `u.id,dr.name,dr.license_number,dr.phone`;
+
+    const res_ = await this.getAllRowsMenu(
+      conn,
+      joinTable,
+      select,
+      where,
+      conditions,
+      `u.id`,
+      "DESC",
+      select,
+      whereDequy,
+      `u.id`,
+      "DESC"
+    );
+
+    return res_;
   }
 
   //getbyid
@@ -100,6 +133,23 @@ class DriverModel extends DatabaseModel {
       conditions
     );
     return res_;
+  }
+
+  async wirteCard(conn, body) {
+    const { license_number, name, device_id } = body;
+    const infoDevice = await this.select(conn, tableDevice, "imei", "id = ?", [
+      device_id,
+    ]);
+    if (!infoDevice?.length)
+      throw { msg: ERROR, errors: [{ msg: WRITE_CARD_FAIL }] };
+    const { result } = await driverApi.writeCard({
+      license_number,
+      name,
+      imei: infoDevice[0].imei,
+    });
+
+    if (!result) throw { msg: ERROR, errors: [{ msg: WRITE_CARD_FAIL }] };
+    return [];
   }
 
   //Register
@@ -142,6 +192,13 @@ class DriverModel extends DatabaseModel {
     driver.id = res_;
     delete driver.is_deleted;
     delete driver.is_check;
+
+    const dataRedis = { name, phone, address, gender, listDevices: [] };
+    await hSet(
+      REDIS_KEY_LIST_DRIVER,
+      license_number.toString(),
+      JSON.stringify(dataRedis)
+    );
     return driver;
   }
 
@@ -184,9 +241,44 @@ class DriverModel extends DatabaseModel {
     delete driver.is_deleted;
     delete driver.created_at;
 
+    const dataOled = await this.select(
+      conn,
+      tableDriver,
+      "license_number",
+      "id = ?",
+      id
+    );
+
     await this.update(conn, tableDriver, driver, "id", id);
-    await deviceModel.getWithImei(conn);
     driver.id = id;
+
+    const dataRedisOld = await hGet(
+      REDIS_KEY_LIST_DRIVER,
+      license_number.toString()
+    );
+
+    const dataRedis = { name, phone, address, gender, listDevices: [] };
+    if (dataRedisOld && Object.values(dataRedisOld).length) {
+      const { listDevices: listDevicesOld } = dataRedisOld;
+      dataRedis.listDevices = listDevicesOld;
+    }
+
+    await hSet(
+      REDIS_KEY_LIST_DRIVER,
+      license_number.toString(),
+      JSON.stringify(dataRedis)
+    );
+
+    if (
+      dataOled?.length &&
+      dataOled[0].license_number.toString() !== license_number.toString()
+    ) {
+      await hdelOneKey(
+        REDIS_KEY_LIST_DRIVER,
+        dataOled[0].license_number.toString()
+      );
+    }
+
     return driver;
   }
 

@@ -10,6 +10,8 @@ const {
   PASSWORD_DEFAULT,
 
   REFRESH_TOKEN_SECRET_KEY,
+  ERROR,
+  ERROR_STRUCTURE_MOVE_AGENCY,
 } = require("../constants/msg.contant");
 
 const bcrypt = require("bcrypt");
@@ -30,8 +32,11 @@ const {
   tableLevel,
   tableRole,
   tableUsersRole,
+  tableDevice,
+  tableVehicle,
 } = require("../constants/tableName.contant");
 const validateModel = require("./validate.model");
+const vehicleModel = require("./vehicle.model");
 
 class UsersModel extends DatabaseModel {
   constructor() {
@@ -89,7 +94,7 @@ class UsersModel extends DatabaseModel {
 
     const totalPage = Math.ceil(count?.[0]?.total / limit);
 
-    return { data: res_, totalPage, totalRecaord: count?.[0]?.total };
+    return { data: res_, totalPage, totalRecord: count?.[0]?.total };
   }
 
   //getallrow
@@ -138,7 +143,7 @@ class UsersModel extends DatabaseModel {
 
     const totalPage = Math.ceil(count?.[0]?.total / limit);
 
-    return { data: res_, totalPage, totalRecaord: count?.[0]?.total };
+    return { data: res_, totalPage, totalRecord: count?.[0]?.total };
   }
 
   async getTeamsWithUser(conn, query, userId) {
@@ -180,7 +185,7 @@ class UsersModel extends DatabaseModel {
 
     const totalPage = Math.ceil(count?.[0]?.total / limit);
 
-    return { data: res_, totalPage, totalRecaord: count?.[0]?.total };
+    return { data: res_, totalPage, totalRecord: count?.[0]?.total };
   }
 
   async getListWithUser(conn, query, userId) {
@@ -215,24 +220,27 @@ class UsersModel extends DatabaseModel {
     return res_;
   }
 
-  //getbyid
-  // async getById(conn, params, query) {
-  //   const { id } = params;
-  //   const isDeleted = query.is_deleted || 0;
-  //   const where = `${tableUsers}.is_deleted = ? AND ${tableUsers}.id = ?`;
-  //   const conditions = [isDeleted, id];
-  //   const joinTable = `${tableUsers} INNER JOIN ${tableUsersRole} ON ${tableUsers}.id = ${tableUsersRole}.user_id`;
-  //   const selectData = `${tableUsers}.id,${tableUsers}.username,${tableUsers}.parent_id,${tableUsers}.is_actived,${tableUsersRole}.role_id`;
+  //getDeviceAdd
+  async getDeviceAdd(conn, query, userId) {
+    const { user_id, is_deleted } = query;
+    const chooseUserId = user_id || userId;
+    const isDeleted = is_deleted || 0;
+    const where = `ud.user_id = ? AND ud.is_deleted = ? AND ud.is_main = 0`;
+    const conditions = [chooseUserId, isDeleted];
+    const joinTable = `${tableUsersDevices} ud INNER JOIN ${tableDevice} d ON ud.device_id = d.id
+      INNER JOIN ${tableVehicle} v ON d.id = v.device_id`;
+    const selectData = `d.id,d.imei,v.name as vehicle_name`;
 
-  //   const res_ = await this.select(
-  //     conn,
-  //     joinTable,
-  //     selectData,
-  //     where,
-  //     conditions
-  //   );
-  //   return res_;
-  // }
+    const res_ = await this.select(
+      conn,
+      joinTable,
+      selectData,
+      where,
+      conditions,
+      "d.id"
+    );
+    return res_;
+  }
 
   async getInfo(conn, userId) {
     const where = `${tableUsers}.is_deleted = ? AND ${tableUsers}.id = ?`;
@@ -390,7 +398,7 @@ class UsersModel extends DatabaseModel {
   async registerDevices(conn, body, params) {
     const { id } = params;
     const { devices } = body;
-    const listDevice = JSON.parse(devices);
+    const listDevice = JSON.parse(devices, "[]");
 
     const dataInsert = listDevice.map((item) => [
       id,
@@ -407,6 +415,7 @@ class UsersModel extends DatabaseModel {
       dataInsert,
       `is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved)`
     );
+    await vehicleModel.removeListDeviceOfUsersRedis(conn, "", listDevice);
     return [];
   }
 
@@ -451,6 +460,8 @@ class UsersModel extends DatabaseModel {
     );
 
     if (listDevices.length) {
+      if (infoUserMove[0]?.parent_id == infoReciver[0]?.parent_id)
+        throw { msg: ERROR, errors: [{ msg: ERROR_STRUCTURE_MOVE_AGENCY }] };
       if (infoUserMove[0]?.parent_id == infoReciver[0]?.parent_id) {
         await this.update(
           conn,
@@ -462,6 +473,11 @@ class UsersModel extends DatabaseModel {
           false,
           `user_id = ? device_id IN (?)`
         );
+
+        await vehicleModel.removeListDeviceOfUsersRedis(conn, "", [
+          infoUserMove[0].id,
+          reciver,
+        ]);
       }
 
       const dataInsert = listDevices.map((item) => [
@@ -546,6 +562,24 @@ class UsersModel extends DatabaseModel {
   async deleteById(conn, params) {
     const { id } = params;
     await this.update(conn, tableUsers, { is_deleted: Date.now() }, "id", id);
+    return [];
+  }
+
+  //delete device
+  async deleteDevice(conn, params, body) {
+    const { id: userId } = params;
+    const { device_id } = body;
+    await this.update(
+      conn,
+      tableUsersDevices,
+      { is_deleted: 1 },
+      "",
+      [userId, device_id, 0],
+      "ID",
+      true,
+      "user_id = ? AND device_id = ? AND is_main = ?"
+    );
+    await vehicleModel.removeListDeviceOfUsersRedis(conn, device_id);
     return [];
   }
 

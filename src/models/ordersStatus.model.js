@@ -43,7 +43,7 @@ class OrdersStatusModel extends DatabaseModel {
 
     const totalPage = Math.ceil(count?.[0]?.total / limit);
 
-    return { data: res_, totalPage, totalRecaord: count?.[0]?.total };
+    return { data: res_, totalPage, totalRecord: count?.[0]?.total };
   }
 
   //getbyid

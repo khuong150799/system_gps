@@ -1,6 +1,10 @@
 const driverModel = require("../models/driver.model");
 const db = require("../dbs/init.mysql");
-const { ERROR, ALREADY_EXITS } = require("../constants/msg.contant");
+const {
+  ERROR,
+  ALREADY_EXITS,
+  WRITE_CARD_NOT_PERMISSION,
+} = require("../constants/msg.contant");
 const { BusinessLogicError } = require("../core/error.response");
 const DatabaseModel = require("../models/database.model");
 const validateModel = require("../models/validate.model");
@@ -82,6 +86,46 @@ class DriverService {
       const { conn } = await db.getConnection();
       try {
         const data = await driverModel.getById(conn, params, query);
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      throw new BusinessLogicError(error.msg);
+    }
+  }
+
+  async getTree(query, userId) {
+    try {
+      const { conn } = await db.getConnection();
+      try {
+        const data = await driverModel.getTree(conn, query, userId);
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      throw new BusinessLogicError(error.msg);
+    }
+  }
+
+  async wirteCard(body, userId) {
+    try {
+      const { conn } = await db.getConnection();
+      try {
+        const { device_id } = body;
+
+        await validateModel.checkOwnerDevice(
+          conn,
+          userId,
+          [device_id],
+          WRITE_CARD_NOT_PERMISSION
+        );
+        const data = await driverModel.wirteCard(body);
         return data;
       } catch (error) {
         throw error;

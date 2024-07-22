@@ -13,12 +13,12 @@ class DeviceController {
   getAllRows = catchAsync(async (req, res) => {
     const query = req.query;
     const customerId = req.customerId;
-    const { data, totalPage } = await deviceService.getallrows(
+    const { data, totalPage, totalRecord } = await deviceService.getallrows(
       query,
       customerId
     );
 
-    GET(res, data, totalPage);
+    GET(res, data, totalPage, totalRecord);
   });
 
   getById = catchAsync(async (req, res) => {

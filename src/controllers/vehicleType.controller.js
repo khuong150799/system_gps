@@ -5,9 +5,10 @@ const vehicleTypeService = require("../services/vehicleType.service");
 class VehicleTypeController {
   getAllRows = catchAsync(async (req, res) => {
     const query = req.query;
-    const { data, totalPage } = await vehicleTypeService.getallrows(query);
+    const { data, totalPage, totalRecord } =
+      await vehicleTypeService.getallrows(query);
 
-    GET(res, data, totalPage);
+    GET(res, data, totalPage, totalRecord);
   });
 
   getById = catchAsync(async (req, res) => {

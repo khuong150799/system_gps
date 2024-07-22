@@ -113,21 +113,21 @@ class UsersService {
     }
   }
   //getbyid
-  // async getById(params, query) {
-  //   try {
-  //     const { conn } = await db.getConnection();
-  //     try {
-  //       const data = await usersModel.getById(conn, params, query);
-  //       return data;
-  //     } catch (error) {
-  //       throw error;
-  //     } finally {
-  //       conn.release();
-  //     }
-  //   } catch (error) {
-  //     throw new BusinessLogicError(error.msg);
-  //   }
-  // }
+  async getDeviceAdd(query, userId) {
+    try {
+      const { conn } = await db.getConnection();
+      try {
+        const data = await usersModel.getDeviceAdd(conn, query, userId);
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      throw new BusinessLogicError(error.msg);
+    }
+  }
 
   async getInfo(userId) {
     try {
@@ -282,7 +282,8 @@ class UsersService {
       try {
         const { devices } = body;
         const { id } = params;
-        const listDevices = JSON.parse(devices);
+        console.log("devices", devices);
+        const listDevices = JSON.parse(devices || "[]");
 
         if (Number(id) === Number(userId))
           throw {
@@ -301,6 +302,7 @@ class UsersService {
         conn.release();
       }
     } catch (error) {
+      console.log(error);
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
     }
@@ -331,6 +333,27 @@ class UsersService {
         conn.release();
       }
     } catch (error) {
+      throw new BusinessLogicError(error.msg);
+    }
+  }
+
+  //delete
+  async deleteDevice(params, body, userId) {
+    try {
+      const { conn, connPromise } = await db.getConnection();
+      try {
+        const { id } = params;
+        await validateModel.CheckIsChild(connPromise, userId, id);
+
+        await usersModel.deleteDevice(conn, params, body);
+        return [];
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      console.log(error);
       throw new BusinessLogicError(error.msg);
     }
   }

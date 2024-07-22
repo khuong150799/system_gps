@@ -5,9 +5,10 @@ const ordersStatusService = require("../services/ordersStatus.service");
 class ConnectionTypeController {
   getAllRows = catchAsync(async (req, res) => {
     const query = req.query;
-    const { data, totalPage } = await ordersStatusService.getallrows(query);
+    const { data, totalPage, totalRecord } =
+      await ordersStatusService.getallrows(query);
 
-    GET(res, data, totalPage);
+    GET(res, data, totalPage, totalRecord);
   });
 
   getById = catchAsync(async (req, res) => {

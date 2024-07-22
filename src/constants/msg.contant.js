@@ -63,6 +63,10 @@ const constants = {
   MOVE_SUCCESS: "Chuyển thành công",
   CHOOSE_ERROR: "Không thể gán",
   NOT_OWN: "Không thuộc sở hữu",
+  ERROR_STRUCTURE_MOVE_AGENCY: "Chỉ có thể chuyển theo cấu trúc ngang",
+  WRITE_CARD_FAIL: "Ghi thẻ thất bại",
+  WRITE_CARD_SUCCESS: "Ghi thẻ thành công",
+  WRITE_CARD_NOT_PERMISSION: "Không có quyền ghi thẻ với thiết bị này",
 };
 
 module.exports = constants;

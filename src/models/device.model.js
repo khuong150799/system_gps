@@ -40,6 +40,7 @@ const {
 } = require("../constants/setting.constant");
 const usersModel = require("./users.model");
 const { makeCode } = require("../ultils/makeCode");
+const vehicleModel = require("./vehicle.model");
 
 class DeviceModel extends DatabaseModel {
   constructor() {
@@ -157,42 +158,26 @@ class DeviceModel extends DatabaseModel {
     return data;
   }
 
-  async removeListDeviceOfUsersRedis(conn, deviceId) {
-    const listUserId = await this.select(
-      conn,
-      tableUsersDevices,
-      "user_id",
-      "device_id = ? AND is_deleted = ?",
-      [deviceId, 0],
-      "user_id",
-      "ASC",
-      0,
-      99999
-    );
-    if (!listUserId?.length) return null;
-
-    await Promise.all([
-      listUserId.map(({ user_id }) =>
-        expireRedis(`${REDIS_KEY_LIST_IMEI_OF_USERS}/${user_id}`, -1)
-      ),
-    ]);
-  }
-
   //getallrow
   async getallrows(conn, query, customerId) {
     const offset = query.offset || 0;
     const limit = query.limit || 10;
 
     const {
-      type, //1 : vehicle
+      type, //1 : vehicle, 2:thiết bị chưa kích hoạt dành cho đơn hàng
       is_deleted,
       keyword,
       customer_id,
       model_id,
       start_warranty_expired_on,
       end_warranty_expired_on,
+      start_expired_on,
+      end_expired_on,
       start_activation_date,
       end_activation_date,
+      warehouse,
+      warehouse_not_actived,
+      actived,
     } = query;
 
     const isDeleted = is_deleted || 0;
@@ -230,8 +215,13 @@ class DeviceModel extends DatabaseModel {
       where += ` AND v.activation_date BETWEEN ? AND ?`;
       conditions.push(start_activation_date, end_activation_date);
     }
-    if (type == 2) {
-      where += ` AND v.activation_date IS NULL AND ud.is_moved = ?`;
+
+    if (start_expired_on && end_expired_on) {
+      where += ` AND v.expired_on BETWEEN ? AND ?`;
+      conditions.push(start_expired_on, end_expired_on);
+    }
+    if (type == 2 || actived == 0) {
+      where += ` AND v.activation_date IS NULL AND ud.is_moved = ? AND d.device_status_id <> 2`;
       conditions.push(0);
     }
 
@@ -509,7 +499,7 @@ class DeviceModel extends DatabaseModel {
       await Promise.all([
         this.getWithImei(conn, imei),
         expireRedis(`${REDIS_KEY_DEVICE_SPAM}/${imei}`, -1),
-        this.removeListDeviceOfUsersRedis(conn, device_id),
+        vehicleModel.removeListDeviceOfUsersRedis(conn, device_id),
       ]);
     }
 
@@ -641,7 +631,7 @@ class DeviceModel extends DatabaseModel {
       await Promise.all([
         this.getWithImei(conn, imei),
         expireRedis(`${REDIS_KEY_DEVICE_SPAM}/${imei}`, -1),
-        this.removeListDeviceOfUsersRedis(conn, device_id),
+        vehicleModel.removeListDeviceOfUsersRedis(conn, device_id),
       ]);
     }
 
@@ -748,6 +738,24 @@ class DeviceModel extends DatabaseModel {
     await connPromise.beginTransaction();
 
     await this.update(conn, tableDevice, { is_deleted: 1 }, "id", id);
+    await this.update(
+      conn,
+      tableUsersDevices,
+      { is_deleted: 1 },
+      "device_id",
+      id
+    );
+    await connPromise.commit();
+    await this.getWithImei(conn, null, id);
+    return [];
+  }
+
+  //delete
+  async deleteById(conn, connPromise, params) {
+    const { id } = params;
+    await connPromise.beginTransaction();
+
+    await this.update(conn, tableUsersDevices, { is_deleted: 1 }, "id", id);
     await this.update(
       conn,
       tableUsersDevices,

@@ -58,7 +58,11 @@ class OrdersService {
         tableOrders,
         "creator_customer_id",
         "id = ? AND is_deleted = ?",
-        [id, 0]
+        [id, 0],
+        "id",
+        "ASC",
+        0,
+        99999
       );
       if (ordersInfo?.length <= 0) {
         throw { msg: `Đơn hàng ${NOT_EXITS}` };
@@ -88,23 +92,29 @@ class OrdersService {
         selectDevice,
         whereDevice,
         conditionsDevice,
-        `${tableDevice}.id`
+        `${tableDevice}.id`,
+        "ASC",
+        0,
+        99999
       ),
     ]);
 
     let dataInfo = [];
     if (reciver) {
       const joinTableUsersCustomers = `${tableUsersCustomers} INNER JOIN ${tableUsers} ON ${tableUsersCustomers}.user_id = ${tableUsers}.id`;
-      console.log({ reciver });
+      // console.log({ reciver });
       const info = await databaseModel.select(
         conn,
         joinTableUsersCustomers,
         `${tableUsers}.id,${tableUsers}.parent_id,${tableUsers}.is_actived,${tableUsers}.is_deleted`,
         `${tableUsersCustomers}.customer_id = ? AND ${tableUsers}.is_main = ?`,
         [reciver, 1],
-        `${tableUsersCustomers}.id`
+        `${tableUsersCustomers}.id`,
+        "ASC",
+        0,
+        99999
       );
-      console.log({ info });
+      // console.log({ info });
       if (info?.length <= 0) {
         errors.push({
           value: reciver,
@@ -130,9 +140,12 @@ class OrdersService {
           `${tableUsersCustomers}.customer_id as id`,
           `${tableUsers}.id = ?`,
           info[0].parent_id,
-          `${tableUsersCustomers}.id`
+          `${tableUsersCustomers}.id`,
+          "ASC",
+          0,
+          99999
         );
-        console.log("dataReciverParent", dataReciverParent, customerId);
+        // console.log("dataReciverParent", dataReciverParent, customerId);
         if (
           !dataReciverParent[0]?.id ||
           dataReciverParent[0]?.id != customerId
@@ -217,7 +230,10 @@ class OrdersService {
       `${tableUsers}.id,${tableUsers}.is_actived,${tableUsers}.is_deleted`,
       `${tableUsersCustomers}.customer_id = ? AND ${tableUsers}.is_main = ?`,
       [reciver, 1],
-      `${tableUsersCustomers}.id`
+      `${tableUsersCustomers}.id`,
+      "ASC",
+      0,
+      99999
     );
 
     if (dataInfo?.length <= 0) {
@@ -250,7 +266,11 @@ class OrdersService {
       tableOrders,
       "id,code,reciver,quantity",
       where,
-      conditions
+      conditions,
+      "id",
+      "ASC",
+      0,
+      99999
     );
 
     if (dataOrdersExits.length <= 0) {
@@ -316,7 +336,10 @@ class OrdersService {
         `${tableUsersDevices}.user_id ,${tableUsersCustomers}.customer_id,${tableVehicle}.activation_date`,
         `${tableUsersDevices}.is_moved = ? AND ${tableUsersDevices}.device_id = ?`,
         [0, deviceId, id],
-        `${tableUsersDevices}.id`
+        `${tableUsersDevices}.id`,
+        "ASC",
+        0,
+        99999
       ),
       databaseModel.select(
         conn,
@@ -324,7 +347,10 @@ class OrdersService {
         `${tableUsersCustomers}.user_id ,${tableOrders}.creator_customer_id as customer_id,${tableOrders}.quantity`,
         `${tableUsers}.is_main = ? AND ${tableOrders}.id = ?`,
         [1, id],
-        `${tableUsers}.id`
+        `${tableUsers}.id`,
+        "ASC",
+        0,
+        99999
       ),
     ]);
 
@@ -411,7 +437,7 @@ class OrdersService {
         conn.release();
       }
     } catch (error) {
-      console.log("error", error);
+      // console.log("error", error);
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
     }

@@ -6,8 +6,11 @@ class LevelController {
   getAllRows = catchAsync(async (req, res) => {
     const query = req.query;
     const level = req.level;
-    const { data, totalPage } = await levelService.getallrows(query, level);
-    GET(res, data, totalPage);
+    const { data, totalPage, totalRecord } = await levelService.getallrows(
+      query,
+      level
+    );
+    GET(res, data, totalPage, totalRecord);
   });
 
   getById = catchAsync(async (req, res) => {

@@ -5,9 +5,11 @@ const diskService = require("../services/disk.service");
 class DiskController {
   getAllRows = catchAsync(async (req, res) => {
     const query = req.query;
-    const { data, totalPage } = await diskService.getallrows(query);
+    const { data, totalPage, totalRecord } = await diskService.getallrows(
+      query
+    );
 
-    GET(res, data, totalPage);
+    GET(res, data, totalPage, totalRecord);
   });
 
   getById = catchAsync(async (req, res) => {

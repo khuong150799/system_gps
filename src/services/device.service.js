@@ -66,6 +66,7 @@ class DeviceService {
         conn.release();
       }
     } catch (error) {
+      console.log(error);
       throw new BusinessLogicError(error.msg);
     }
   }

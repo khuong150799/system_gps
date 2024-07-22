@@ -49,7 +49,7 @@ class SettingModel extends DatabaseModel {
 
     const totalPage = Math.ceil(count?.[0]?.total / limit);
 
-    return { data: res_, totalPage, totalRecaord: count?.[0]?.total };
+    return { data: res_, totalPage, totalRecord: count?.[0]?.total };
   }
 
   //getlist
@@ -74,7 +74,7 @@ class SettingModel extends DatabaseModel {
       9999999
     );
 
-    return { data: res_, totalPage: 0, totalRecaord: 0 };
+    return { data: res_, totalPage: 0, totalRecord: 0 };
   }
 
   //getbyid

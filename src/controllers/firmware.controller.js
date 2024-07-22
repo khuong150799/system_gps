@@ -5,9 +5,11 @@ const firmwareService = require("../services/firmware.service");
 class FirmwareController {
   getAllRows = catchAsync(async (req, res) => {
     const query = req.query;
-    const { data, totalPage } = await firmwareService.getallrows(query);
+    const { data, totalPage, totalRecord } = await firmwareService.getallrows(
+      query
+    );
 
-    GET(res, data, totalPage);
+    GET(res, data, totalPage, totalRecord);
   });
 
   getById = catchAsync(async (req, res) => {

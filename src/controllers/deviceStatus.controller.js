@@ -5,9 +5,10 @@ const deviceStatusService = require("../services/deviceStatus.service");
 class DeviceStatusController {
   getAllRows = catchAsync(async (req, res) => {
     const query = req.query;
-    const { data, totalPage } = await deviceStatusService.getallrows(query);
+    const { data, totalPage, totalRecord } =
+      await deviceStatusService.getallrows(query);
 
-    GET(res, data, totalPage);
+    GET(res, data, totalPage, totalRecord);
   });
 
   getById = catchAsync(async (req, res) => {

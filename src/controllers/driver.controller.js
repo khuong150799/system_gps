@@ -5,15 +5,24 @@ const driverService = require("../services/driver.service");
 class DriverController {
   getAllRows = catchAsync(async (req, res) => {
     const query = req.query;
-    const { data, totalPage } = await driverService.getallrows(query);
+    const { data, totalPage, totalRecord } = await driverService.getallrows(
+      query
+    );
 
-    GET(res, data, totalPage);
+    GET(res, data, totalPage, totalRecord);
   });
 
   getById = catchAsync(async (req, res) => {
     const params = req.params;
     const query = req.query;
     const data = await driverService.getById(params, query);
+    GET(res, data);
+  });
+
+  getTree = catchAsync(async (req, res) => {
+    const userId = req.userId;
+    const query = req.query;
+    const data = await driverService.getTree(query, userId);
     GET(res, data);
   });
 

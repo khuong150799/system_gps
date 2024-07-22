@@ -33,7 +33,7 @@ class ValidateModel extends DatabaseModel {
     super();
   }
 
-  async checkOwnerDevice(conn, userId, devices) {
+  async checkOwnerDevice(conn, userId, devices = [], msg = NOT_ADD_DEVICE) {
     const where = `${tableUserDevice}.device_id IN (?) AND ${tableUserDevice}.user_id = ? AND ${tableDevice}.device_status_id = ?`;
     const conditions = [devices, userId, 4];
     const joinTable = `${tableDevice} INNER JOIN ${tableUserDevice} ON ${tableDevice}.id = ${tableUserDevice}.device_id`;
@@ -52,7 +52,7 @@ class ValidateModel extends DatabaseModel {
     if (dataDevices.length <= 0)
       throw {
         msg: ERROR,
-        errors: [{ value: devices, msg: NOT_ADD_DEVICE, param: "devices" }],
+        errors: [{ value: devices, msg, param: "devices" }],
       };
 
     const dataId = new Set(dataDevices.map((item) => item.id));
@@ -62,7 +62,7 @@ class ValidateModel extends DatabaseModel {
     if (idNotExit.length)
       throw {
         msg: ERROR,
-        errors: [{ value: idNotExit, msg: NOT_ADD_DEVICE, param: "devices" }],
+        errors: [{ value: idNotExit, msg, param: "devices" }],
       };
 
     return [];

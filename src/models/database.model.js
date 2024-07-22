@@ -379,7 +379,8 @@ class DatabaseModel {
           0,
           1000000000
         );
-
+        console.log("dataRes", dataRes);
+        return dataRes;
         const newArr = [];
         const dequy = async (data) => {
           for (let i = 0; i < data.length; i++) {

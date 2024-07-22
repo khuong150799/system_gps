@@ -1,3 +1,4 @@
+const { REDIS_KEY_LIST_IMEI_OF_USERS } = require("../constants/redis.contant");
 const { initialNameOfTableGps } = require("../constants/setting.constant");
 const {
   tableDevice,
@@ -6,6 +7,7 @@ const {
 } = require("../constants/tableName.contant");
 const getTableName = require("../ultils/getTableName");
 const DatabaseModel = require("./database.model");
+const { hSet: hsetRedis, expire: expireRedis } = require("./redis.model");
 
 class VehicleModel extends DatabaseModel {
   constructor() {
@@ -41,82 +43,30 @@ class VehicleModel extends DatabaseModel {
     const totalPage = Math.ceil(count?.[0]?.total / limit);
     return { data: listDeviceId, totalPage };
   };
-  async playback(conn, userId, query, params) {
-    const { imei } = params;
-    const { start_date, end_date } = query;
 
-    const { data: listDeviceId } = await this.handleGetListDeviceId(
-      conn,
-      imei,
-      userId
-    );
-
-    if (listDeviceId?.length <= 0) return [];
-
-    const deviceId = listDeviceId[0].id;
-
-    const tableNameStart = getTableName(
-      initialNameOfTableGps,
-      deviceId,
-      start_date * 1000
-    );
-    const tableNameEnd = getTableName(
-      initialNameOfTableGps,
-      deviceId,
-      end_date * 1000
-    );
-
-    const joinTableGetVehicle = `${tableDevice} INNER JOIN ${tableVehicle} ON ${tableDevice}.id = ${tableVehicle}.device_id 
-        INNER JOIN ${tableUsersDevices} ON ${tableDevice}.id = ${tableUsersDevices}.device_id`;
-
-    const handleJoinTable = (
-      tableName
-    ) => `${tableDevice} INNER JOIN ${tableName} ON ${tableDevice}.imei = ${tableName}.imei 
-        INNER JOIN ${tableUsersDevices} ON ${tableDevice}.id = ${tableUsersDevices}.device_id`;
-
-    const joinTableStart = handleJoinTable(tableNameStart);
-    const joinTableEnd = handleJoinTable(tableNameEnd);
-
-    const select = `${tableDevice}.imei,license_number,latitude,longitude,speed,signal_quality,rotation,status,acc,syn,time,address`;
-
-    const chooseQuery =
-      joinTableStart !== joinTableEnd
-        ? this.selectUnion(
-            conn,
-            [joinTableStart, joinTableEnd],
-            select,
-            `${tableDevice}.imei = ? AND time BETWEEN ? AND ? AND ${tableDevice}.is_deleted = ? AND ${tableUsersDevices}.user_id = ?`,
-            [imei, start_date, end_date, 0, userId],
-            `time`,
-            "ASC",
-            0,
-            100000000000
-          )
-        : this.select(
-            conn,
-            joinTableStart,
-            select,
-            `${tableDevice}.imei = ? AND time BETWEEN ? AND ? AND ${tableDevice}.is_deleted = ? AND ${tableUsersDevices}.user_id = ?`,
-            [imei, start_date, end_date, 0, userId],
-            `time`,
-            "ASC",
-            0,
-            100000000000
-          );
-
-    const [route, vehicle] = await Promise.all([
-      chooseQuery,
-      this.select(
+  async removeListDeviceOfUsersRedis(conn, deviceId, dataUserId = []) {
+    let listUserId = dataUserId;
+    if (!dataUserId.length) {
+      listUserId = await this.select(
         conn,
-        joinTableGetVehicle,
-        "name",
-        `${tableDevice}.imei = ? AND ${tableDevice}.is_deleted = ?`,
-        [imei, 0],
-        `${tableDevice}.id`
-      ),
-    ]);
+        tableUsersDevices,
+        "user_id",
+        "device_id = ? AND is_deleted = ?",
+        [deviceId, 0],
+        "user_id",
+        "ASC",
+        0,
+        99999
+      );
+    }
+    if (!listUserId?.length) return null;
 
-    return { vehicle_name: vehicle[0]?.name, route };
+    await Promise.all([
+      listUserId.map((item) => {
+        const user_id = dataUserId.length ? item : item.user_id;
+        return expireRedis(`${REDIS_KEY_LIST_IMEI_OF_USERS}/${user_id}`, -1);
+      }),
+    ]);
   }
 }
 

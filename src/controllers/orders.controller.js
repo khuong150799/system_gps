@@ -7,12 +7,12 @@ class OrdersController {
     const query = req.query;
     const customerId = req?.customerId;
     const chooseCustomerId = query.customer_id || customerId;
-    const { data, totalPage } = await ordersService.getallrows(
+    const { data, totalPage, totalRecord } = await ordersService.getallrows(
       query,
       chooseCustomerId
     );
 
-    GET(res, data, totalPage);
+    GET(res, data, totalPage, totalRecord);
   });
 
   getById = catchAsync(async (req, res) => {

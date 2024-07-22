@@ -5,9 +5,10 @@ const servicePackageService = require("../services/servicePackage.service");
 class ServicePackageController {
   getAllRows = catchAsync(async (req, res) => {
     const query = req.query;
-    const { data, totalPage } = await servicePackageService.getallrows(query);
+    const { data, totalPage, totalRecord } =
+      await servicePackageService.getallrows(query);
 
-    GET(res, data, totalPage);
+    GET(res, data, totalPage, totalRecord);
   });
 
   getById = catchAsync(async (req, res) => {

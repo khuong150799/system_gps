@@ -14,9 +14,11 @@ class ConnectionTypeController {
 
   getAllRows = catchAsync(async (req, res) => {
     const query = req.query;
-    const { data, totalPage } = await permissionService.getallrows(query);
+    const { data, totalPage, totalRecord } = await permissionService.getallrows(
+      query
+    );
 
-    GET(res, data, totalPage);
+    GET(res, data, totalPage, totalRecord);
   });
 
   getById = catchAsync(async (req, res) => {

@@ -62,6 +62,12 @@ module.exports = (app) => {
   );
 
   router.get("/info", isAuth, checkPermission, usersController.getInfo);
+  router.get(
+    "/device-add",
+    isAuth,
+    checkPermission,
+    usersController.getDeviceAdd
+  );
 
   router.post(
     "/register-team",
@@ -163,6 +169,20 @@ module.exports = (app) => {
     isAuth,
     checkPermission,
     usersController.deleteById
+  );
+
+  router.delete(
+    "/delete-device/:id",
+    [
+      param("id", VALIDATE_DATA).isNumeric(),
+      body("device_id", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA),
+    ],
+    isAuth,
+    checkPermission,
+    usersController.deleteDevice
   );
   router.patch(
     "/reset-pass/:id",

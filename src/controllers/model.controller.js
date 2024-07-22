@@ -5,9 +5,11 @@ const modelController = require("../services/model.service");
 class ModelController {
   getAllRows = catchAsync(async (req, res) => {
     const query = req.query;
-    const { data, totalPage } = await modelController.getallrows(query);
+    const { data, totalPage, totalRecord } = await modelController.getallrows(
+      query
+    );
 
-    GET(res, data, totalPage);
+    GET(res, data, totalPage, totalRecord);
   });
 
   getById = catchAsync(async (req, res) => {

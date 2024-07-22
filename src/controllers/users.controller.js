@@ -53,11 +53,20 @@ class CustomersController {
   //   const data = await usersSrevice.getById(params, query);
   //   GET(res, data);
   // });
+  getDeviceAdd = catchAsync(async (req, res) => {
+    const userId = req.userId;
+    const query = req.query;
+
+    const data = await usersSrevice.getDeviceAdd(query, userId);
+    GET(res, data);
+  });
+
   getInfo = catchAsync(async (req, res) => {
     const userId = req.userId;
+    const { user_id } = req.query;
     const { id } = req.params;
 
-    const chooseUserId = id || userId;
+    const chooseUserId = id || user_id || userId;
 
     const data = await usersSrevice.getInfo(chooseUserId);
     GET(res, data);
@@ -100,6 +109,14 @@ class CustomersController {
     const userId = req.userId;
     const data = await usersSrevice.updateById(body, params, userId);
     UPDATE(res, [data]);
+  });
+
+  deleteDevice = catchAsync(async (req, res) => {
+    const params = req.params;
+    const body = req.body;
+    const userId = req.userId;
+    const data = await usersSrevice.deleteDevice(params, body, userId);
+    DELETE(res, data);
   });
 
   deleteById = catchAsync(async (req, res) => {

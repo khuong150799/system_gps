@@ -6,9 +6,12 @@ class SettingCateController {
   getAllRows = catchAsync(async (req, res) => {
     const query = req.query;
     const role = req.role;
-    const { data, totalPage } = await settingService.getallrows(query, role);
+    const { data, totalPage, totalRecord } = await settingService.getallrows(
+      query,
+      role
+    );
 
-    GET(res, data, totalPage);
+    GET(res, data, totalPage, totalRecord);
   });
 
   getList = catchAsync(async (req, res) => {

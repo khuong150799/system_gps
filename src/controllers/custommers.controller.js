@@ -6,11 +6,11 @@ class CustomersController {
   getAllRows = catchAsync(async (req, res) => {
     const query = req.query;
     const userId = req.userId;
-    const { data, totalPage } = await customersService.getallrows(
+    const { data, totalPage, totalRecord } = await customersService.getallrows(
       query,
       userId
     );
-    GET(res, data, totalPage);
+    GET(res, data, totalPage, totalRecord);
   });
 
   getById = catchAsync(async (req, res) => {

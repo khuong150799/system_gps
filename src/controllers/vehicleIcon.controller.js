@@ -5,9 +5,10 @@ const vehicleIconService = require("../services/vehicleIcon.service");
 class VehicleIconController {
   getAllRows = catchAsync(async (req, res) => {
     const query = req.query;
-    const { data, totalPage } = await vehicleIconService.getallrows(query);
+    const { data, totalPage, totalRecord } =
+      await vehicleIconService.getallrows(query);
 
-    GET(res, data, totalPage);
+    GET(res, data, totalPage, totalRecord);
   });
 
   getById = catchAsync(async (req, res) => {

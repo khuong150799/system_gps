@@ -5,8 +5,9 @@ const connectionTypeService = require("../services/connectionType.service");
 class ConnectionTypeController {
   getAllRows = catchAsync(async (req, res) => {
     const query = req.query;
-    const { data, totalPage } = await connectionTypeService.getallrows(query);
-    GET(res, data, totalPage);
+    const { data, totalPage, totalRecord } =
+      await connectionTypeService.getallrows(query);
+    GET(res, data, totalPage, totalRecord);
   });
 
   getById = catchAsync(async (req, res) => {
