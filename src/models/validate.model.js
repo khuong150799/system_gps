@@ -34,8 +34,9 @@ class ValidateModel extends DatabaseModel {
   }
 
   async checkOwnerDevice(conn, userId, devices = [], msg = NOT_ADD_DEVICE) {
+    console.log({ userId, devices });
     const where = `${tableUserDevice}.device_id IN (?) AND ${tableUserDevice}.user_id = ? AND ${tableDevice}.device_status_id = ?`;
-    const conditions = [devices, userId, 4];
+    const conditions = [devices, userId, 3];
     const joinTable = `${tableDevice} INNER JOIN ${tableUserDevice} ON ${tableDevice}.id = ${tableUserDevice}.device_id`;
     const select = `${tableDevice}.id`;
     const dataDevices = await this.select(
@@ -49,15 +50,16 @@ class ValidateModel extends DatabaseModel {
       0,
       1000000000
     );
+    console.log("dataDevices", dataDevices);
     if (dataDevices.length <= 0)
       throw {
         msg: ERROR,
         errors: [{ value: devices, msg, param: "devices" }],
       };
 
-    const dataId = new Set(dataDevices.map((item) => item.id));
+    const dataId = new Set(dataDevices.map((item) => Number(item.id)));
 
-    const idNotExit = devices.filter((item) => !dataId.has(item));
+    const idNotExit = devices.filter((item) => !dataId.has(Number(item)));
 
     if (idNotExit.length)
       throw {

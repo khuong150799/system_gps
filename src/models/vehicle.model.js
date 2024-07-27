@@ -59,14 +59,16 @@ class VehicleModel extends DatabaseModel {
         99999
       );
     }
+    console.log("listUserId", listUserId);
     if (!listUserId?.length) return null;
 
-    await Promise.all([
+    const data = await Promise.all([
       listUserId.map((item) => {
         const user_id = dataUserId.length ? item : item.user_id;
         return expireRedis(`${REDIS_KEY_LIST_IMEI_OF_USERS}/${user_id}`, -1);
       }),
     ]);
+    console.log("listUserId123456", data);
   }
 }
 

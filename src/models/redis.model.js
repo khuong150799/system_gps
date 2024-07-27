@@ -94,6 +94,7 @@ class RedisModel {
 
       return await client.expire(key, ttl);
     } catch (error) {
+      console.log("error", error);
       throw error.msg;
     }
   }

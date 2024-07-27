@@ -493,15 +493,44 @@ class DeviceModel extends DatabaseModel {
       `is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved)`
     );
 
+    const tableGps = getTableName(initialNameOfTableGps, device_id);
+    const tableSpeed = getTableName(initialNameOfTableSpeed, device_id);
+    const tableReportOneDay = getTableName(
+      initialNameOfTableReportOneDay,
+      device_id
+    );
+    const tableContinuous = getTableName(initialNameOfTableRunning, device_id);
+
+    const listTable = await Promise.all([
+      this.checkTableExit(conn, tableGps),
+      this.checkTableExit(conn, tableSpeed),
+      this.checkTableExit(conn, tableReportOneDay),
+      this.checkTableExit(conn, tableContinuous),
+    ]);
+
+    const listTableCreate = listTable.map((item, i) => {
+      if (item?.length <= 0 && i === 0)
+        return this.createTableDeviceGps(conn, tableGps);
+      if (item?.length <= 0 && i === 1)
+        return this.createTableDeviceSpeed(conn, tableSpeed);
+      if (item?.length <= 0 && i === 2)
+        return this.createTableReportOneDay(conn, tableReportOneDay);
+      if (item?.length <= 0 && i === 3)
+        return this.createTableReportContinuous(conn, tableContinuous);
+    });
+
+    if (listTableCreate?.length > 0) {
+      await Promise.all(listTableCreate);
+    }
+    const inforDevice = await this.getWithImei(conn, imei);
+
+    if (!inforDevice?.length) throw { msg: ERROR };
+
+    await vehicleModel.removeListDeviceOfUsersRedis(conn, device_id);
+
     await connPromise.commit();
 
-    if (imei) {
-      await Promise.all([
-        this.getWithImei(conn, imei),
-        expireRedis(`${REDIS_KEY_DEVICE_SPAM}/${imei}`, -1),
-        vehicleModel.removeListDeviceOfUsersRedis(conn, device_id),
-      ]);
-    }
+    await Promise.all([expireRedis(`${REDIS_KEY_DEVICE_SPAM}/${imei}`, -1)]);
 
     return [];
   }
@@ -625,16 +654,19 @@ class DeviceModel extends DatabaseModel {
     if (listTableCreate?.length > 0) {
       await Promise.all(listTableCreate);
     }
+    console.log(12345);
+    const inforDevice = await this.getWithImei(conn, imei);
+
+    if (!inforDevice?.length) throw { msg: ERROR };
+    console.log(76543);
+    await vehicleModel.removeListDeviceOfUsersRedis(conn, device_id);
+    console.log(8765423456);
+
+    console.log("connPromise", connPromise);
     await connPromise.commit();
-
-    if (imei) {
-      await Promise.all([
-        this.getWithImei(conn, imei),
-        expireRedis(`${REDIS_KEY_DEVICE_SPAM}/${imei}`, -1),
-        vehicleModel.removeListDeviceOfUsersRedis(conn, device_id),
-      ]);
-    }
-
+    console.log(1119876543);
+    await Promise.all([expireRedis(`${REDIS_KEY_DEVICE_SPAM}/${imei}`, -1)]);
+    console.log(456787654345678);
     return [];
   }
 

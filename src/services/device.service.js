@@ -226,6 +226,7 @@ class DeviceService {
         );
         return data;
       } catch (error) {
+        console.log("error", error);
         await connPromise.rollback();
         throw error;
       } finally {

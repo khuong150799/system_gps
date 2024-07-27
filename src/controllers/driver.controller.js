@@ -1,4 +1,10 @@
-const { GET, CREATED, UPDATE, DELETE } = require("../core/success.response");
+const {
+  GET,
+  CREATED,
+  UPDATE,
+  DELETE,
+  OK,
+} = require("../core/success.response");
 const catchAsync = require("../helper/catchAsync.helper");
 const driverService = require("../services/driver.service");
 
@@ -24,6 +30,15 @@ class DriverController {
     const query = req.query;
     const data = await driverService.getTree(query, userId);
     GET(res, data);
+  });
+
+  wirteCard = catchAsync(async (req, res) => {
+    const { userId, body } = req;
+    const { message, data, options } = await driverService.wirteCard(
+      body,
+      userId
+    );
+    OK(res, data, options, message);
   });
 
   register = catchAsync(async (req, res) => {

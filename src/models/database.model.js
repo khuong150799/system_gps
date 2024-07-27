@@ -379,8 +379,8 @@ class DatabaseModel {
           0,
           1000000000
         );
-        console.log("dataRes", dataRes);
-        return dataRes;
+        // console.log("dataRes", dataRes);
+        // return dataRes;
         const newArr = [];
         const dequy = async (data) => {
           for (let i = 0; i < data.length; i++) {
@@ -397,6 +397,63 @@ class DatabaseModel {
           }
         };
         await dequy(dataRes);
+        return resolve(newArr);
+      } catch (error) {
+        // console.log(error);
+        return reject(error);
+      }
+    });
+  }
+
+  async getAllRowsDriver(
+    db,
+    userId,
+    tableName,
+    select,
+    where,
+    conditions,
+    orderByField,
+    orderBySort,
+    selectDequy,
+    whereDequy,
+    orderByFieldDequy,
+    orderBySortDequy
+  ) {
+    return await new Promise(async (resolve, reject) => {
+      try {
+        const dataRes = await this.select(
+          db,
+          tableName,
+          select,
+          where,
+          conditions,
+          orderByField,
+          orderBySort,
+          0,
+          1000000000
+        );
+        // console.log("dataRes", JSON.stringify(dataRes, null, 2));
+        // return dataRes;
+        const newArr = [];
+        const dequy = async (data) => {
+          for (let i = 0; i < data.length; i++) {
+            newArr.push(...data[i].driver);
+            const id = data[i].id;
+
+            const childQuery = `SELECT ${selectDequy} FROM ${tableName} WHERE parent_id = ${id} ${whereDequy} ORDER BY ${orderByFieldDequy} ${orderBySortDequy}`;
+            const dataRess = await db.promise().query(childQuery);
+
+            if (dataRess[0].length > 0) {
+              // console.log("dataRess", JSON.stringify(dataRess[0], null, 2));
+              // newArr.push(...dataRess[0]);
+              await dequy(dataRess[0]);
+            }
+          }
+        };
+        const dataQuery = dataRes?.length
+          ? dataRes
+          : [{ id: userId, driver: [] }];
+        await dequy(dataQuery);
         return resolve(newArr);
       } catch (error) {
         // console.log(error);

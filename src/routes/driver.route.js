@@ -30,6 +30,24 @@ module.exports = (app) => {
 
   router.get("/tree", isAuth, checkPermission, driverController.getTree);
   router.post(
+    "/write-card",
+    [
+      body("device_id", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA),
+      body("name", NOT_EMPTY).notEmpty().isString().withMessage(VALIDATE_DATA),
+
+      body("license_number", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA),
+    ],
+    isAuth,
+    // checkPermission,
+    driverController.wirteCard
+  );
+  router.post(
     "/register",
     [
       body("customer_id", NOT_EMPTY)

@@ -125,7 +125,7 @@ class DriverService {
           [device_id],
           WRITE_CARD_NOT_PERMISSION
         );
-        const data = await driverModel.wirteCard(body);
+        const data = await driverModel.wirteCard(conn, body);
         return data;
       } catch (error) {
         throw error;
@@ -133,7 +133,9 @@ class DriverService {
         conn.release();
       }
     } catch (error) {
-      throw new BusinessLogicError(error.msg);
+      console.log("error", error);
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
     }
   }
 

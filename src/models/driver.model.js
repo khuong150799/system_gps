@@ -80,17 +80,18 @@ class DriverModel extends DatabaseModel {
     const offset = query.offset || 0;
     const limit = query.limit || 10;
     const isDeleted = query.is_deleted || 0;
-    let where = `u.parent_id = ? AND dr.is_deleted = ?`;
+    let where = `u.id = ? AND dr.is_deleted = ? AND u.is_deleted = 0 AND u.is_main = 1 GROUP  BY dr.customer_id`;
     const conditions = [userId, isDeleted];
-    const whereDequy = `AND dr.is_deleted = ${isDeleted}`;
+    const whereDequy = `AND dr.is_deleted = ${isDeleted} AND u.is_deleted = 0 AND u.is_main = 1 GROUP  BY dr.customer_id`;
 
     const joinTable = `${tableDriver} dr INNER JOIN ${tableUsersCustomers} uc ON dr.customer_id = uc.customer_id
      INNER JOIN ${tableUsers} u ON uc.user_id = u.id`;
 
-    const select = `u.id,dr.name,dr.license_number,dr.phone`;
+    const select = `u.id,uc.customer_id,JSON_ARRAYAGG(JSON_OBJECT('id', dr.id,'name', dr.name,'license_number',dr.license_number,'phone',dr.phone)) AS driver`;
 
-    const res_ = await this.getAllRowsMenu(
+    const res_ = await this.getAllRowsDriver(
       conn,
+      userId,
       joinTable,
       select,
       where,
@@ -140,16 +141,18 @@ class DriverModel extends DatabaseModel {
     const infoDevice = await this.select(conn, tableDevice, "imei", "id = ?", [
       device_id,
     ]);
+    // console.log("infoDevice", infoDevice);
     if (!infoDevice?.length)
       throw { msg: ERROR, errors: [{ msg: WRITE_CARD_FAIL }] };
-    const { result } = await driverApi.writeCard({
-      license_number,
-      name,
-      imei: infoDevice[0].imei,
-    });
-
+    const { result, message, status, data, options } =
+      await driverApi.writeCard({
+        license_number,
+        name,
+        imei: infoDevice[0].imei,
+      });
+    // console.log("result", result);
     if (!result) throw { msg: ERROR, errors: [{ msg: WRITE_CARD_FAIL }] };
-    return [];
+    return { message, status, data, options };
   }
 
   //Register
