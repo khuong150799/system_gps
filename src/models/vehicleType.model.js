@@ -1,7 +1,7 @@
 const {
   tableVehicleType,
   tableVehicleIcon,
-} = require("../constants/tableName.contant");
+} = require("../constants/tableName.constant");
 const DatabaseModel = require("./database.model");
 const VehicleTypeSchema = require("./schema/vehicleType.schema");
 

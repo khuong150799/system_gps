@@ -1,4 +1,4 @@
-const { tableModelType } = require("../constants/tableName.contant");
+const { tableModelType } = require("../constants/tableName.constant");
 const DatabaseModel = require("./database.model");
 const ModelTypeSchema = require("./schema/modelType.schema");
 

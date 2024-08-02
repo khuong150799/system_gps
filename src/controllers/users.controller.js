@@ -2,7 +2,7 @@ const {
   REFRESH_TOKEN_SUCCESS,
   LOGOUT_SUCCESS,
   MOVE_SUCCESS,
-} = require("../constants/msg.contant");
+} = require("../constants/msg.constant");
 const {
   GET,
   CREATED,

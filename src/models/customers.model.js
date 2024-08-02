@@ -8,7 +8,7 @@ const {
   tableLevel,
   tableUsersCustomers,
   tableUsers,
-} = require("../constants/tableName.contant");
+} = require("../constants/tableName.constant");
 const deviceModel = require("./device.model");
 
 class CustomersModel extends DatabaseSchema {

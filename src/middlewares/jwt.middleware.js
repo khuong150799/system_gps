@@ -1,4 +1,4 @@
-const constants = require("../constants/msg.contant");
+const constants = require("../constants/msg.constant");
 const { Api401Error, Api403Error } = require("../core/error.response");
 const { checkToken } = require("../helper/auth.helper");
 const { ACCESS_TOKEN_SECRET_KEY } = constants;
@@ -8,6 +8,7 @@ const isAuth = async function (req, res, next) {
   const token = authorizationHeader?.split(" ")[1];
 
   try {
+    // return next();
     if (token) {
       const { data } = await checkToken(token, ACCESS_TOKEN_SECRET_KEY);
       const { userId, parentId, role, clientId, level, customerId } = data;

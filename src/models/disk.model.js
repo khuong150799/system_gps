@@ -1,4 +1,4 @@
-const { tableDisk } = require("../constants/tableName.contant");
+const { tableDisk } = require("../constants/tableName.constant");
 const DatabaseModel = require("./database.model");
 const DiskSchema = require("./schema/disk.schema");
 

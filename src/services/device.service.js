@@ -1,6 +1,6 @@
 const db = require("../dbs/init.mysql");
 const deviceModel = require("../models/device.model");
-const { ERROR, ALREADY_EXITS } = require("../constants/msg.contant");
+const { ERROR, ALREADY_EXITS } = require("../constants/msg.constant");
 const { BusinessLogicError } = require("../core/error.response");
 const DatabaseModel = require("../models/database.model");
 const validateModel = require("../models/validate.model");
@@ -8,7 +8,7 @@ const {
   tableUsers,
   tableVehicle,
   tableDevice,
-} = require("../constants/tableName.contant");
+} = require("../constants/tableName.constant");
 
 const databaseModel = new DatabaseModel();
 

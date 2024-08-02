@@ -1,4 +1,4 @@
-const { tableOrdersStatus } = require("../constants/tableName.contant");
+const { tableOrdersStatus } = require("../constants/tableName.constant");
 const DatabaseModel = require("./database.model");
 const OrdersStatusSchema = require("./schema/ordersStatus.schema");
 

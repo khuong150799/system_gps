@@ -1,6 +1,6 @@
 const DatabaseModel = require("./database.model");
 const OrdersSchema = require("./schema/orders.schema");
-const { ERROR } = require("../constants/msg.contant");
+const { ERROR } = require("../constants/msg.constant");
 const { makeCode } = require("../ultils/makeCode");
 const {
   tableOrders,
@@ -10,7 +10,7 @@ const {
   tableCustomers,
   tableUsersCustomers,
   tableUsersDevices,
-} = require("../constants/tableName.contant");
+} = require("../constants/tableName.constant");
 
 class OrdersModel extends DatabaseModel {
   constructor() {

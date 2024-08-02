@@ -2,7 +2,7 @@ const db = require("../dbs/init.mysql");
 const deviceStatusModel = require("../models/deviceStatus.model");
 const { BusinessLogicError } = require("../core/error.response");
 const validateModel = require("../models/validate.model");
-const { tableDeviceStatus } = require("../constants/tableName.contant");
+const { tableDeviceStatus } = require("../constants/tableName.constant");
 
 class DeviceStatusService {
   //getallrow

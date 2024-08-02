@@ -1,6 +1,6 @@
 const mysql = require("mysql2");
 const dbConfig = require("../config/db.config");
-const constants = require("../constants/msg.contant");
+const constants = require("../constants/msg.constant");
 
 const pool = mysql.createPool(dbConfig);
 
@@ -47,4 +47,9 @@ class Datatbase {
 
 const { getConnection, init, getActiveConnections } = new Datatbase();
 
-module.exports = { getConnection, initDb: init, getActiveConnections };
+module.exports = {
+  getConnection,
+  initDb: init,
+  getActiveConnections,
+  db: pool,
+};

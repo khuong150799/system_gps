@@ -1,6 +1,6 @@
-const driverApi = require("../api/driverApi");
-const { ERROR, WRITE_CARD_FAIL } = require("../constants/msg.contant");
-const { REDIS_KEY_LIST_DRIVER } = require("../constants/redis.contant");
+const driverApi = require("../api/driver.api");
+const { ERROR, WRITE_CARD_FAIL } = require("../constants/msg.constant");
+const { REDIS_KEY_LIST_DRIVER } = require("../constants/redis.constant");
 const {
   tableDriver,
   tableLicenseType,
@@ -10,7 +10,7 @@ const {
   tableRole,
   tableUsers,
   tableDevice,
-} = require("../constants/tableName.contant");
+} = require("../constants/tableName.constant");
 const DatabaseModel = require("./database.model");
 const { hSet, hdelOneKey, hGet } = require("./redis.model");
 const DriverSchema = require("./schema/driver.schema");

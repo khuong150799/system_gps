@@ -1,6 +1,6 @@
 const DatabaseModel = require("./database.model");
 
-const { tableSettingCate } = require("../constants/tableName.contant");
+const { tableSettingCate } = require("../constants/tableName.constant");
 const SettingCateSchema = require("./schema/settingCate.schema");
 
 class SettingCateModel extends DatabaseModel {
@@ -96,7 +96,6 @@ class SettingCateModel extends DatabaseModel {
     });
     // console.log(id)
     delete settingCate.created_at;
-    delete settingCate.sort;
     delete settingCate.is_deleted;
 
     await this.update(conn, tableSettingCate, settingCate, "id", id);

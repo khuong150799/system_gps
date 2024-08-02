@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const { VALIDATE_DATA, NOT_EMPTY } = require("../constants/msg.contant");
+const { VALIDATE_DATA, NOT_EMPTY } = require("../constants/msg.constant");
 const { body, query, param } = require("express-validator");
 const { isAuth } = require("../middlewares/jwt.middleware");
 const {
@@ -15,18 +15,23 @@ module.exports = (app) => {
       query("is_deleted").escape(),
       query("publish").escape(),
     ],
-    isAuth,
-    checkPermission,
+    // isAuth,
+    // checkPermission,
     settingController.getAllRows
   );
 
-  router.get("/list", isAuth, checkPermission, settingController.getList);
+  router.get(
+    "/list",
+    isAuth,
+    // checkPermission,
+    settingController.getList
+  );
 
   router.get(
     "/detail/:id",
     [param("id", VALIDATE_DATA).isNumeric()],
-    isAuth,
-    checkPermission,
+    // isAuth,
+    // checkPermission,
     settingController.getById
   );
 
@@ -43,14 +48,15 @@ module.exports = (app) => {
         .isString()
         .withMessage(VALIDATE_DATA)
         .escape(),
+      body("setting_cate_id", VALIDATE_DATA).isNumeric().escape(),
       body("on_default", VALIDATE_DATA).isNumeric().escape(),
       body("is_disabled", VALIDATE_DATA).isNumeric().escape(),
       body("sort", VALIDATE_DATA).isNumeric().escape(),
       body("publish", VALIDATE_DATA).isNumeric().escape(),
     ],
 
-    isAuth,
-    checkPermission,
+    // isAuth,
+    // checkPermission,
     settingController.register
   );
 
@@ -61,8 +67,8 @@ module.exports = (app) => {
       body("is_disabled", VALIDATE_DATA).isNumeric().escape(),
     ],
 
-    isAuth,
-    checkPermission,
+    // isAuth,
+    // checkPermission,
     settingController.registerUser
   );
   router.put(
@@ -79,16 +85,16 @@ module.exports = (app) => {
       body("sort", VALIDATE_DATA).isNumeric().escape(),
       body("publish", VALIDATE_DATA).isNumeric().escape(),
     ],
-    isAuth,
-    checkPermission,
+    // isAuth,
+    // checkPermission,
     settingController.updateById
   );
 
   router.delete(
     "/delete/:id",
     [param("id", VALIDATE_DATA).isNumeric()],
-    isAuth,
-    checkPermission,
+    // isAuth,
+    // checkPermission,
     settingController.deleteById
   );
   router.patch(
@@ -97,8 +103,8 @@ module.exports = (app) => {
       param("id", VALIDATE_DATA).isNumeric(),
       body("publish", VALIDATE_DATA).isNumeric(),
     ],
-    isAuth,
-    checkPermission,
+    // isAuth,
+    // checkPermission,
     settingController.updatePublish
   );
 
@@ -108,8 +114,8 @@ module.exports = (app) => {
       param("id", VALIDATE_DATA).isNumeric(),
       body("sort", VALIDATE_DATA).isNumeric(),
     ],
-    isAuth,
-    checkPermission,
+    // isAuth,
+    // checkPermission,
     settingController.updateSort
   );
 

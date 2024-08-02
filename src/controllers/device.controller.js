@@ -1,4 +1,4 @@
-const { DEVICE_IS_READY } = require("../constants/msg.contant");
+const { DEVICE_IS_READY } = require("../constants/msg.constant");
 const {
   GET,
   CREATED,

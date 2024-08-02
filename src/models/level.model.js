@@ -7,7 +7,7 @@ const {
   tablePermission,
   tableLevelModule,
   tableModule,
-} = require("../constants/tableName.contant");
+} = require("../constants/tableName.constant");
 
 class LevelModel extends DatabaseModel {
   constructor() {

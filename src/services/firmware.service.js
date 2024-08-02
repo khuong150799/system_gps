@@ -2,7 +2,7 @@ const db = require("../dbs/init.mysql");
 const firmwareModel = require("../models/firmware.model");
 const { BusinessLogicError } = require("../core/error.response");
 const validateModel = require("../models/validate.model");
-const { tableFrmware } = require("../constants/tableName.contant");
+const { tableFrmware } = require("../constants/tableName.constant");
 // const { existsSync, unlinkSync } = require("node:fs");
 
 class FirmwareService {

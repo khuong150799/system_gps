@@ -1,4 +1,4 @@
-const { tableVehicleIcon } = require("../constants/tableName.contant");
+const { tableVehicleIcon } = require("../constants/tableName.constant");
 const DatabaseModel = require("./database.model");
 const deviceModel = require("./device.model");
 const VehicleIconSchema = require("./schema/vehicleIcon.schema");

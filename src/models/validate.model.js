@@ -12,14 +12,14 @@ const {
   ADD_CHILD_ERROR,
   VALIDATE_PHONE,
   VALIDATE_EMAIL,
-} = require("../constants/msg.contant");
+} = require("../constants/msg.constant");
 const {
   tableDevice,
   tableUserDevice,
   tableCustomers,
   tableUsersCustomers,
   tableUsers,
-} = require("../constants/tableName.contant");
+} = require("../constants/tableName.constant");
 const {
   regexAccount,
   regexPass,

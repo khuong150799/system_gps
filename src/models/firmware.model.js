@@ -1,4 +1,7 @@
-const { tableFirmware, tableModel } = require("../constants/tableName.contant");
+const {
+  tableFirmware,
+  tableModel,
+} = require("../constants/tableName.constant");
 const DatabaseModel = require("./database.model");
 
 const FirmwareSchema = require("./schema/firmware.schema");

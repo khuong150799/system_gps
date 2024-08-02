@@ -1,6 +1,6 @@
 const { validationResult } = require("express-validator");
 const { BusinessLogicError } = require("../core/error.response");
-const constants = require("../constants/msg.contant");
+const constants = require("../constants/msg.constant");
 // const statusCodes = require("../core/statusCodes");
 
 const catchAsync = (fn) => async (req, res, next) => {

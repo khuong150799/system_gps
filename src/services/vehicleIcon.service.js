@@ -2,7 +2,7 @@ const db = require("../dbs/init.mysql");
 const { BusinessLogicError } = require("../core/error.response");
 const DatabaseModel = require("../models/database.model");
 const vehicleIconModel = require("../models/vehicleIcon.model");
-const { tableVehicleIcon } = require("../constants/tableName.contant");
+const { tableVehicleIcon } = require("../constants/tableName.constant");
 const validateModel = require("../models/validate.model");
 
 const databaseModel = new DatabaseModel();

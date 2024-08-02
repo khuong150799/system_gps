@@ -2,7 +2,7 @@ const db = require("../dbs/init.mysql");
 const connectionTypeModel = require("../models/connectionType.model");
 const { BusinessLogicError } = require("../core/error.response");
 const validateModel = require("../models/validate.model");
-const { tableConnectionType } = require("../constants/tableName.contant");
+const { tableConnectionType } = require("../constants/tableName.constant");
 
 class ConnectionTypeService {
   //getallrow
@@ -42,7 +42,7 @@ class ConnectionTypeService {
   //Register
   async register(body) {
     try {
-      const { conn } = await db.getConnection();
+      const { conn, connPromise } = await db.getConnection();
       try {
         const { name } = body;
 
@@ -55,10 +55,15 @@ class ConnectionTypeService {
           "name"
         );
 
-        const res_ = await connectionTypeModel.register(conn, body);
+        const res_ = await connectionTypeModel.register(
+          conn,
+          connPromise,
+          body
+        );
 
         return res_;
       } catch (error) {
+        await connPromise.rollback();
         throw error;
       } finally {
         conn.release();

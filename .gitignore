@@ -16,6 +16,7 @@ dist/
 db.sql/
 yarn.lock
 serverCluster.js
+addDevice.js
 # Compiled Java class files
 *.class
 

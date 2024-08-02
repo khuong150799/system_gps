@@ -4,7 +4,6 @@ class DeviceSchema {
     imei,
     model_id,
     serial,
-    device_name,
     device_status_id,
     package_service_id,
     expired_on,
@@ -20,7 +19,6 @@ class DeviceSchema {
     this.imei = imei;
     this.model_id = model_id;
     this.serial = serial;
-    this.device_name = device_name;
     this.device_status_id = device_status_id;
     this.package_service_id = package_service_id;
     this.expired_on = expired_on;

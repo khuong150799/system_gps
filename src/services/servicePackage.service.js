@@ -1,7 +1,7 @@
 const db = require("../dbs/init.mysql");
 const { BusinessLogicError } = require("../core/error.response");
 const servicePackageModel = require("../models/servicePackage.model");
-const { tableServicePackage } = require("../constants/tableName.contant");
+const { tableServicePackage } = require("../constants/tableName.constant");
 const validateModel = require("../models/validate.model");
 
 class ServicePackageService {

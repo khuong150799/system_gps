@@ -1,6 +1,9 @@
-const { tableConnectionType } = require("../constants/tableName.contant");
+const { connection_type_id } = require("../constants/property.constant");
+const { tableConnectionType } = require("../constants/tableName.constant");
 const DatabaseModel = require("./database.model");
 const ConnectionTypeSchema = require("./schema/connectionType.schema");
+const WriteLogsSchema = require("./schema/writeLogs.schema");
+const writeLogModel = require("./writeLog.model");
 
 class ConnectionTypeModel extends DatabaseModel {
   constructor() {
@@ -63,17 +66,28 @@ class ConnectionTypeModel extends DatabaseModel {
   }
 
   //Register
-  async register(conn, body) {
+  async register(conn, connPromise, body, infoUser) {
     const { name, note, publish } = body;
+    const createdAt = Date.now();
     const connectionType = new ConnectionTypeSchema({
       name,
       note: note || null,
       publish,
       is_deleted: 0,
-      created_at: Date.now(),
+      created_at: createdAt,
     });
     delete connectionType.updated_at;
+    await connPromise.beginTransaction();
     const res_ = await this.insert(conn, tableConnectionType, connectionType);
+
+    await writeLogModel.post(conn, {
+      ...infoUser,
+      name,
+      module: connection_type_id,
+      createdAt,
+    });
+
+    await connPromise.commit();
     connectionType.id = res_;
     delete connectionType.is_deleted;
     return connectionType;

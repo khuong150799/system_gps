@@ -5,7 +5,7 @@ const {
   tableRole,
   tableRolePermission,
   tablePermission,
-} = require("../constants/tableName.contant");
+} = require("../constants/tableName.constant");
 
 class RoleModel extends DatabaseModel {
   constructor() {

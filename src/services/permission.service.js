@@ -1,10 +1,10 @@
 const db = require("../dbs/init.mysql");
-const { ERROR, ALREADY_EXITS } = require("../constants/msg.contant");
+const { ERROR, ALREADY_EXITS } = require("../constants/msg.constant");
 const { BusinessLogicError } = require("../core/error.response");
 
 const permissionModel = require("../models/permission.model");
 const DatabaseModel = require("../models/database.model");
-const { tablePermission } = require("../constants/tableName.contant");
+const { tablePermission } = require("../constants/tableName.constant");
 
 const databaseModel = new DatabaseModel();
 

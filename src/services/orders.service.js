@@ -12,7 +12,7 @@ const {
   NOT_PERMISSION,
   MERGE_ORDER_FAIL,
   DEVICE_IS_ACTIVED,
-} = require("../constants/msg.contant");
+} = require("../constants/msg.constant");
 const { BusinessLogicError } = require("../core/error.response");
 const DatabaseModel = require("../models/database.model");
 const ordersModel = require("../models/orders.model");
@@ -24,7 +24,7 @@ const {
   tableUsersCustomers,
   tableUsersDevices,
   tableVehicle,
-} = require("../constants/tableName.contant");
+} = require("../constants/tableName.constant");
 
 const databaseModel = new DatabaseModel();
 

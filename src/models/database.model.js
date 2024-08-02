@@ -1,5 +1,5 @@
 const configureEnvironment = require("../config/dotenv.config");
-const { ERROR, NOT_EXITS } = require("../constants/msg.contant");
+const { ERROR, NOT_EXITS } = require("../constants/msg.constant");
 
 const { DB_NAME } = configureEnvironment();
 
@@ -80,13 +80,13 @@ class DatabaseModel {
   async insert(db, tableName, data) {
     return await new Promise((resolve, reject) => {
       const query = `INSERT INTO ${tableName} SET ?`;
-      console.log("query", query);
+      // console.log("query", query);
       db.query(query, data, (err, dataRes) => {
         if (err) {
           console.log(err);
           return reject({ msg: ERROR });
         }
-        console.log("dataRes.insertId", dataRes.insertId);
+        // console.log("dataRes.insertId", dataRes.insertId);
         return resolve(dataRes.insertId);
       });
     });
@@ -476,11 +476,14 @@ class DatabaseModel {
           latitude double NOT NULL,
           longitude double NOT NULL,
           speed double NOT NULL,
+          min_speed double DEFAULT NULL,
+          max_speed double DEFAULT NULL,
           signal_quality int NOT NULL,
           rotation double NOT NULL,
           status int NOT NULL,
           status_device int DEFAULT NULL,
           distance double DEFAULT NULL,
+          total_distance double DEFAULT NULL,
           acc int NOT NULL,
           io int NOT NULL,
           syn int NOT NULL,
@@ -494,8 +497,9 @@ class DatabaseModel {
 
         ALTER TABLE ${tableName}
           ADD PRIMARY KEY (id),
-          ADD UNIQUE KEY imei (imei,time);
-
+          ADD UNIQUE KEY imei (imei,time),
+          ADD KEY license_number (license_number);
+ 
         ALTER TABLE ${tableName}
           MODIFY id bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
 
@@ -575,7 +579,8 @@ class DatabaseModel {
 
         ALTER TABLE ${tableName}
           ADD PRIMARY KEY (id),
-          ADD UNIQUE KEY idx_start_time_end_time_start_idx_end_idx_imei (start_time,end_time,start_idx,end_idx,imei);
+          ADD UNIQUE KEY idx_start_time_end_time_start_idx_end_idx_imei (start_time,end_time,start_idx,end_idx,imei),
+          ADD KEY type (type);
           
 
         ALTER TABLE ${tableName}
@@ -601,7 +606,7 @@ class DatabaseModel {
         START TRANSACTION;
         SET time_zone = "+00:00";
           CREATE TABLE ${tableName} (
-            id bigint UNSIGNED NOT NULL,
+           id bigint UNSIGNED NOT NULL,
             idx int NOT NULL,
             imei varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
             device_id int NOT NULL,
@@ -610,6 +615,8 @@ class DatabaseModel {
             end_location varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
             start_time bigint NOT NULL,
             end_time bigint NOT NULL,
+            start_distance double DEFAULT NULL,
+            end_distance double DEFAULT NULL,
             start_address text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
             end_address text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
             syn int NOT NULL,
@@ -622,6 +629,53 @@ class DatabaseModel {
           ADD PRIMARY KEY (id),
           ADD UNIQUE KEY imei (imei,start_time,end_time);
           
+
+        ALTER TABLE ${tableName}
+          MODIFY id bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
+
+        COMMIT;
+`;
+      db.query(query, (err, dataRes) => {
+        // console.log(query);
+        if (err) {
+          console.log(err);
+          return reject({ msg: ERROR });
+        }
+        return resolve(dataRes);
+      });
+    });
+  }
+
+  async createTableReportRegion(db, tableName) {
+    return await new Promise((resolve, reject) => {
+      const query = `
+        SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+        START TRANSACTION;
+        SET time_zone = "+00:00";
+          CREATE TABLE ${tableName} (
+            id int UNSIGNED NOT NULL,
+            user_id int NOT NULL,
+            license_number varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+            region_id int NOT NULL,
+            imei varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+            center varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+            radius double DEFAULT NULL,
+            coors text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+            region_type varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+            color varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+            type tinyint(1) NOT NULL COMMENT '0: inside, 1: outside',
+            is_fence tinyint(1) NOT NULL,
+            time bigint NOT NULL,
+            range_time int NOT NULL,
+            gps varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+            speed double NOT NULL,
+            des text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+            created_at bigint NOT NULL
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+        ALTER TABLE ${tableName}
+          ADD PRIMARY KEY (id),
+          ADD UNIQUE KEY idx_unique_imei_time_${tableName} (imei,time,region_id);
 
         ALTER TABLE ${tableName}
           MODIFY id bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
@@ -653,7 +707,9 @@ class DatabaseModel {
           console.log(err);
           return reject({ msg: ERROR });
         }
-        return resolve(dataRes);
+        if (dataRes?.length) return resolve(null);
+
+        return resolve(tableName);
       });
     });
   }

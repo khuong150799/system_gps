@@ -1,5 +1,9 @@
 const db = require("../dbs/init.mysql");
-const { ERROR, ALREADY_EXITS, NOT_EMPTY } = require("../constants/msg.contant");
+const {
+  ERROR,
+  ALREADY_EXITS,
+  NOT_EMPTY,
+} = require("../constants/msg.constant");
 const { BusinessLogicError } = require("../core/error.response");
 const DatabaseModel = require("../models/database.model");
 const modelModel = require("../models/model.model");

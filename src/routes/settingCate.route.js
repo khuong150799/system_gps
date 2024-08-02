@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const { VALIDATE_DATA, NOT_EMPTY } = require("../constants/msg.contant");
+const { VALIDATE_DATA, NOT_EMPTY } = require("../constants/msg.constant");
 const { body, query, param } = require("express-validator");
 const { isAuth } = require("../middlewares/jwt.middleware");
 const {
@@ -15,15 +15,15 @@ module.exports = (app) => {
       query("is_deleted").escape(),
       query("publish").escape(),
     ],
-    isAuth,
-    checkPermission,
+    // isAuth,
+    // checkPermission,
     settingCateController.getAllRows
   );
   router.get(
     "/detail/:id",
     [param("id", VALIDATE_DATA).isNumeric()],
-    isAuth,
-    checkPermission,
+    // isAuth,
+    // checkPermission,
     settingCateController.getById
   );
 
@@ -37,8 +37,8 @@ module.exports = (app) => {
         .escape(),
     ],
 
-    isAuth,
-    checkPermission,
+    // isAuth,
+    // checkPermission,
     settingCateController.register
   );
   router.put(
@@ -51,16 +51,16 @@ module.exports = (app) => {
         .withMessage(VALIDATE_DATA)
         .escape(),
     ],
-    isAuth,
-    checkPermission,
+    // isAuth,
+    // checkPermission,
     settingCateController.updateById
   );
 
   router.delete(
     "/delete/:id",
     [param("id", VALIDATE_DATA).isNumeric()],
-    isAuth,
-    checkPermission,
+    // isAuth,
+    // checkPermission,
     settingCateController.deleteById
   );
   router.patch(
@@ -69,8 +69,8 @@ module.exports = (app) => {
       param("id", VALIDATE_DATA).isNumeric(),
       body("publish", VALIDATE_DATA).isNumeric(),
     ],
-    isAuth,
-    checkPermission,
+    // isAuth,
+    // checkPermission,
     settingCateController.updatePublish
   );
 
@@ -80,8 +80,8 @@ module.exports = (app) => {
       param("id", VALIDATE_DATA).isNumeric(),
       body("sort", VALIDATE_DATA).isNumeric(),
     ],
-    isAuth,
-    checkPermission,
+    // isAuth,
+    // checkPermission,
     settingCateController.updateSort
   );
 

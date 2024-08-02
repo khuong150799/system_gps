@@ -2,6 +2,7 @@ class SettingSchema {
   constructor({
     title,
     keyword,
+    setting_cate_id,
     sort,
     on_default,
     is_disabled,
@@ -12,6 +13,7 @@ class SettingSchema {
   }) {
     this.title = title;
     this.keyword = keyword;
+    this.setting_cate_id = setting_cate_id;
     this.sort = sort;
     this.on_default = on_default;
     this.is_disabled = is_disabled;

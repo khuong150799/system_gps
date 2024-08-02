@@ -1,10 +1,10 @@
-const { REDIS_KEY_LIST_IMEI_OF_USERS } = require("../constants/redis.contant");
+const { REDIS_KEY_LIST_IMEI_OF_USERS } = require("../constants/redis.constant");
 const { initialNameOfTableGps } = require("../constants/setting.constant");
 const {
   tableDevice,
   tableVehicle,
   tableUsersDevices,
-} = require("../constants/tableName.contant");
+} = require("../constants/tableName.constant");
 const getTableName = require("../ultils/getTableName");
 const DatabaseModel = require("./database.model");
 const { hSet: hsetRedis, expire: expireRedis } = require("./redis.model");

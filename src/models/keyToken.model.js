@@ -1,4 +1,4 @@
-const { tableKeyToken } = require("../constants/tableName.contant");
+const { tableKeyToken } = require("../constants/tableName.constant");
 const DatabaseModel = require("./database.model");
 const KeyTokenSchema = require("./schema/keyToken.schema");
 

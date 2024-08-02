@@ -4,7 +4,7 @@ const {
   tableSetting,
   tableUsersSetting,
   tableSettingCate,
-} = require("../constants/tableName.contant");
+} = require("../constants/tableName.constant");
 const SettingSchema = require("./schema/setting.schema");
 
 class SettingModel extends DatabaseModel {
@@ -44,7 +44,7 @@ class SettingModel extends DatabaseModel {
         offset,
         limit
       ),
-      this.count(conn, tableRole, "*", where, conditions),
+      this.count(conn, tableSetting, "*", where, conditions),
     ]);
 
     const totalPage = Math.ceil(count?.[0]?.total / limit);
@@ -54,27 +54,27 @@ class SettingModel extends DatabaseModel {
 
   //getlist
   async getList(conn, userId) {
-    let where = `sc.is_deleted = ? AND sc.publish = ? AND s.is_deleted = ? AND s.publish = ? AND us.user_id = ?`;
+    let where = `sc.is_deleted = ? AND sc.publish = ? AND s.is_deleted = ? AND s.publish = ?`;
+
+    const joinTable = `${tableSettingCate} sc INNER JOIN ${tableSetting} s ON sc.id = s.setting_cate_id 
+      LEFT JOIN ${tableUsersSetting} us ON s.id = us.setting_id AND us.user_id = ?`;
+
     const conditions = [0, 0, 0, 0, userId];
-
-    const joinTable = `${tableSettingCate} sc INNER JOIN ${tableSetting} s ON sc.id = s.setting_id 
-      LEFT JOIN ${tableUsersSetting}us ON s.id = us.setting_id`;
-
     const select =
-      "sc.title,JSON_ARRAYAGG(JSON_OBJECT('id', s.id,'title', s.title,'is_disabled':us.is_disabled)) AS setting,";
+      "sc.title,JSON_ARRAYAGG(JSON_OBJECT('id', s.id,'title', s.title,'is_disabled',us.is_disabled)) AS setting";
     const data = await this.select(
       conn,
       joinTable,
       select,
       where,
       conditions,
-      "sort",
+      "sc.sort,s.sort",
       "ASC",
       0,
       9999999
     );
 
-    return { data: res_, totalPage: 0, totalRecord: 0 };
+    return data;
   }
 
   //getbyid
@@ -97,10 +97,19 @@ class SettingModel extends DatabaseModel {
 
   //Register
   async register(conn, body) {
-    const { title, keyword, sort, on_default, is_disabled, publish } = body;
+    const {
+      title,
+      keyword,
+      setting_cate_id,
+      sort,
+      on_default,
+      is_disabled,
+      publish,
+    } = body;
     const setting = new SettingSchema({
       title,
       keyword,
+      setting_cate_id,
       on_default: on_default || 0,
       is_disabled: is_disabled || 0,
       publish,
@@ -132,12 +141,21 @@ class SettingModel extends DatabaseModel {
 
   //update
   async updateById(conn, body, params) {
-    const { title, keyword, sort, on_default, is_disabled, publish } = body;
+    const {
+      title,
+      keyword,
+      setting_cate_id,
+      sort,
+      on_default,
+      is_disabled,
+      publish,
+    } = body;
     const { id } = params;
 
     const setting = new SettingSchema({
       title,
       keyword,
+      setting_cate_id,
       on_default,
       is_disabled,
       publish,

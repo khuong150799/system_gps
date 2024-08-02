@@ -5,10 +5,8 @@ const settingService = require("../services/setting.service");
 class SettingCateController {
   getAllRows = catchAsync(async (req, res) => {
     const query = req.query;
-    const role = req.role;
     const { data, totalPage, totalRecord } = await settingService.getallrows(
-      query,
-      role
+      query
     );
 
     GET(res, data, totalPage, totalRecord);

@@ -1,4 +1,4 @@
-const { tableLicenseType } = require("../constants/tableName.contant");
+const { tableLicenseType } = require("../constants/tableName.constant");
 const DatabaseModel = require("./database.model");
 
 class LicenseTypeModel extends DatabaseModel {

@@ -2,7 +2,7 @@ const db = require("../dbs/init.mysql");
 const levelModel = require("../models/level.model");
 const { BusinessLogicError } = require("../core/error.response");
 const validateModel = require("../models/validate.model");
-const { tableLevel } = require("../constants/tableName.contant");
+const { tableLevel } = require("../constants/tableName.constant");
 
 class LevelService {
   async getallrows(query, level) {

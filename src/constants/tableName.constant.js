@@ -35,4 +35,7 @@ module.exports = {
   tableSettingCate: "tbl_setting_cate",
   tableSetting: "tbl_setting",
   tableUsersSetting: "tbl_users_setting",
+  tableVersion: "tbl_version",
+  tableWriteLogs: "tbl_write_logs",
+  tableInterface: "tbl_interface",
 };

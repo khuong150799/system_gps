@@ -1,6 +1,5 @@
 const DatabaseModel = require("./database.model");
 const PermissionSchema = require("./schema/permission.schema");
-const { REDIS_PROPERTY_PERMISSION } = require("../constants/msg.contant");
 const {
   set: setRedis,
   setWithExpired: setRedisWithExpired,
@@ -11,7 +10,8 @@ const {
   tableRolePermission,
   tableLevel,
   tableLevelPermission,
-} = require("../constants/tableName.contant");
+} = require("../constants/tableName.constant");
+const { REDIS_KEY_PERMISSION } = require("../constants/redis.constant");
 
 class PermissionModel extends DatabaseModel {
   constructor() {
@@ -40,7 +40,7 @@ class PermissionModel extends DatabaseModel {
       100000
     );
     if (!res.length) {
-      await setRedisWithExpired(REDIS_PROPERTY_PERMISSION, JSON.stringify([]));
+      await setRedisWithExpired(REDIS_KEY_PERMISSION, JSON.stringify([]));
       return [];
     }
 
@@ -52,7 +52,7 @@ class PermissionModel extends DatabaseModel {
       return result;
     }, {});
 
-    await setRedis(REDIS_PROPERTY_PERMISSION, JSON.stringify(formatData));
+    await setRedis(REDIS_KEY_PERMISSION, JSON.stringify(formatData));
     return formatData;
   }
 

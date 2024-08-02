@@ -5,7 +5,7 @@ const {
   PASS_OLD_FAILED,
   ACCOUNT_FAILED,
   NOT_ADD_DEVICE,
-} = require("../constants/msg.contant");
+} = require("../constants/msg.constant");
 
 const bcrypt = require("bcrypt");
 
@@ -22,7 +22,7 @@ const {
   tableUsersRole,
   tableUsersCustomers,
   tableLevel,
-} = require("../constants/tableName.contant");
+} = require("../constants/tableName.constant");
 
 const databaseModel = new DatabaseModel();
 

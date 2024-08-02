@@ -1,4 +1,4 @@
-const { tableServicePackage } = require("../constants/tableName.contant");
+const { tableServicePackage } = require("../constants/tableName.constant");
 const DatabaseModel = require("./database.model");
 const ServicePackageSchema = require("./schema/servicePackage.schema");
 

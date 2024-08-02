@@ -4,7 +4,7 @@ const {
   tableModelConnectionType,
   tableConnectionType,
   tableModelType,
-} = require("../constants/tableName.contant");
+} = require("../constants/tableName.constant");
 const DatabaseModel = require("./database.model");
 const deviceModel = require("./device.model");
 const ModelSchema = require("./schema/model.schema");

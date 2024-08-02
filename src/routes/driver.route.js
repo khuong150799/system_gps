@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const { NOT_EMPTY, VALIDATE_DATA } = require("../constants/msg.contant");
+const { NOT_EMPTY, VALIDATE_DATA } = require("../constants/msg.constant");
 const driverController = require("../controllers/driver.controller");
 const { body, query, param } = require("express-validator");
 const { isAuth } = require("../middlewares/jwt.middleware");
@@ -44,7 +44,7 @@ module.exports = (app) => {
         .withMessage(VALIDATE_DATA),
     ],
     isAuth,
-    // checkPermission,
+    checkPermission,
     driverController.wirteCard
   );
   router.post(

@@ -1,6 +1,6 @@
 const DatabaseModel = require("./database.model");
 const DeviceStatusSchema = require("./schema/deviceStatus.schema");
-const { tableDeviceStatus } = require("../constants/tableName.contant");
+const { tableDeviceStatus } = require("../constants/tableName.constant");
 
 class DeviceStatusModel extends DatabaseModel {
   constructor() {

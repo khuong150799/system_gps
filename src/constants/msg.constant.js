@@ -55,7 +55,6 @@ const constants = {
   LOGIN_SUCCESS: "Đăng nhập thành công",
   LOGOUT_SUCCESS: "Đăng xuất thành công",
   REFRESH_TOKEN_SUCCESS: "Lấy token thành công",
-  REDIS_PROPERTY_PERMISSION: "permission",
   DEVICE_IS_READY: "Thiết bị đã sẳn sàng kích hoạt",
   DEVICE_IS_ACTIVED: "Thiết bị đã được kích hoạt",
   DEVICE_CANNOT_ACTIVATE: "Thiết bị Không thể kích hoạt",
@@ -67,6 +66,9 @@ const constants = {
   WRITE_CARD_FAIL: "Ghi thẻ thất bại",
   WRITE_CARD_SUCCESS: "Ghi thẻ thành công",
   WRITE_CARD_NOT_PERMISSION: "Không có quyền ghi thẻ với thiết bị này",
+  TOO_MANY_FILE: "Tối đa 5 image",
+  IMAGE_OVER_SIZE: "quá 2MB",
+  IMAGE_TYPE_FAIL: "không đúng định dạng",
 };
 
 module.exports = constants;

@@ -3,7 +3,7 @@ const db = require("../dbs/init.mysql");
 const { BusinessLogicError } = require("../core/error.response");
 
 const vehicleTypeModel = require("../models/vehicleType.model");
-const { tableVehicleType } = require("../constants/tableName.contant");
+const { tableVehicleType } = require("../constants/tableName.constant");
 const validateModel = require("../models/validate.model");
 
 class VehicleTypeService {

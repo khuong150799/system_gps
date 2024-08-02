@@ -4,11 +4,11 @@ const {
   ERROR,
   ALREADY_EXITS,
   WRITE_CARD_NOT_PERMISSION,
-} = require("../constants/msg.contant");
+} = require("../constants/msg.constant");
 const { BusinessLogicError } = require("../core/error.response");
 const DatabaseModel = require("../models/database.model");
 const validateModel = require("../models/validate.model");
-const { tableDriver } = require("../constants/tableName.contant");
+const { tableDriver } = require("../constants/tableName.constant");
 
 const databaseModel = new DatabaseModel();
 

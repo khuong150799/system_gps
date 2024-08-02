@@ -1,6 +1,6 @@
 const db = require("../dbs/init.mysql");
 const { BusinessLogicError } = require("../core/error.response");
-const { tableSettingCate } = require("../constants/tableName.contant");
+const { tableSettingCate } = require("../constants/tableName.constant");
 const validateModel = require("../models/validate.model");
 const settingCateModel = require("../models/settingCate.model");
 

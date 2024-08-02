@@ -6,7 +6,7 @@ const {
   DEVICE_CANNOT_ACTIVATE,
   ERROR,
   NOT_OWN,
-} = require("../constants/msg.contant");
+} = require("../constants/msg.constant");
 const VehicleSchema = require("./schema/vehicle.schema");
 const {
   tableDevice,
@@ -24,19 +24,20 @@ const {
   tableUsers,
   tableVehicleType,
   tableVehicleIcon,
-} = require("../constants/tableName.contant");
+} = require("../constants/tableName.constant");
 const { hSet: hsetRedis, expire: expireRedis } = require("./redis.model");
 const {
   REDIS_KEY_LIST_DEVICE,
   REDIS_KEY_DEVICE_SPAM,
   REDIS_KEY_LIST_IMEI_OF_USERS,
-} = require("../constants/redis.contant");
+} = require("../constants/redis.constant");
 const getTableName = require("../ultils/getTableName");
 const {
   initialNameOfTableGps,
   initialNameOfTableSpeed,
   initialNameOfTableReportOneDay,
   initialNameOfTableRunning,
+  initialNameOfTableReportRegion,
 } = require("../constants/setting.constant");
 const usersModel = require("./users.model");
 const { makeCode } = require("../ultils/makeCode");
@@ -500,23 +501,30 @@ class DeviceModel extends DatabaseModel {
       device_id
     );
     const tableContinuous = getTableName(initialNameOfTableRunning, device_id);
+    const tableReportRegion = getTableName(
+      initialNameOfTableReportRegion,
+      device_id
+    );
 
     const listTable = await Promise.all([
       this.checkTableExit(conn, tableGps),
       this.checkTableExit(conn, tableSpeed),
       this.checkTableExit(conn, tableReportOneDay),
       this.checkTableExit(conn, tableContinuous),
+      this.checkTableExit(conn, tableReportRegion),
     ]);
 
     const listTableCreate = listTable.map((item, i) => {
-      if (item?.length <= 0 && i === 0)
-        return this.createTableDeviceGps(conn, tableGps);
-      if (item?.length <= 0 && i === 1)
-        return this.createTableDeviceSpeed(conn, tableSpeed);
-      if (item?.length <= 0 && i === 2)
-        return this.createTableReportOneDay(conn, tableReportOneDay);
-      if (item?.length <= 0 && i === 3)
-        return this.createTableReportContinuous(conn, tableContinuous);
+      if (item && item.includes(initialNameOfTableGps))
+        return this.createTableDeviceGps(conn, item);
+      if (item && item.includes(initialNameOfTableSpeed))
+        return this.createTableDeviceSpeed(conn, item);
+      if (item && item.includes(initialNameOfTableReportOneDay))
+        return this.createTableReportOneDay(conn, item);
+      if (item && item.includes(initialNameOfTableRunning))
+        return this.createTableReportContinuous(conn, item);
+      if (item && item.includes(initialNameOfTableReportRegion))
+        return this.createTableReportRegion(conn, item);
     });
 
     if (listTableCreate?.length > 0) {
@@ -632,41 +640,42 @@ class DeviceModel extends DatabaseModel {
       device_id
     );
     const tableContinuous = getTableName(initialNameOfTableRunning, device_id);
+    const tableReportRegion = getTableName(
+      initialNameOfTableReportRegion,
+      device_id
+    );
 
     const listTable = await Promise.all([
       this.checkTableExit(conn, tableGps),
       this.checkTableExit(conn, tableSpeed),
       this.checkTableExit(conn, tableReportOneDay),
       this.checkTableExit(conn, tableContinuous),
+      this.checkTableExit(conn, tableReportRegion),
     ]);
 
     const listTableCreate = listTable.map((item, i) => {
-      if (item?.length <= 0 && i === 0)
-        return this.createTableDeviceGps(conn, tableGps);
-      if (item?.length <= 0 && i === 1)
-        return this.createTableDeviceSpeed(conn, tableSpeed);
-      if (item?.length <= 0 && i === 2)
-        return this.createTableReportOneDay(conn, tableReportOneDay);
-      if (item?.length <= 0 && i === 3)
-        return this.createTableReportContinuous(conn, tableContinuous);
+      if (item && item.includes(initialNameOfTableGps))
+        return this.createTableDeviceGps(conn, item);
+      if (item && item.includes(initialNameOfTableSpeed))
+        return this.createTableDeviceSpeed(conn, item);
+      if (item && item.includes(initialNameOfTableReportOneDay))
+        return this.createTableReportOneDay(conn, item);
+      if (item && item.includes(initialNameOfTableRunning))
+        return this.createTableReportContinuous(conn, item);
+      if (item && item.includes(initialNameOfTableReportRegion))
+        return this.createTableReportRegion(conn, item);
     });
 
     if (listTableCreate?.length > 0) {
       await Promise.all(listTableCreate);
     }
-    console.log(12345);
     const inforDevice = await this.getWithImei(conn, imei);
 
     if (!inforDevice?.length) throw { msg: ERROR };
-    console.log(76543);
     await vehicleModel.removeListDeviceOfUsersRedis(conn, device_id);
-    console.log(8765423456);
 
-    console.log("connPromise", connPromise);
     await connPromise.commit();
-    console.log(1119876543);
     await Promise.all([expireRedis(`${REDIS_KEY_DEVICE_SPAM}/${imei}`, -1)]);
-    console.log(456787654345678);
     return [];
   }
 
@@ -686,7 +695,6 @@ class DeviceModel extends DatabaseModel {
       is_deleted: 0,
       created_at: Date.now(),
     });
-    delete device.device_name;
     delete device.package_service_id;
     delete device.expired_on;
     delete device.activation_date;
@@ -749,7 +757,6 @@ class DeviceModel extends DatabaseModel {
       updated_at: Date.now(),
     });
     // console.log(id)
-    delete device.device_name;
     delete device.package_service_id;
     delete device.expired_on;
     delete device.activation_date;

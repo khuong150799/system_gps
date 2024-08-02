@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const constants = require("../constants/msg.contant");
+const constants = require("../constants/msg.constant");
 const moduleController = require("../controllers/module.controller");
 const { body } = require("express-validator");
 const { isAuth } = require("../middlewares/jwt.middleware");

@@ -12,7 +12,7 @@ const {
   REFRESH_TOKEN_SECRET_KEY,
   ERROR,
   ERROR_STRUCTURE_MOVE_AGENCY,
-} = require("../constants/msg.contant");
+} = require("../constants/msg.constant");
 
 const bcrypt = require("bcrypt");
 const {
@@ -34,7 +34,7 @@ const {
   tableUsersRole,
   tableDevice,
   tableVehicle,
-} = require("../constants/tableName.contant");
+} = require("../constants/tableName.constant");
 const validateModel = require("./validate.model");
 const vehicleModel = require("./vehicle.model");
 

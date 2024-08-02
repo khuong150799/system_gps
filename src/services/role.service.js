@@ -1,7 +1,7 @@
 const db = require("../dbs/init.mysql");
 const { BusinessLogicError } = require("../core/error.response");
 const roleModel = require("../models/role.model");
-const { tableRole } = require("../constants/tableName.contant");
+const { tableRole } = require("../constants/tableName.constant");
 const validateModel = require("../models/validate.model");
 
 class RoleService {

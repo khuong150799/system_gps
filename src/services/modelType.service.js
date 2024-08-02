@@ -2,7 +2,7 @@ const db = require("../dbs/init.mysql");
 const { BusinessLogicError } = require("../core/error.response");
 const modelTypeModel = require("../models/modelType.model");
 const validateModel = require("../models/validate.model");
-const { tableModelType } = require("../constants/tableName.contant");
+const { tableModelType } = require("../constants/tableName.constant");
 
 class ModelTypeService {
   //getallrow

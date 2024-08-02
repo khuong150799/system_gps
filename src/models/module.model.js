@@ -2,7 +2,7 @@ const {
   tableModule,
   tableLevelModule,
   tableLevel,
-} = require("../constants/tableName.contant");
+} = require("../constants/tableName.constant");
 const DatabaseModel = require("./database.model");
 const ModuleSchema = require("./schema/module.schema");
 

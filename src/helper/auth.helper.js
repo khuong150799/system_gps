@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const constants = require("../constants/msg.contant");
+const constants = require("../constants/msg.constant");
 
 const keyTokenService = require("../services/keyToken.service");
 const {

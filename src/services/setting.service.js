@@ -2,15 +2,15 @@ const db = require("../dbs/init.mysql");
 const { BusinessLogicError } = require("../core/error.response");
 const validateModel = require("../models/validate.model");
 const settingModel = require("../models/setting.model");
-const { tableSetting } = require("../constants/tableName.contant");
+const { tableSetting } = require("../constants/tableName.constant");
 
 class SettingService {
   //getallrow
-  async getallrows(query, role) {
+  async getallrows(query) {
     try {
       const { conn } = await db.getConnection();
       try {
-        const data = await settingModel.getallrows(conn, query, role);
+        const data = await settingModel.getallrows(conn, query);
         return data;
       } catch (error) {
         throw error;
@@ -18,6 +18,7 @@ class SettingService {
         conn.release();
       }
     } catch (error) {
+      console.log(error);
       throw new BusinessLogicError(error.msg);
     }
   }
@@ -52,6 +53,7 @@ class SettingService {
         conn.release();
       }
     } catch (error) {
+      console.log(error);
       throw new BusinessLogicError(error.msg);
     }
   }

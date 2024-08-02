@@ -2,7 +2,7 @@ const db = require("../dbs/init.mysql");
 const { BusinessLogicError } = require("../core/error.response");
 const ordersStatusModel = require("../models/ordersStatus.model");
 const validateModel = require("../models/validate.model");
-const { tableOrdersStatus } = require("../constants/tableName.contant");
+const { tableOrdersStatus } = require("../constants/tableName.constant");
 
 class OrdersStatusService {
   //getallrow
