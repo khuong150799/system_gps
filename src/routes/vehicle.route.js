@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const { VALIDATE_DATA, NOT_EMPTY } = require("../constants/msg.constant");
-const { query, param } = require("express-validator");
+const { query, param, body } = require("express-validator");
 const { isAuth } = require("../middlewares/jwt.middleware");
 const {
   checkPermission,
@@ -8,28 +8,31 @@ const {
 const vehicleController = require("../controllers/vehicle.controller");
 
 module.exports = (app) => {
-  router.get(
-    "/playback/:imei",
+  router.put(
+    "/update/:id",
     [
-      param("imei", NOT_EMPTY)
-        .notEmpty()
-        .isString()
-        .withMessage(VALIDATE_DATA)
-        .escape(),
-      query("start_date", NOT_EMPTY)
+      param("id", VALIDATE_DATA).isNumeric(),
+      body("name", NOT_EMPTY).notEmpty().isString().withMessage(VALIDATE_DATA),
+      body("service_package_id", NOT_EMPTY)
         .notEmpty()
         .isNumeric()
-        .withMessage(VALIDATE_DATA)
-        .escape(),
-      query("end_date", NOT_EMPTY)
+        .withMessage(VALIDATE_DATA),
+      body("vehicle_type_id", NOT_EMPTY)
         .notEmpty()
         .isNumeric()
-        .withMessage(VALIDATE_DATA)
-        .escape(),
+        .withMessage(VALIDATE_DATA),
+      body("quantity_channel", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA),
+      body("weight", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA),
     ],
     isAuth,
     checkPermission,
-    vehicleController.playback
+    vehicleController.updateById
   );
 
   app.use("/api/v1/vehicle", router);

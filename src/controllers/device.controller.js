@@ -70,22 +70,23 @@ class DeviceController {
   });
 
   register = catchAsync(async (req, res) => {
-    const body = req.body;
-    const userId = req.userId;
-    const data = await deviceService.register(body, userId);
+    const { body, userId } = req;
+    const infoUser = { user_id: userId, ip: null, os: null, gps: null };
+    const data = await deviceService.register(body, userId, infoUser);
     CREATED(res, [data]);
   });
 
   updateById = catchAsync(async (req, res) => {
-    const body = req.body;
-    const params = req.params;
-    const data = await deviceService.updateById(body, params);
+    const { body, params, userId } = req;
+    const infoUser = { user_id: userId, ip: null, os: null, gps: null };
+    const data = await deviceService.updateById(body, params, infoUser);
     UPDATE(res, [data]);
   });
 
   deleteById = catchAsync(async (req, res) => {
-    const params = req.params;
-    const data = await deviceService.deleteById(params);
+    const { params, userId } = req;
+    const infoUser = { user_id: userId, ip: null, os: null, gps: null };
+    const data = await deviceService.deleteById(params, infoUser);
     DELETE(res, data);
   });
 }

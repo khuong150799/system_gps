@@ -40,7 +40,7 @@ class ConnectionTypeService {
   }
 
   //Register
-  async register(body) {
+  async register(body, infoUser) {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
@@ -58,7 +58,8 @@ class ConnectionTypeService {
         const res_ = await connectionTypeModel.register(
           conn,
           connPromise,
-          body
+          body,
+          infoUser
         );
 
         return res_;
@@ -75,9 +76,9 @@ class ConnectionTypeService {
   }
 
   //update
-  async updateById(body, params) {
+  async updateById(body, params, infoUser) {
     try {
-      const { conn } = await db.getConnection();
+      const { conn, connPromise } = await db.getConnection();
       try {
         const { name } = body;
         const { id } = params;
@@ -92,9 +93,16 @@ class ConnectionTypeService {
           id
         );
 
-        const data = await connectionTypeModel.updateById(conn, body, params);
+        const data = await connectionTypeModel.updateById(
+          conn,
+          connPromise,
+          body,
+          params,
+          infoUser
+        );
         return data;
       } catch (error) {
+        await connPromise.rollback();
         throw error;
       } finally {
         conn.release();

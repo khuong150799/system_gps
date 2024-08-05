@@ -18,15 +18,16 @@ class ConnectionTypeController {
   });
 
   register = catchAsync(async (req, res) => {
-    const body = req.body;
-    const data = await connectionTypeService.register(body);
+    const { body, userId } = req;
+    const infoUser = { user_id: userId || null, ip: null, os: null };
+    const data = await connectionTypeService.register(body, infoUser);
     CREATED(res, [data]);
   });
 
   updateById = catchAsync(async (req, res) => {
-    const body = req.body;
-    const params = req.params;
-    const data = await connectionTypeService.updateById(body, params);
+    const { body, params, userId } = req;
+    const infoUser = { user_id: userId || null, ip: null, os: null };
+    const data = await connectionTypeService.updateById(body, params, infoUser);
     UPDATE(res, [data]);
   });
 

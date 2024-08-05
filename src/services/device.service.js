@@ -240,7 +240,7 @@ class DeviceService {
   }
 
   //Register
-  async register(body, userId) {
+  async register(body, userId, infoUser) {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
@@ -252,8 +252,10 @@ class DeviceService {
           conn,
           connPromise,
           body,
-          userId
+          userId,
+          infoUser
         );
+        console.log("device", device);
         return device;
       } catch (error) {
         await connPromise.rollback();
@@ -268,37 +270,45 @@ class DeviceService {
   }
 
   //update
-  async updateById(body, params) {
+  async updateById(body, params, infoUser) {
     try {
-      const { conn } = await db.getConnection();
+      const { conn, connPromise } = await db.getConnection();
       try {
         const { dev_id, imei } = body;
         const { id } = params;
 
         await this.validate(conn, dev_id, imei, id);
 
-        const device = await deviceModel.updateById(conn, body, params);
+        const device = await deviceModel.updateById(
+          conn,
+          connPromise,
+          body,
+          params,
+          infoUser
+        );
         return device;
       } catch (error) {
+        await connPromise.rollback();
         throw error;
       } finally {
         conn.release();
       }
     } catch (error) {
+      console.log("error", error);
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
     }
   }
 
   //delete
-  async deleteById(params) {
+  async deleteById(params, infoUser) {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
-        await deviceModel.deleteById(conn, connPromise, params);
+        await deviceModel.deleteById(conn, connPromise, params, infoUser);
         return [];
       } catch (error) {
-        connPromise.rollback();
+        await connPromise.rollback();
         throw error;
       } finally {
         conn.release();

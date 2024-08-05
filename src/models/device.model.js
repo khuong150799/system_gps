@@ -42,6 +42,7 @@ const {
 const usersModel = require("./users.model");
 const { makeCode } = require("../ultils/makeCode");
 const vehicleModel = require("./vehicle.model");
+const deviceLoggingModel = require("./deviceLogging.model");
 
 class DeviceModel extends DatabaseModel {
   constructor() {
@@ -273,7 +274,7 @@ class DeviceModel extends DatabaseModel {
         offset,
         limit
       ),
-      this.count(conn, joinTable, "*", where, conditions),
+      this.count(conn, joinTable, "DISTINCT d.id", `${where}`, conditions),
     ]);
 
     const totalPage = Math.ceil(count?.[0]?.total / limit);
@@ -680,9 +681,9 @@ class DeviceModel extends DatabaseModel {
   }
 
   //Register
-  async register(conn, connPromise, body, userId) {
+  async register(conn, connPromise, body, userId, infoUser) {
     const { dev_id, imei, model_id, serial, note } = body;
-
+    const createdAt = Date.now();
     await connPromise.beginTransaction();
 
     const device = new DeviceSchema({
@@ -693,7 +694,7 @@ class DeviceModel extends DatabaseModel {
       note: note || null,
       device_status_id: 1,
       is_deleted: 0,
-      created_at: Date.now(),
+      created_at: createdAt,
     });
     delete device.package_service_id;
     delete device.expired_on;
@@ -731,9 +732,18 @@ class DeviceModel extends DatabaseModel {
       conn,
       tableUsersDevices,
       "user_id,device_id,is_deleted,is_main,is_moved,created_at",
-      [[userId, res_, 0, 1, 0, Date.now()]],
+      [[userId, res_, 0, 1, 0, createdAt]],
       "is_deleted=VALUES(is_deleted)"
     );
+
+    const dataSaveLog = {
+      ...infoUser,
+      device_id: res_,
+      action: "Thêm",
+      createdAt,
+    };
+
+    await deviceLoggingModel.postOrDelete(conn, dataSaveLog);
 
     await connPromise.commit();
 
@@ -743,7 +753,7 @@ class DeviceModel extends DatabaseModel {
   }
 
   //update
-  async updateById(conn, body, params) {
+  async updateById(conn, connPromise, body, params, infoUser) {
     const { dev_id, imei, model_id, serial, device_status_id, note } = body;
     const { id } = params;
 
@@ -764,15 +774,35 @@ class DeviceModel extends DatabaseModel {
     delete device.vehicle_type_id;
     delete device.is_deleted;
     delete device.created_at;
-
+    await connPromise.beginTransaction();
+    const [dataOld, dataModel, dataStatus] = await Promise.all([
+      this.select(
+        conn,
+        tableDevice,
+        "dev_id,imei,model_id,serial,note,device_status_id",
+        "id = ?",
+        id
+      ),
+      this.select(conn, tableModel, "id,name", "1 = ?", 1),
+      this.select(conn, tableDeviceStatus, "id,title", "1 = ?", 1),
+    ]);
     await this.update(conn, tableDevice, device, "id", id);
     await this.getWithImei(conn, null, id);
+    await deviceLoggingModel.update(conn, {
+      dataModel,
+      dataStatus,
+      dataOld: dataOld[0],
+      dataNew: { ...device },
+      ...infoUser,
+      device_id: id,
+    });
+    await connPromise.commit();
     device.id = id;
     return device;
   }
 
   //delete
-  async deleteById(conn, connPromise, params) {
+  async deleteById(conn, connPromise, params, infoUser) {
     const { id } = params;
     await connPromise.beginTransaction();
 
@@ -784,24 +814,14 @@ class DeviceModel extends DatabaseModel {
       "device_id",
       id
     );
-    await connPromise.commit();
-    await this.getWithImei(conn, null, id);
-    return [];
-  }
+    const dataSaveLog = {
+      ...infoUser,
+      device_id: id,
+      action: "Xoá",
+      createdAt: Date.now(),
+    };
 
-  //delete
-  async deleteById(conn, connPromise, params) {
-    const { id } = params;
-    await connPromise.beginTransaction();
-
-    await this.update(conn, tableUsersDevices, { is_deleted: 1 }, "id", id);
-    await this.update(
-      conn,
-      tableUsersDevices,
-      { is_deleted: 1 },
-      "device_id",
-      id
-    );
+    await deviceLoggingModel.postOrDelete(conn, dataSaveLog);
     await connPromise.commit();
     await this.getWithImei(conn, null, id);
     return [];

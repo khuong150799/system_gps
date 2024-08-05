@@ -37,6 +37,7 @@ const {
 } = require("../constants/tableName.constant");
 const validateModel = require("./validate.model");
 const vehicleModel = require("./vehicle.model");
+const deviceLoggingModel = require("./deviceLogging.model");
 
 class UsersModel extends DatabaseModel {
   constructor() {
@@ -395,27 +396,55 @@ class UsersModel extends DatabaseModel {
     return [user];
   }
 
-  async registerDevices(conn, body, params) {
+  async registerDevices(conn, connPromise, body, params, infoUser) {
     const { id } = params;
     const { devices } = body;
+    const { user_id, ip, os, gps } = infoUser;
     const listDevice = JSON.parse(devices, "[]");
 
-    const dataInsert = listDevice.map((item) => [
-      id,
-      item,
-      0,
-      0,
-      1,
-      Date.now(),
-    ]);
+    const infoReciver = await this.select(
+      conn,
+      tableUsers,
+      "username",
+      "id = ?",
+      id
+    );
+    const { dataAssign, dataLogs } = listDevice.reduce(
+      (result, item) => {
+        result.dataAssign = [
+          ...result.dataAssign,
+          [id, item, 0, 0, 1, Date.now()],
+        ];
+        result.dataLogs = [
+          ...result.dataLogs,
+          [
+            user_id,
+            ip,
+            os,
+            gps,
+            item,
+            "Gán",
+            `Gán cho tài khoản ${infoReciver[0].username}`,
+            0,
+            Date.now(),
+          ],
+        ];
+        return result;
+      },
+      { dataAssign: [], dataLogs: [] }
+    );
+
+    await connPromise.beginTransaction();
     await this.insertDuplicate(
       conn,
       tableUsersDevices,
       "user_id,device_id,is_main,is_deleted,is_moved,created_at",
-      dataInsert,
+      dataAssign,
       `is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved)`
     );
     await vehicleModel.removeListDeviceOfUsersRedis(conn, "", listDevice);
+    await deviceLoggingModel.postMulti(conn, dataLogs);
+    await connPromise.commit();
     return [];
   }
 
@@ -566,9 +595,18 @@ class UsersModel extends DatabaseModel {
   }
 
   //delete device
-  async deleteDevice(conn, params, body) {
+  async deleteDevice(conn, connPromise, params, body, infoUser) {
     const { id: userId } = params;
     const { device_id } = body;
+
+    await connPromise.beginTransaction();
+    const infoReciver = await this.select(
+      conn,
+      tableUsers,
+      "username",
+      "id = ?",
+      userId
+    );
     await this.update(
       conn,
       tableUsersDevices,
@@ -580,6 +618,15 @@ class UsersModel extends DatabaseModel {
       "user_id = ? AND device_id = ? AND is_main = ?"
     );
     await vehicleModel.removeListDeviceOfUsersRedis(conn, device_id);
+    const dataSaveLog = {
+      ...infoUser,
+      device_id,
+      action: "Gỡ",
+      des: `Gỡ gán thiết bị khỏi tài ${infoReciver[0].username}`,
+      createdAt: Date.now(),
+    };
+    await deviceLoggingModel.postOrDelete(conn, dataSaveLog);
+    await connPromise.commit();
     return [];
   }
 
@@ -642,7 +689,6 @@ class UsersModel extends DatabaseModel {
       },
       keyRefreshToken
     );
-    console.log(123456);
     await keyTokenModel.register(conn, {
       user_id: id,
       client_id: clientId,

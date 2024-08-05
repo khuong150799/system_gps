@@ -1,15 +1,13 @@
-const { GET } = require("../core/success.response");
+const { UPDATE } = require("../core/success.response");
 const catchAsync = require("../helper/catchAsync.helper");
 const vehicleService = require("../services/vehicle.service");
 
 class VehicleController {
-  playback = catchAsync(async (req, res) => {
-    const query = req.query;
+  updateById = catchAsync(async (req, res) => {
+    const body = req.body;
     const params = req.params;
-    const userId = req.userId;
-    const data = await vehicleService.playback(userId, query, params);
-
-    GET(res, data);
+    const data = await vehicleService.updateById(body, params);
+    UPDATE(res, [data]);
   });
 }
 

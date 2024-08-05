@@ -1,14 +1,15 @@
 const db = require("../dbs/init.mysql");
 const { BusinessLogicError } = require("../core/error.response");
-const vehicleModel = require("../models/vehicle.model");
 
-class vehicleService {
+const writeLogModel = require("../models/writeLog.model");
+
+class WriteLogsService {
   //getallrow
-  async updateById(body, params) {
+  async getallrows(query) {
     try {
       const { conn } = await db.getConnection();
       try {
-        const data = await vehicleModel.updateById(conn, body, params);
+        const data = await writeLogModel.getallrows(conn, query);
         return data;
       } catch (error) {
         throw error;
@@ -16,10 +17,10 @@ class vehicleService {
         conn.release();
       }
     } catch (error) {
-      console.log(error);
+      console.log("error", error);
       throw new BusinessLogicError(error.msg);
     }
   }
 }
 
-module.exports = new vehicleService();
+module.exports = new WriteLogsService();

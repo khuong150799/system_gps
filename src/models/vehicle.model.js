@@ -8,6 +8,7 @@ const {
 const getTableName = require("../ultils/getTableName");
 const DatabaseModel = require("./database.model");
 const { hSet: hsetRedis, expire: expireRedis } = require("./redis.model");
+const VehicleSchema = require("./schema/vehicle.schema");
 
 class VehicleModel extends DatabaseModel {
   constructor() {
@@ -59,7 +60,7 @@ class VehicleModel extends DatabaseModel {
         99999
       );
     }
-    console.log("listUserId", listUserId);
+    // console.log("listUserId", listUserId);
     if (!listUserId?.length) return null;
 
     const data = await Promise.all([
@@ -68,7 +69,49 @@ class VehicleModel extends DatabaseModel {
         return expireRedis(`${REDIS_KEY_LIST_IMEI_OF_USERS}/${user_id}`, -1);
       }),
     ]);
-    console.log("listUserId123456", data);
+    // console.log("listUserId123456", data);
+  }
+
+  //update
+  async updateById(conn, body, params) {
+    const {
+      name,
+      service_package_id,
+      vehicle_type_id,
+      quantity_channel,
+      weight,
+      warning_speed,
+      note,
+      is_checked,
+      is_transmission_gps,
+      is_transmission_image,
+    } = body;
+    const { id } = params;
+
+    const vehicle = new VehicleSchema({
+      name,
+      service_package_id,
+      vehicle_type_id,
+      quantity_channel,
+      weight,
+      warning_speed,
+      note,
+      is_checked,
+      is_transmission_gps,
+      is_transmission_image,
+      updated_at: Date.now(),
+    });
+    // console.log(id)
+    delete vehicle.device_id;
+    delete vehicle.expired_on;
+    delete vehicle.activation_date;
+    delete vehicle.warranty_expired_on;
+    delete vehicle.is_deleted;
+    delete vehicle.created_at;
+
+    await this.update(conn, tableVehicle, vehicle, "id", id);
+    vehicle.id = id;
+    return vehicle;
   }
 }
 

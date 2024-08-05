@@ -276,13 +276,14 @@ class UsersService {
     }
   }
 
-  async registerDevices(body, params, userId) {
+  async registerDevices(body, params, userId, infoUser) {
     try {
-      const { conn } = await db.getConnection();
+      const { conn, connPromise } = await db.getConnection();
       try {
+        console.log("body", body);
         const { devices } = body;
         const { id } = params;
-        console.log("devices", devices);
+        // console.log("devices", devices);
         const listDevices = JSON.parse(devices || "[]");
 
         if (Number(id) === Number(userId))
@@ -294,7 +295,13 @@ class UsersService {
           };
 
         await validateModel.checkOwnerDevice(conn, userId, listDevices);
-        const data = await usersModel.registerDevices(conn, body, params);
+        const data = await usersModel.registerDevices(
+          conn,
+          connPromise,
+          body,
+          params,
+          infoUser
+        );
         return data;
       } catch (error) {
         throw error;
@@ -338,16 +345,23 @@ class UsersService {
   }
 
   //delete
-  async deleteDevice(params, body, userId) {
+  async deleteDevice(params, body, userId, infoUser) {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
         const { id } = params;
         await validateModel.CheckIsChild(connPromise, userId, id);
 
-        await usersModel.deleteDevice(conn, params, body);
+        await usersModel.deleteDevice(
+          conn,
+          connPromise,
+          params,
+          body,
+          infoUser
+        );
         return [];
       } catch (error) {
+        await connPromise.rollback();
         throw error;
       } finally {
         conn.release();

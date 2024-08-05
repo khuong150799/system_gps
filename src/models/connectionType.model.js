@@ -94,7 +94,7 @@ class ConnectionTypeModel extends DatabaseModel {
   }
 
   //update
-  async updateById(conn, body, params) {
+  async updateById(conn, connPromise, body, params, infoUser) {
     const { name, note, publish } = body;
     const { id } = params;
 
@@ -109,8 +109,26 @@ class ConnectionTypeModel extends DatabaseModel {
     delete connectionType.sort;
     delete connectionType.is_deleted;
 
+    await connPromise.beginTransaction();
+    const dataOld = await this.select(
+      conn,
+      tableConnectionType,
+      "name,note,publish",
+      "id = ?",
+      id
+    );
+
     await this.update(conn, tableConnectionType, connectionType, "id", id);
+
+    await writeLogModel.update(conn, {
+      dataOld: dataOld[0],
+      dataNew: { ...connectionType },
+      module: connection_type_id,
+      ...infoUser,
+    });
+
     connectionType.id = id;
+    await connPromise.commit();
     return connectionType;
   }
 

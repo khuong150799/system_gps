@@ -160,7 +160,7 @@ class DatabaseModel {
         query,
         typeof data === "string"
           ? condition
-          : typeof data === "object"
+          : typeof data === "object" && !where
           ? [data, condition]
           : [data, ...condition],
         (err, dataRes) => {
@@ -257,10 +257,10 @@ class DatabaseModel {
   }
 
   //sum
-  async sum(db, tableName, field, where) {
+  async sum(db, tableName, field, where, condition) {
     return await new Promise((resolve, reject) => {
       const query = `SELECT SUM(${field}) as total_sum FROM ${tableName} WHERE ${where}`;
-      db.query(query, (err, dataRes) => {
+      db.query(query, condition, (err, dataRes) => {
         // console.log(query);
         if (err) {
           console.log(err);

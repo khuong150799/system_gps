@@ -128,7 +128,7 @@ class SettingModel extends DatabaseModel {
   //Register
   async registerUser(conn, body, userId) {
     const { setting_id, id_disabled } = body;
-    const usersSetting = [[userId, id, id_disabled, Date.now()]];
+    const usersSetting = [[userId, setting_id, id_disabled, Date.now()]];
     await this.insertDuplicate(
       conn,
       tableUsersSetting,

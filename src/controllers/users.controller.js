@@ -96,10 +96,15 @@ class CustomersController {
   });
 
   registerDevices = catchAsync(async (req, res) => {
-    const body = req.body;
-    const params = req.params;
-    const userId = req.userId;
-    const data = await usersSrevice.registerDevices(body, params, userId);
+    const { body, params, userId } = req;
+
+    const infoUser = { user_id: userId, ip: null, os: null, gps: null };
+    const data = await usersSrevice.registerDevices(
+      body,
+      params,
+      userId,
+      infoUser
+    );
     CREATED(res, [data]);
   });
 
@@ -112,10 +117,16 @@ class CustomersController {
   });
 
   deleteDevice = catchAsync(async (req, res) => {
-    const params = req.params;
-    const body = req.body;
-    const userId = req.userId;
-    const data = await usersSrevice.deleteDevice(params, body, userId);
+    const { body, params, userId } = req;
+
+    const infoUser = { user_id: userId, ip: null, os: null, gps: null };
+
+    const data = await usersSrevice.deleteDevice(
+      params,
+      body,
+      userId,
+      infoUser
+    );
     DELETE(res, data);
   });
 

@@ -198,8 +198,8 @@ class RoleModel extends DatabaseModel {
       1
     );
 
-    console.log("listPermissionId", listPermissionId);
-    console.log("roleParent", roleParent);
+    // console.log("listPermissionId", listPermissionId);
+    // console.log("roleParent", roleParent);
     if (roleParent?.length > 0) {
       await this.update(
         conn,

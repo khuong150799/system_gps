@@ -24,4 +24,6 @@ module.exports = (app) => {
   require("./setting.route")(app);
   require("./version.route")(app);
   require("./interface.route")(app);
+  require("./writeLog.route")(app);
+  require("./deviceLogging.route")(app);
 };

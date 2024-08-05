@@ -36,6 +36,7 @@ module.exports = {
   tableSetting: "tbl_setting",
   tableUsersSetting: "tbl_users_setting",
   tableVersion: "tbl_version",
-  tableWriteLogs: "tbl_write_logs",
+  tableWriteLogs: "tbl_activity_logging",
+  tableDeviceLogging: "tbl_device_logging",
   tableInterface: "tbl_interface",
 };

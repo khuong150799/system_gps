@@ -16,8 +16,8 @@ class VersionModel extends DatabaseModel {
     const conditions = [isDeleted];
 
     if (query.keyword) {
-      where += ` AND name LIKE ?`;
-      conditions.push(`%${query.keyword}%`);
+      where += ` AND (name LIKE ? OR keyword LIKE ?)`;
+      conditions.push(`%${query.keyword}%`, `%${query.keyword}%`);
     }
 
     if (query.publish) {
