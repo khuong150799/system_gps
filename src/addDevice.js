@@ -147,42 +147,41 @@ const dataLicenseNumber = [
   "31F1870",
 ];
 
-// let i = 0;
-// const id = setInterval(async () => {
-//   if (dataImeis.length === i) {
-//     return clearInterval(id);
-//   }
-//   const item = dataImeis[i];
-//   try {
-//     const data = await axios({
-//       method: "post",
-//       url: "http://localhost:4000/api/v1/device/activation-inside",
-//       data: {
-//         vehicle: dataLicenseNumber[i],
-//         weight: 4000,
-//         type: "17",
-//         warning_speed: 90,
-//         imei: item,
-//         quantity_channel: "0",
-//         service_package_id: "6",
-//         is_transmission_gps: "1",
-//         is_transmission_image: "0",
-//         note: "",
-//         activation_date: "",
-//       },
-//       headers: {
-//         Authorization:
-//           "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjExMSwicGFyZW50SWQiOjEsImNsaWVudElkIjoiZWE1YTZhODUtZjljYi00YTI4LTkyYTktMjA2NTJhZTQxNGZkIiwicm9sZSI6NDAsImxldmVsIjoxMCwiY3VzdG9tZXJJZCI6OTEsImlhdCI6MTcyMTg3NDM5NCwiZXhwIjoxNzI0NDY2Mzk0fQ.7LUNhMRvwF5Xj7BN8KiJ3LYb5ByTrQWVPWDbb385Xjw",
-//       },
-//     });
+let i = 0;
+const id = setInterval(async () => {
+  if (dataImeis.length === i) {
+    return clearInterval(id);
+  }
+  const item = dataImeis[i];
+  try {
+    const data = await axios({
+      method: "post",
+      url: "http://localhost:4000/api/v1/device/activation-inside",
+      data: {
+        vehicle: dataLicenseNumber[i],
+        weight: 4000,
+        type: "17",
+        warning_speed: 90,
+        imei: item,
+        quantity_channel: "0",
+        service_package_id: "6",
+        is_transmission_gps: "1",
+        is_transmission_image: "0",
+        note: "",
+        activation_date: "",
+      },
+      headers: {
+        Authorization: "Bearer token",
+      },
+    });
 
-//     console.log(data.data.data);
-//   } catch (error) {
-//     console.log(error?.response?.data);
-//   } finally {
-//     i++;
-//   }
-// }, 3000);
+    console.log(data.data.data);
+  } catch (error) {
+    console.log(error?.response?.data);
+  } finally {
+    i++;
+  }
+}, 1000);
 
 // Promise.all(
 //   dataImeis.map((item, i) =>
@@ -208,9 +207,9 @@ const dataLicenseNumber = [
 //   .then((data) => console.log(data))
 //   .catch((err) => console.log(err));
 
-for (let i = 0; i < dataImeis.length; i++) {
-  const imei = dataImeis[i];
-  setInterval(async () => {
-    await deviceService.register({ dev_id: imei, imei, model_id: 3 }, 1);
-  }, 500);
-}
+// for (let i = 0; i < dataImeis.length; i++) {
+//   const imei = dataImeis[i];
+//   setInterval(async () => {
+//     await deviceService.register({ dev_id: imei, imei, model_id: 3 }, 1);
+//   }, 500);
+// }

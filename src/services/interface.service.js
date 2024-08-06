@@ -9,6 +9,53 @@ const imageApi = require("../api/image.api");
 const { ERROR, VALIDATE_DATA } = require("../constants/msg.constant");
 
 class InterfaceService {
+  async handleImg(
+    logoFile,
+    faviconFile,
+    bannerFiles,
+    register = true,
+    contentProperty
+  ) {
+    const arrPromiseSaveFiles = [];
+    if (logoFile) {
+      arrPromiseSaveFiles.push(imagesService.saveImage(logoFile, 1, "logo"));
+    }
+    if (faviconFile) {
+      arrPromiseSaveFiles.push(
+        imagesService.saveImage(faviconFile, 1, "favicon")
+      );
+    }
+    if (bannerFiles) {
+      arrPromiseSaveFiles.push(
+        imagesService.saveImage(bannerFiles, 5, "banner")
+      );
+    }
+    let img = {};
+    if (arrPromiseSaveFiles.length) {
+      const resultImg = await Promise.all(arrPromiseSaveFiles);
+      if (resultImg.length) {
+        img = resultImg.reduce((result, item) => {
+          if (logoFile && !result.logo) {
+            result.logo = item[0];
+          } else if (faviconFile && !result.favicon) {
+            result.favicon = item[0];
+          } else {
+            for (let i = 0; i < item.length; i++) {
+              const banner = item[i];
+              if (register) {
+                result[`banner${i + 1}`] = banner;
+              } else {
+                result[contentProperty[i]] = banner;
+              }
+            }
+          }
+          return result;
+        }, {});
+      }
+    }
+    return img;
+  }
+
   //getallrow
   async getallrows(query) {
     try {
@@ -47,6 +94,7 @@ class InterfaceService {
   async register(body, logoFile, faviconFile, bannerFiles) {
     try {
       const { conn } = await db.getConnection();
+      let img = {};
       try {
         const { name, keyword, content, publish } = body;
 
@@ -77,42 +125,7 @@ class InterfaceService {
             errors: [{ msg: VALIDATE_DATA, value: content, param: "content" }],
           };
 
-        console.log("bannerFiles", bannerFiles);
-        const arrPromiseSaveFiles = [];
-        if (logoFile) {
-          arrPromiseSaveFiles.push(
-            imagesService.saveImage(logoFile, 1, "logo")
-          );
-        }
-        if (faviconFile) {
-          arrPromiseSaveFiles.push(
-            imagesService.saveImage(faviconFile, 1, "favicon")
-          );
-        }
-        if (bannerFiles) {
-          arrPromiseSaveFiles.push(
-            imagesService.saveImage(bannerFiles, 5, "banner")
-          );
-        }
-        let img = {};
-        if (arrPromiseSaveFiles.length) {
-          const resultImg = await Promise.all(arrPromiseSaveFiles);
-          if (resultImg.length) {
-            img = resultImg.reduce((result, item) => {
-              if (logoFile && !result.logo) {
-                result.logo = item[0];
-              } else if (faviconFile && !result.favicon) {
-                result.favicon = item[0];
-              } else {
-                for (let i = 0; i < item.length; i++) {
-                  const banner = item[i];
-                  result[`banner${i + 1}`] = banner;
-                }
-              }
-              return result;
-            }, {});
-          }
-        }
+        img = await this.handleImg(logoFile, faviconFile, bannerFiles);
 
         const data = await interfaceAppModel.register(conn, {
           keyword,
@@ -122,6 +135,10 @@ class InterfaceService {
         });
         return data;
       } catch (error) {
+        if (Object.keys(img).length) {
+          const listPath = Object.values(img);
+          await imageApi.delete({ path: JSON.stringify(listPath) });
+        }
         throw error;
       } finally {
         conn.release();
@@ -137,9 +154,9 @@ class InterfaceService {
   async uploadImage(body, logoFile, faviconFile, bannerFiles) {
     try {
       const { conn } = await db.getConnection();
+      let img = {};
       try {
         const { property } = body;
-        console.log("property", property);
         const contentProperty = JSON.parse(property || "[]");
         if (!Array.isArray(contentProperty) && property)
           throw {
@@ -148,46 +165,21 @@ class InterfaceService {
               { msg: VALIDATE_DATA, value: property, param: "property" },
             ],
           };
-
-        const arrPromiseSaveFiles = [];
-        if (logoFile) {
-          arrPromiseSaveFiles.push(
-            imagesService.saveImage(logoFile, 1, "logo")
-          );
-        }
-        if (faviconFile) {
-          arrPromiseSaveFiles.push(
-            imagesService.saveImage(faviconFile, 1, "favicon")
-          );
-        }
-        if (bannerFiles) {
-          arrPromiseSaveFiles.push(
-            imagesService.saveImage(bannerFiles, 5, "banner")
-          );
-        }
-        let img = {};
-        if (arrPromiseSaveFiles.length) {
-          const resultImg = await Promise.all(arrPromiseSaveFiles);
-          if (resultImg.length) {
-            img = resultImg.reduce((result, item) => {
-              if (logoFile && !result.logo) {
-                result.logo = item[0];
-              } else if (faviconFile && !result.favicon) {
-                result.favicon = item[0];
-              } else {
-                for (let i = 0; i < item.length; i++) {
-                  const banner = item[i];
-                  result[contentProperty[i]] = banner;
-                }
-              }
-              return result;
-            }, {});
-          }
-        }
+        img = await this.handleImg(
+          logoFile,
+          faviconFile,
+          bannerFiles,
+          false,
+          contentProperty
+        );
 
         const data = await interfaceAppModel.uploadImage(conn, body, img);
         return data;
       } catch (error) {
+        if (Object.keys(img).length) {
+          const listPath = Object.values(img);
+          await imageApi.delete({ path: JSON.stringify(listPath) });
+        }
         throw error;
       } finally {
         conn.release();

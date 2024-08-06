@@ -418,7 +418,7 @@ class UsersService {
   //change pass
   async changePass(body, userId) {
     try {
-      const { conn } = await db.getConnection();
+      const { conn, connPromise } = await db.getConnection();
       try {
         const { new_password, old_password } = body;
 
@@ -449,6 +449,7 @@ class UsersService {
 
         return [];
       } catch (error) {
+        await connPromise.rollback();
         throw error;
       } finally {
         conn.release();

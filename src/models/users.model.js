@@ -38,6 +38,8 @@ const {
 const validateModel = require("./validate.model");
 const vehicleModel = require("./vehicle.model");
 const deviceLoggingModel = require("./deviceLogging.model");
+const writeLogModel = require("./writeLog.model");
+const { users } = require("../constants/module.constant");
 
 class UsersModel extends DatabaseModel {
   constructor() {
@@ -647,9 +649,9 @@ class UsersModel extends DatabaseModel {
   }
 
   //change pass
-  async changePass(conn, body, userId, hashPass) {
+  async changePass(conn, connPromise, body, userId, hashPass, infoUser) {
     const { new_password } = body;
-
+    await connPromise.beginTransaction();
     await this.update(
       conn,
       tableUsers,
@@ -657,6 +659,14 @@ class UsersModel extends DatabaseModel {
       "id",
       userId
     );
+    const dataSaveLog = {
+      ...infoUser,
+      module: users,
+      des: `Thay đổi mật khẩu`,
+      createdAt: Date.now(),
+    };
+    await writeLogModel.post(conn, dataSaveLog);
+    await connPromise.commit();
     return [];
   }
 

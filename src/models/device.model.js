@@ -142,12 +142,19 @@ class DeviceModel extends DatabaseModel {
       c0.name) as customer_name,COALESCE(c.company, c.name) as agency_name,c.phone as agency_phone,vi.name as vehicle_icon_name,
       c0.id as customer_id,c.id as agency_id`;
 
+    const where = imei
+      ? `d.imei = ? AND ud.is_moved = 0`
+      : device_id
+      ? "d.id = ? AND ud.is_moved = 0"
+      : "1 = ? AND ud.is_moved = 0";
+    const condition = [imei || device_id || 1];
+
     const data = await this.select(
       conn,
       joinTable,
       select,
-      imei ? `d.imei = ?` : device_id ? "d.id = ?" : "1 = ?",
-      imei || device_id || 1,
+      where,
+      condition,
       `d.id`
     );
     if (data.length) {
