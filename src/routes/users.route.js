@@ -194,7 +194,6 @@ module.exports = (app) => {
   router.patch(
     "/change-pass",
     [
-      param("id", VALIDATE_DATA).isNumeric(),
       body("old_password", NOT_EMPTY)
         .notEmpty()
         .isString()
@@ -207,7 +206,7 @@ module.exports = (app) => {
         .escape(),
     ],
     isAuth,
-    checkPermission,
+    // checkPermission,
     usersController.changePass
   );
   router.post(

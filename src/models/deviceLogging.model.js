@@ -56,7 +56,7 @@ class DeviceLoggingModel extends DatabaseModel {
       device_id,
       ip: ip || null,
       os: os || null,
-      des: des || null,
+      des: des || "[]",
       action,
       gps,
       is_deleted: 0,

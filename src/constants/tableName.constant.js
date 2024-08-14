@@ -29,6 +29,7 @@ module.exports = {
   tableUsersDevices: "tbl_users_devices",
   tableUsersRole: "tbl_users_role",
   tableVehicle: "tbl_vehicle",
+  tableDeviceVehicle: "tbl_device_vehicle",
   tableVehicleIcon: "tbl_vehicle_icon",
   tableVehicleType: "tbl_vehicle_type",
   tableDeviceGps: "tbl_device_gps",

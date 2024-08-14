@@ -24,11 +24,11 @@ class OrdersModel extends DatabaseModel {
 
     const { is_deleted, keyword, orders_status_id, reciver } = query;
     const isDeleted = is_deleted || 0;
-    let where = `${tableOrders}.is_deleted = ? AND ${tableOrders}.creator_customer_id = ?`;
+    let where = `o.is_deleted = ? AND o.creator_customer_id = ?`;
     const conditions = [isDeleted, customerId];
 
     if (keyword) {
-      where += ` AND (${tableOrders}.code LIKE ? OR ${tableCustomers}.name LIKE ? OR c.company LIKE ? OR ${tableUsers}.username LIKE ?)`;
+      where += ` AND (o.code LIKE ? OR c.name LIKE ? OR c.company LIKE ? OR u.username LIKE ?)`;
       conditions.push(
         `%${keyword}%`,
         `%${keyword}%`,
@@ -39,12 +39,12 @@ class OrdersModel extends DatabaseModel {
     }
 
     if (orders_status_id) {
-      where += ` AND ${tableOrders}.orders_status_id = ?`;
+      where += ` AND o.orders_status_id = ?`;
       conditions.push(orders_status_id);
     }
 
     if (reciver) {
-      where += ` AND ${tableOrders}.reciver = ?`;
+      where += ` AND o.reciver = ?`;
       conditions.push(reciver);
     }
 
@@ -55,13 +55,13 @@ class OrdersModel extends DatabaseModel {
     // INNER JOIN ${tableUsersRole} ON ${tableOrders}.creator = ${tableUsersRole}.user_id
     // INNER JOIN ${tableRole} ON ${tableUsersRole}.role_id = ${tableRole}.id`;
 
-    const joinTable = `${tableOrders} INNER JOIN ${tableCustomers} ON ${tableOrders}.reciver = ${tableCustomers}.id 
-      INNER JOIN ${tableCustomers} c ON ${tableOrders}.creator_customer_id = c.id 
-      INNER JOIN ${tableUsers} ON ${tableOrders}.creator_user_id = ${tableUsers}.id`;
+    const joinTable = `${tableOrders} o INNER JOIN ${tableCustomers} c1 ON o.reciver = c1.id 
+      INNER JOIN ${tableCustomers} c ON o.creator_customer_id = c.id 
+      INNER JOIN ${tableUsers} u ON o.creator_user_id = u.id`;
 
-    const select = `${tableOrders}.id,${tableOrders}.code,${tableOrders}.note,${tableOrders}.quantity,COALESCE(${tableCustomers}.company,
-      ${tableCustomers}.name) as reciver,COALESCE(c.company, c.name) as creator_customer,${tableUsers}.username as creator_user,
-      ${tableOrders}.orders_status_id,${tableOrders}.created_at,${tableOrders}.updated_at`;
+    const select = `o.id,o.code,o.note,o.quantity,COALESCE(c1.company,
+      c1.name) as reciver,COALESCE(c.company, c.name) as creator_customer,u.username as creator_user,
+      o.orders_status_id,o.created_at,o.updated_at`;
     const [res_, count] = await Promise.all([
       this.select(
         conn,
@@ -69,7 +69,7 @@ class OrdersModel extends DatabaseModel {
         select,
         where,
         conditions,
-        `${tableOrders}.id`,
+        `o.id`,
         "DESC",
         offset,
         limit

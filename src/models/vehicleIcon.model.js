@@ -100,7 +100,7 @@ class VehicleIconModel extends DatabaseModel {
     delete vehicleIcon.is_deleted;
 
     await this.update(conn, tableVehicleIcon, vehicleIcon, "id", id);
-    await deviceModel.getWithImei(conn);
+    await deviceModel.getInfoDevice(conn);
     vehicleIcon.id = id;
     return vehicleIcon;
   }

@@ -29,7 +29,10 @@ const databaseModel = new DatabaseModel();
 class UsersService {
   async validateComparePass(compare, isCompared, param) {
     let errors = [];
+    // console.log({ compare, isCompared });
     const match = await bcrypt.compare(compare, isCompared);
+
+    // console.log("match", match);
     if (!match) {
       errors = {
         msg: ERROR,
@@ -420,15 +423,12 @@ class UsersService {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
+        console.log("userId", userId);
         const { new_password, old_password } = body;
 
         await validateModel.checkRegexPassword(old_password);
 
         await validateModel.checkRegexPassword(new_password, true);
-
-        if (!isCheckNewPassword.result) {
-          throw isCheckNewPassword.errors;
-        }
 
         const { is_actived, is_deleted, password } =
           await validateModel.checkUserInfo(conn, userId);
@@ -445,7 +445,16 @@ class UsersService {
         const salt = await bcrypt.genSalt(12);
         const hashPass = await bcrypt.hash(new_password, salt);
 
-        await usersModel.changePass(conn, body, userId, hashPass);
+        const infoUser = { user_id: userId, ip: null, os: null, gps: null };
+
+        await usersModel.changePass(
+          conn,
+          connPromise,
+          body,
+          userId,
+          hashPass,
+          infoUser
+        );
 
         return [];
       } catch (error) {
@@ -455,6 +464,7 @@ class UsersService {
         conn.release();
       }
     } catch (error) {
+      console.log(error);
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
     }
@@ -471,21 +481,27 @@ class UsersService {
 
         await validateModel.checkRegexPassword(password);
 
-        const joinTable = `${tableUsers} INNER JOIN ${tableUsersRole} ON ${tableUsers}.id = ${tableUsersRole}.user_id 
-          INNER JOIN ${tableRole} ON ${tableUsersRole}.role_id = ${tableRole}.id 
-          INNER JOIN ${tableUsersCustomers} ON ${tableUsers}.id = ${tableUsersCustomers}.user_id 
-          INNER JOIN ${tableCustomers} ON ${tableUsersCustomers}.customer_id = ${tableCustomers}.id 
-          INNER JOIN ${tableLevel} ON ${tableCustomers}.level_id = ${tableLevel}.id`;
+        const joinTable = `${tableUsers} u INNER JOIN ${tableUsersRole} ur ON u.id = ur.user_id 
+          INNER JOIN ${tableRole} r ON ur.role_id = r.id 
+          INNER JOIN ${tableUsersCustomers} uc ON u.id = uc.user_id 
+          INNER JOIN ${tableCustomers} c ON uc.customer_id = c.id 
+          INNER JOIN ${tableLevel} l ON c.level_id = l.id`;
 
-        const select = `${tableUsers}.id,${tableUsers}.parent_id,${tableUsers}.password,${tableUsers}.is_actived,${tableUsers}.is_deleted,
-            ${tableRole}.sort as role,${tableCustomers}.id as customer_id,${tableLevel}.sort as level`;
+        const select = `u.id,u.parent_id,u.password,u.is_actived,u.is_deleted,
+            r.sort as role,c.id as customer_id,l.sort as level`;
         const dataaUser = await databaseModel.select(
           conn,
           joinTable,
           select,
-          "username = ?",
-          [username]
+          "u.username = ?",
+          [username],
+          "u.id",
+          "ASC",
+          0,
+          1
         );
+        console.log("dataaUser", dataaUser);
+
         if (dataaUser?.length <= 0)
           throw {
             msg: ERROR,

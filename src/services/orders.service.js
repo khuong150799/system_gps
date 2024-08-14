@@ -23,7 +23,7 @@ const {
   tableUsers,
   tableUsersCustomers,
   tableUsersDevices,
-  tableVehicle,
+  tableDeviceVehicle,
 } = require("../constants/tableName.constant");
 
 const databaseModel = new DatabaseModel();
@@ -42,11 +42,12 @@ class OrdersService {
     let where = `code = ? AND ${tableOrders}.is_deleted = ?`;
     const conditions = [code, 0];
 
-    const jointableUsersDevices = `${tableDevice} INNER JOIN ${tableUsersDevices} ON ${tableDevice}.id = ${tableUsersDevices}.device_id 
-      INNER JOIN ${tableUsersCustomers} ON ${tableUsersDevices}.user_id = ${tableUsersCustomers}.user_id 
-      LEFT JOIN ${tableVehicle} ON ${tableDevice}.id = ${tableVehicle}.device_id`;
-    const selectDevice = `${tableDevice}.id,${tableDevice}.imei,${tableVehicle}.activation_date`;
-    let whereDevice = `${tableDevice}.id IN (?) AND ${tableDevice}.is_deleted = ? AND ${tableUsersCustomers}.customer_id = ?`;
+    const jointableUsersDevices = `${tableDevice} d INNER JOIN ${tableUsersDevices} ud ON d.id = ud.device_id 
+      INNER JOIN ${tableUsersCustomers} uc ON ud.user_id = uc.user_id 
+      LEFT JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id`;
+
+    const selectDevice = `d.id,d.imei,dv.activation_date`;
+    let whereDevice = `d.id IN (?) AND d.is_deleted = ? AND uc.customer_id = ?`;
     const conditionsDevice = [listDevice, 0, customerId];
 
     if (id) {
@@ -79,7 +80,7 @@ class OrdersService {
 
       if (errors.length) throw { msg: ERROR, errors };
 
-      whereDevice += ` AND ${tableUsersDevices}.is_moved = ?`;
+      whereDevice += ` AND ud.is_moved = ?`;
       conditionsDevice.push(0);
     }
 
@@ -92,7 +93,7 @@ class OrdersService {
         selectDevice,
         whereDevice,
         conditionsDevice,
-        `${tableDevice}.id`,
+        `d.id`,
         "ASC",
         0,
         99999
@@ -101,15 +102,15 @@ class OrdersService {
 
     let dataInfo = [];
     if (reciver) {
-      const joinTableUsersCustomers = `${tableUsersCustomers} INNER JOIN ${tableUsers} ON ${tableUsersCustomers}.user_id = ${tableUsers}.id`;
+      const joinTableUsersCustomers = `${tableUsersCustomers} uc INNER JOIN ${tableUsers} u ON uc.user_id = u.id`;
       // console.log({ reciver });
       const info = await databaseModel.select(
         conn,
         joinTableUsersCustomers,
-        `${tableUsers}.id,${tableUsers}.parent_id,${tableUsers}.is_actived,${tableUsers}.is_deleted`,
-        `${tableUsersCustomers}.customer_id = ? AND ${tableUsers}.is_main = ?`,
+        `u.id,u.parent_id,u.is_actived,u.is_deleted`,
+        `uc.customer_id = ? AND u.is_main = ?`,
         [reciver, 1],
-        `${tableUsersCustomers}.id`,
+        `uc.id`,
         "ASC",
         0,
         99999
@@ -137,10 +138,10 @@ class OrdersService {
         const dataReciverParent = await databaseModel.select(
           conn,
           joinTableUsersCustomers,
-          `${tableUsersCustomers}.customer_id as id`,
+          `uc.customer_id as id`,
           `${tableUsers}.id = ?`,
           info[0].parent_id,
-          `${tableUsersCustomers}.id`,
+          `uc.id`,
           "ASC",
           0,
           99999
@@ -223,14 +224,14 @@ class OrdersService {
     }
 
     if (errors.length) throw { msg: ERROR, errors };
-    const joinTable = `${tableUsersCustomers} INNER JOIN ${tableUsers} ON ${tableUsersCustomers}.user_id = ${tableUsers}.id`;
+    const joinTable = `${tableUsersCustomers} uc INNER JOIN ${tableUsers} u ON uc.user_id = u.id`;
     const dataInfo = await databaseModel.select(
       conn,
       joinTable,
-      `${tableUsers}.id,${tableUsers}.is_actived,${tableUsers}.is_deleted`,
-      `${tableUsersCustomers}.customer_id = ? AND ${tableUsers}.is_main = ?`,
+      `u.id,u.is_actived,u.is_deleted`,
+      `uc.customer_id = ? AND u.is_main = ?`,
       [reciver, 1],
-      `${tableUsersCustomers}.id`,
+      `uc.id`,
       "ASC",
       0,
       99999
@@ -323,20 +324,20 @@ class OrdersService {
     const errors = [];
 
     const jointableUsersDevicesWithUsersCustomers = `
-      ${tableUsersDevices} INNER JOIN ${tableUsersCustomers} ON ${tableUsersDevices}.user_id = ${tableUsersCustomers}.user_id 
-      LEFT JOIN ${tableVehicle} ON ${tableUsersDevices}.device_id = ${tableVehicle}.id`;
+      ${tableUsersDevices} ud INNER JOIN ${tableUsersCustomers} uc ON ud.user_id = uc.user_id 
+      LEFT JOIN ${tableDeviceVehicle} dv ON ud.device_id = dv.device_id`;
 
     const joinTableOdersUsersWithUsersCustomersWithUsers = `
-      ${tableOrders} INNER JOIN ${tableUsersCustomers} ON ${tableOrders}.creator_customer_id = ${tableUsersCustomers}.customer_id 
-      INNER JOIN ${tableUsers} ON ${tableUsersCustomers}.user_id = ${tableUsers}.id`;
+      ${tableOrders} o INNER JOIN ${tableUsersCustomers} uc ON o.creator_customer_id = uc.customer_id 
+      INNER JOIN ${tableUsers} u ON uc.user_id = u.id`;
     const [dataOwnerDevice, dataOwnerOrders] = await Promise.all([
       databaseModel.select(
         conn,
         jointableUsersDevicesWithUsersCustomers,
-        `${tableUsersDevices}.user_id ,${tableUsersCustomers}.customer_id,${tableVehicle}.activation_date`,
-        `${tableUsersDevices}.is_moved = ? AND ${tableUsersDevices}.device_id = ?`,
-        [0, deviceId, id],
-        `${tableUsersDevices}.id`,
+        `ud.user_id ,uc.customer_id,dv.activation_date`,
+        `ud.is_moved = ? AND ud.device_id = ?`,
+        [0, deviceId],
+        `ud.id`,
         "ASC",
         0,
         99999
@@ -344,10 +345,10 @@ class OrdersService {
       databaseModel.select(
         conn,
         joinTableOdersUsersWithUsersCustomersWithUsers,
-        `${tableUsersCustomers}.user_id ,${tableOrders}.creator_customer_id as customer_id,${tableOrders}.quantity`,
-        `${tableUsers}.is_main = ? AND ${tableOrders}.id = ?`,
+        `uc.user_id ,o.creator_customer_id as customer_id,o.quantity`,
+        `u.is_main = ? AND o.id = ?`,
         [1, id],
-        `${tableUsers}.id`,
+        `u.id`,
         "ASC",
         0,
         99999
@@ -437,7 +438,7 @@ class OrdersService {
         conn.release();
       }
     } catch (error) {
-      // console.log("error", error);
+      console.log("error", error);
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
     }
@@ -478,6 +479,8 @@ class OrdersService {
 
   //Register tree
   async registerTree(body, userId, customerId) {
+    console.log({ body, userId, customerId });
+
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
@@ -509,6 +512,8 @@ class OrdersService {
         conn.release();
       }
     } catch (error) {
+      console.log(error);
+
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
     }

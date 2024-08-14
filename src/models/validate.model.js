@@ -12,6 +12,7 @@ const {
   ADD_CHILD_ERROR,
   VALIDATE_PHONE,
   VALIDATE_EMAIL,
+  NOT_EXITS,
 } = require("../constants/msg.constant");
 const {
   tableDevice,
@@ -105,6 +106,7 @@ class ValidateModel extends DatabaseModel {
   }
   async CheckCustomerTree(conn, listCustomer, param = "recivers") {
     const errors = [];
+    console.log("listCustomer", listCustomer);
 
     if (listCustomer.length <= 0) {
       errors.push({ value: listCustomer, msg: NOT_EMPTY, param });
@@ -112,22 +114,15 @@ class ValidateModel extends DatabaseModel {
 
     if (errors.length) throw { msg: ERROR, errors };
 
-    const joinTable = `${tableCustomers} INNER JOIN ${tableUsersCustomers} ON ${tableCustomers}.id = ${tableUsersCustomers}.customer_id INNER JOIN ${tableUsers} ON ${tableUsersCustomers}.user_id = ${tableUsers}.id`;
-    const select = `${tableUsers}.parent_id,${tableUsers}.id`;
-    const where = `${tableCustomers}.id = ? AND ${tableUsers}.is_main = ?`;
+    const joinTable = `${tableCustomers} c INNER JOIN ${tableUsersCustomers} uc ON c.id = uc.customer_id INNER JOIN ${tableUsers} u ON uc.user_id = u.id`;
+    const select = `u.parent_id,u.id`;
+    const where = `c.id = ? AND u.is_main = ?`;
 
     const arrayPromise = listCustomer.reduce((result, item, i) => {
       if (i > 0) {
         result = [
           ...result,
-          this.select(
-            conn,
-            joinTable,
-            select,
-            where,
-            [item, 1],
-            `${tableCustomers}.id`
-          ),
+          this.select(conn, joinTable, select, where, [item, 1], `c.id`),
         ];
       }
 
@@ -135,18 +130,22 @@ class ValidateModel extends DatabaseModel {
     }, []);
 
     const dataInfo = await Promise.all(arrayPromise);
+    console.log("dataInfo", dataInfo);
+
     const arrayPromiseParent = dataInfo.map((item) =>
       this.select(
         conn,
         joinTable,
-        `${tableCustomers}.id`,
-        `${tableUsers}.id = ?`,
+        `c.id`,
+        `u.id = ?`,
         item[0].parent_id,
-        `${tableCustomers}.id`
+        `c.id`
       )
     );
 
     const dataInfoParent = await Promise.all(arrayPromiseParent);
+    console.log("dataInfoParent", dataInfoParent);
+
     const checkStructureRecivers = dataInfoParent.some(
       (item, i) => Number(item[0].id) !== Number(listCustomer[i])
     );

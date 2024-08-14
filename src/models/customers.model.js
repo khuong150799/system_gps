@@ -224,7 +224,7 @@ class CustomersModel extends DatabaseSchema {
     await connPromise.beginTransaction();
     await this.update(conn, tableCustomers, customer, "id", id);
     await connPromise.commit();
-    await deviceModel.getWithImei(conn);
+    await deviceModel.getInfoDevice(conn);
     customer.id = id;
     return customer;
   }
@@ -233,7 +233,7 @@ class CustomersModel extends DatabaseSchema {
   async deleteById(conn, params) {
     const { id } = params;
     await this.update(conn, tableCustomers, { is_deleted: 1 }, "id", id);
-    await deviceModel.getWithImei(conn);
+    await deviceModel.getInfoDevice(conn);
     return [];
   }
 

@@ -13,6 +13,30 @@ const {
 const databaseModel = new DatabaseModel();
 
 class DeviceService {
+  //dùng cho tool kích hoạt thiết bị
+  selectId = async (imei) => {
+    const { conn } = await db.getConnection();
+    try {
+      const data = await databaseModel.select(
+        conn,
+        tableDevice,
+        "id",
+        "imei IN (?)",
+        [imei],
+        "id",
+        "ASC",
+        0,
+        100000
+      );
+      console.log("data", data);
+      return data;
+    } catch (error) {
+      console.log(error);
+    } finally {
+      conn.release();
+    }
+  };
+
   async validate(conn, devId, imei, id = null) {
     let where = `(dev_id = ? OR imei = ?) AND is_deleted = ?`;
     const conditions = [devId, imei, 0];
@@ -30,7 +54,7 @@ class DeviceService {
       conditions
     );
     if (dataCheck.length <= 0) return [];
-
+    console.log("dataCheck", dataCheck);
     const errors = dataCheck.map((item) => {
       if (item.dev_id) {
         return {
@@ -110,8 +134,8 @@ class DeviceService {
       const { imei } = params;
       const { conn } = await db.getConnection();
       try {
-        await deviceModel.checkOutside(conn, params);
-        return { imei };
+        const { type } = await deviceModel.checkOutside(conn, params);
+        return { imei, type };
       } catch (error) {
         throw error;
       } finally {
@@ -128,8 +152,13 @@ class DeviceService {
       const { conn } = await db.getConnection();
       try {
         const { imei } = params;
-        await deviceModel.checkInside(conn, params, userId, parentId);
-        return { imei };
+        const { type } = await deviceModel.checkInside(
+          conn,
+          params,
+          userId,
+          parentId
+        );
+        return { imei, type };
       } catch (error) {
         throw error;
       } finally {
@@ -145,29 +174,30 @@ class DeviceService {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
-        const {
-          username,
-          password,
-
-          imei,
-        } = body;
+        const { username, password, is_check_exited, imei } = body;
         const dataInfoDevice = await deviceModel.checkOutside(conn, { imei });
 
         await validateModel.checkRegexUsername(username);
 
         await validateModel.checkRegexPassword(password, true);
+        if (Number(is_check_exited) === 1) {
+          await validateModel.checkExitValue(
+            conn,
+            tableUsers,
+            "username",
+            username,
+            "Tài khoản",
+            "username"
+          );
+        }
 
-        await validateModel.checkExitValue(
-          conn,
-          tableUsers,
-          "username",
-          username,
-          "Tài khoản",
-          "username"
-        );
-
-        const { user_id, id } = dataInfoDevice[0];
-        const dataBody = { ...body, parent_id: user_id, device_id: id };
+        const { user_id, id, type } = dataInfoDevice;
+        const dataBody = {
+          ...body,
+          parent_id: user_id,
+          device_id: id,
+          model_type_id: type,
+        };
         const data = await deviceModel.activationOutside(
           conn,
           connPromise,
@@ -191,7 +221,7 @@ class DeviceService {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
-        const { imei, vehicle } = body;
+        const { imei, vehicle, is_check_exited } = body;
 
         const dataInfoDevice = await deviceModel.checkInside(
           conn,
@@ -199,7 +229,8 @@ class DeviceService {
           userId,
           parentId
         );
-        const { id } = dataInfoDevice[0];
+
+        const { id, type } = dataInfoDevice;
 
         const { is_actived, is_deleted } = await validateModel.checkUserInfo(
           conn,
@@ -208,16 +239,19 @@ class DeviceService {
 
         await validateModel.checkStatusUser(is_actived, is_deleted);
 
-        await validateModel.checkExitValue(
-          conn,
-          tableVehicle,
-          "name",
-          vehicle,
-          "Biển số phương tiện",
-          "vehicle"
-        );
+        if (Number(is_check_exited) === 1) {
+          await validateModel.checkExitValue(
+            conn,
+            tableVehicle,
+            "name",
+            vehicle,
+            "Biển số phương tiện",
+            "vehicle"
+          );
+        }
 
-        const dataBody = { ...body, device_id: id };
+        const dataBody = { ...body, device_id: id, model_type_id: type };
+
         const data = await deviceModel.activationInside(
           conn,
           connPromise,
@@ -255,7 +289,6 @@ class DeviceService {
           userId,
           infoUser
         );
-        console.log("device", device);
         return device;
       } catch (error) {
         await connPromise.rollback();
@@ -264,6 +297,8 @@ class DeviceService {
         conn.release();
       }
     } catch (error) {
+      // console.log(error);
+
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
     }

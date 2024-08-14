@@ -21,6 +21,13 @@ class Datatbase {
         return console.log("error when connecting to Database", err);
       } else {
         console.log(`SUCCESS:: CONNECTED TO DATABASE >> ${dbConfig.host}`);
+
+        // conn.query(sql, (err, res) => {
+        //   if (err) {
+        //     console.log(err);
+        //   }
+        //   console.log(res);
+        // });
         conn.release();
       }
     });

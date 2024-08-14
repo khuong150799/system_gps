@@ -210,7 +210,7 @@ class ModelModel extends DatabaseModel {
       dataInsertModelConnectType
     );
     await connPromise.commit();
-    await deviceModel.getWithImei(conn);
+    await deviceModel.getInfoDevice(conn);
 
     model.id = id;
     model.connection_type_id = connection_type_id;

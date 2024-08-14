@@ -426,7 +426,7 @@ class UsersModel extends DatabaseModel {
             gps,
             item,
             "Gán",
-            `Gán cho tài khoản ${infoReciver[0].username}`,
+            JSON.stringify([`Gán cho tài khoản ${infoReciver[0].username}`]),
             0,
             Date.now(),
           ],
@@ -624,7 +624,9 @@ class UsersModel extends DatabaseModel {
       ...infoUser,
       device_id,
       action: "Gỡ",
-      des: `Gỡ gán thiết bị khỏi tài ${infoReciver[0].username}`,
+      des: JSON.stringify([
+        `Gỡ gán thiết bị khỏi tài ${infoReciver[0].username}`,
+      ]),
       createdAt: Date.now(),
     };
     await deviceLoggingModel.postOrDelete(conn, dataSaveLog);
@@ -714,7 +716,6 @@ class UsersModel extends DatabaseModel {
         publish_key_refresh_token: keyRefreshToken,
       })
     );
-    console.log(1234567890);
     return [
       {
         token,
