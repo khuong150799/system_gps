@@ -80,8 +80,8 @@ class DatabaseModel {
   async insert(db, tableName, data) {
     return await new Promise((resolve, reject) => {
       const query = `INSERT INTO ${tableName} SET ?`;
-      // console.log("query", query);
       db.query(query, data, (err, dataRes) => {
+        console.log("query", query);
         if (err) {
           console.log(err);
           return reject({ msg: ERROR });
@@ -112,6 +112,8 @@ class DatabaseModel {
     return await new Promise((resolve, reject) => {
       const query = `INSERT INTO ${tableName} (${field}) VALUES ? ON DUPLICATE KEY UPDATE ${dataUpdate}`;
       // console.log(query);
+      // console.log(JSON.stringify(dataInsert, null, 2));
+
       db.query(query, [dataInsert], (err, dataRes) => {
         if (err) {
           console.log(err);

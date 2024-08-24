@@ -5,6 +5,10 @@ const morgan = require("morgan");
 const path = require("path");
 const helmet = require("helmet");
 const compression = require("compression");
+const { SESSION_CMS1, SESSION_CMS2 } = require("./constants/global.constant");
+
+// global[SESSION_CMS1] = {};
+// global[SESSION_CMS2] = {};
 
 app.use(morgan("dev"));
 app.use(helmet());

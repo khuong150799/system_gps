@@ -373,6 +373,8 @@ const id = setInterval(async () => {
         is_transmission_image: "0",
         note: "",
         activation_date: "",
+        is_use_gps: 1,
+        is_is_check_exited: 1,
       },
       headers: {
         Authorization:

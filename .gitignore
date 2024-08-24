@@ -9,6 +9,7 @@ dist/
 .env
 .env.example
 .env.local
+.env.dev
 .env.staging
 .prettierrc
 .vscode/

@@ -7,6 +7,7 @@ class DeviceVehicleSchema {
     activation_date,
     warranty_expired_on,
     quantity_channel,
+    quantity_channel_lock,
     type,
     is_use_gps,
     is_deleted,
@@ -22,8 +23,9 @@ class DeviceVehicleSchema {
     this.activation_date = activation_date;
     this.warranty_expired_on = warranty_expired_on;
     this.quantity_channel = quantity_channel;
+    this.quantity_channel_lock = quantity_channel_lock;
     this.type = type;
-    this.is_use_gps = type;
+    this.is_use_gps = is_use_gps;
     this.is_deleted = is_deleted;
     this.is_transmission_gps = is_transmission_gps;
     this.is_transmission_image = is_transmission_image;

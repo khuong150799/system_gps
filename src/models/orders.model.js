@@ -327,14 +327,16 @@ class OrdersModel extends DatabaseModel {
           reciver=VALUES(reciver),quantity=VALUES(quantity),orders_status_id=VALUES(orders_status_id),note=VALUES(note),
           is_deleted=VALUES(is_deleted),updated_at=VALUES(created_at)`
     );
-
+    console.log("res_", res_);
+    console.log("listReciver.length", listReciver.length);
+    let orders_id = res_;
     const dataInsertOrdersDevice = listReciver.reduce((result, item, i) => {
       if (i !== listReciver.length - 1) {
-        const orders_id = res_ + i;
         result = [
           ...result,
           ...listDevice.map((item1) => [orders_id, item1, 0, Date.now()]),
         ];
+        orders_id += 2;
       }
       return result;
     }, []);

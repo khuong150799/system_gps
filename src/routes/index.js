@@ -26,4 +26,5 @@ module.exports = (app) => {
   require("./interface.route")(app);
   require("./writeLog.route")(app);
   require("./deviceLogging.route")(app);
+  require("./serverCamera.route")(app);
 };

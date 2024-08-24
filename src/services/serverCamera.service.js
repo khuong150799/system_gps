@@ -1,16 +1,16 @@
 const db = require("../dbs/init.mysql");
-const connectionTypeModel = require("../models/connectionType.model");
 const { BusinessLogicError } = require("../core/error.response");
 const validateModel = require("../models/validate.model");
-const { tableConnectionType } = require("../constants/tableName.constant");
+const serverCameraModel = require("../models/serverCamera.model");
+const { tableServerCamera } = require("../constants/tableName.constant");
 
-class ConnectionTypeService {
+class ServerCameraService {
   //getallrow
   async getallrows(query) {
     try {
       const { conn } = await db.getConnection();
       try {
-        const data = await connectionTypeModel.getallrows(conn, query);
+        const data = await serverCameraModel.getallrows(conn, query);
         return data;
       } catch (error) {
         throw error;
@@ -18,6 +18,8 @@ class ConnectionTypeService {
         conn.release();
       }
     } catch (error) {
+      console.log(error);
+
       throw new BusinessLogicError(error.msg);
     }
   }
@@ -27,7 +29,7 @@ class ConnectionTypeService {
     try {
       const { conn } = await db.getConnection();
       try {
-        const data = await connectionTypeModel.getById(conn, params, query);
+        const data = await serverCameraModel.getById(conn, params, query);
         return data;
       } catch (error) {
         throw error;
@@ -40,71 +42,55 @@ class ConnectionTypeService {
   }
 
   //Register
-  async register(body, infoUser) {
+  async register(body) {
     try {
-      const { conn, connPromise } = await db.getConnection();
+      const { conn } = await db.getConnection();
       try {
-        const { name } = body;
+        const { ip } = body;
 
         await validateModel.checkExitValue(
           conn,
-          tableConnectionType,
-          "name",
-          name,
-          "Tên",
-          "name"
+          tableServerCamera,
+          "ip",
+          ip,
+          "IP",
+          "ip"
         );
 
-        const res_ = await connectionTypeModel.register(
-          conn,
-          connPromise,
-          body,
-          infoUser
-        );
-
-        return res_;
+        const data = await serverCameraModel.register(conn, body);
+        return data;
       } catch (error) {
-        await connPromise.rollback();
         throw error;
       } finally {
         conn.release();
       }
     } catch (error) {
-      console.log(error);
-
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
     }
   }
 
   //update
-  async updateById(body, params, infoUser) {
+  async updateById(body, params) {
     try {
-      const { conn, connPromise } = await db.getConnection();
+      const { conn } = await db.getConnection();
       try {
-        const { name } = body;
+        const { ip } = body;
         const { id } = params;
 
         await validateModel.checkExitValue(
           conn,
-          tableConnectionType,
-          "name",
-          name,
-          "Tên",
-          "name",
+          tableServerCamera,
+          "ip",
+          ip,
+          "IP",
+          "ip",
           id
         );
 
-        const data = await connectionTypeModel.updateById(
-          conn,
-          connPromise,
-          body,
-          params,
-          infoUser
-        );
+        const data = await serverCameraModel.updateById(conn, body, params);
         return data;
       } catch (error) {
-        await connPromise.rollback();
         throw error;
       } finally {
         conn.release();
@@ -120,7 +106,7 @@ class ConnectionTypeService {
     try {
       const { conn } = await db.getConnection();
       try {
-        await connectionTypeModel.deleteById(conn, params);
+        await serverCameraModel.deleteById(conn, params);
         return [];
       } catch (error) {
         throw error;
@@ -137,7 +123,7 @@ class ConnectionTypeService {
     try {
       const { conn } = await db.getConnection();
       try {
-        await connectionTypeModel.updatePublish(conn, body, params);
+        await serverCameraModel.updatePublish(conn, body, params);
         return [];
       } catch (error) {
         throw error;
@@ -150,4 +136,4 @@ class ConnectionTypeService {
   }
 }
 
-module.exports = new ConnectionTypeService();
+module.exports = new ServerCameraService();

@@ -52,7 +52,7 @@ class ModelModel extends DatabaseModel {
     INNER JOIN ${tableConnectionType} ON ${tableModelConnectionType}.connection_type_id = ${tableConnectionType}.id 
     INNER JOIN ${tableModelType} ON ${tableModel}.model_type_id = ${tableModelType}.id`;
 
-    const select = `${tableModel}.id,${tableModel}.name,${tableModel}.note,${tableModel}.made_in,${tableDisk}.name as disk_name,${tableModel}.quantity_channel,${tableModel}.note,${tableModel}.publish,${tableModel}.is_gps,GROUP_CONCAT(${tableConnectionType}.name) as connection_type_name,${tableModelType}.name as model_type_name`;
+    const select = `${tableModel}.id,${tableModel}.name,${tableModel}.note,${tableModel}.made_in,${tableModel}.model_type_id,${tableDisk}.name as disk_name,${tableModel}.quantity_channel,${tableModel}.note,${tableModel}.publish,${tableModel}.is_gps,GROUP_CONCAT(${tableConnectionType}.name) as connection_type_name,${tableModelType}.name as model_type_name`;
     const [res_, count] = await Promise.all([
       this.select(
         conn,

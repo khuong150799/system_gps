@@ -532,6 +532,8 @@ class UsersService {
           passwordDB,
           "password"
         );
+        console.log("isCheckComparePass", isCheckComparePass);
+
         if (!isCheckComparePass.result) throw isCheckComparePass.errors;
 
         const data = await usersModel.login(

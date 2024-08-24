@@ -78,7 +78,9 @@ class ValidateModel extends DatabaseModel {
     condition,
     msgError,
     param,
-    id = null
+    id = null,
+    is_exist_throw_error = true,
+    select = "id"
   ) {
     let where = `${field} = ? AND is_deleted = ?`;
     const conditions = [condition, 0];
@@ -88,9 +90,9 @@ class ValidateModel extends DatabaseModel {
       conditions.push(id);
     }
 
-    const dataCheck = await this.select(conn, table, "id", where, conditions);
+    const dataCheck = await this.select(conn, table, select, where, conditions);
 
-    if (dataCheck.length > 0)
+    if (dataCheck.length > 0 && is_exist_throw_error) {
       throw {
         msg: ERROR,
         errors: [
@@ -101,12 +103,23 @@ class ValidateModel extends DatabaseModel {
           },
         ],
       };
+    } else if (dataCheck.length === 0 && !is_exist_throw_error) {
+      throw {
+        msg: ERROR,
+        errors: [
+          {
+            value: condition,
+            msg: `${msgError} ${NOT_EXITS}`,
+            param,
+          },
+        ],
+      };
+    }
 
-    return [];
+    return dataCheck;
   }
   async CheckCustomerTree(conn, listCustomer, param = "recivers") {
     const errors = [];
-    console.log("listCustomer", listCustomer);
 
     if (listCustomer.length <= 0) {
       errors.push({ value: listCustomer, msg: NOT_EMPTY, param });
@@ -130,7 +143,6 @@ class ValidateModel extends DatabaseModel {
     }, []);
 
     const dataInfo = await Promise.all(arrayPromise);
-    console.log("dataInfo", dataInfo);
 
     const arrayPromiseParent = dataInfo.map((item) =>
       this.select(
@@ -144,7 +156,6 @@ class ValidateModel extends DatabaseModel {
     );
 
     const dataInfoParent = await Promise.all(arrayPromiseParent);
-    console.log("dataInfoParent", dataInfoParent);
 
     const checkStructureRecivers = dataInfoParent.some(
       (item, i) => Number(item[0].id) !== Number(listCustomer[i])

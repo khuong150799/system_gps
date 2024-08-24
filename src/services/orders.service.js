@@ -139,7 +139,7 @@ class OrdersService {
           conn,
           joinTableUsersCustomers,
           `uc.customer_id as id`,
-          `${tableUsers}.id = ?`,
+          `u.id = ?`,
           info[0].parent_id,
           `uc.id`,
           "ASC",

@@ -1,6 +1,11 @@
 const db = require("../dbs/init.mysql");
 const deviceModel = require("../models/device.model");
-const { ERROR, ALREADY_EXITS } = require("../constants/msg.constant");
+const {
+  ERROR,
+  ALREADY_EXITS,
+  NOT_EXITS,
+  NOT_EMPTY,
+} = require("../constants/msg.constant");
 const { BusinessLogicError } = require("../core/error.response");
 const DatabaseModel = require("../models/database.model");
 const validateModel = require("../models/validate.model");
@@ -8,6 +13,8 @@ const {
   tableUsers,
   tableVehicle,
   tableDevice,
+  tableDeviceVehicle,
+  tableModel,
 } = require("../constants/tableName.constant");
 
 const databaseModel = new DatabaseModel();
@@ -76,6 +83,35 @@ class DeviceService {
       errors,
     };
   }
+
+  // async getInfoDeviceLink(conn, vehicleId) {
+  //   const joinTable = `${tableDevice} d INNER JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id`;
+  //   const select = "d.imei";
+  //   const info = await databaseModel.select(
+  //     conn,
+  //     joinTable,
+  //     select,
+  //     "dv.vehicle_id = ?",
+  //     vehicleId,
+  //     "d.id",
+  //     "ASC",
+  //     0,
+  //     1
+  //   );
+  //   if (!info?.length)
+  //     throw {
+  //       msg: ERROR,
+  //       errors: [
+  //         {
+  //           msg: `Phương tiện ${NOT_EXITS}`,
+  //           value: vehicleId,
+  //           param: "vehicle_id",
+  //         },
+  //       ],
+  //     };
+
+  //   return info[0];
+  // }
 
   //getallrow
   async getallrows(query, customerId) {
@@ -189,6 +225,7 @@ class DeviceService {
             "Tài khoản",
             "username"
           );
+        } else {
         }
 
         const { user_id, id, type } = dataInfoDevice;
@@ -238,7 +275,6 @@ class DeviceService {
         );
 
         await validateModel.checkStatusUser(is_actived, is_deleted);
-
         if (Number(is_check_exited) === 1) {
           await validateModel.checkExitValue(
             conn,
@@ -250,7 +286,11 @@ class DeviceService {
           );
         }
 
-        const dataBody = { ...body, device_id: id, model_type_id: type };
+        const dataBody = {
+          ...body,
+          device_id: id,
+          model_type_id: type,
+        };
 
         const data = await deviceModel.activationInside(
           conn,
@@ -278,14 +318,34 @@ class DeviceService {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
-        const { dev_id, imei } = body;
+        const { dev_id, imei, model_id, sv_cam_id } = body;
 
         await this.validate(conn, dev_id, imei);
+
+        const dataModel = await validateModel.checkExitValue(
+          conn,
+          tableModel,
+          "id",
+          model_id,
+          "Model",
+          "model_id",
+          null,
+          false,
+          "model_type_id"
+        );
+
+        const modelType = dataModel[0].model_type_id;
+
+        if (Number(modelType) === 2 && !sv_cam_id)
+          throw {
+            msg: ERROR,
+            errors: [{ value: sv_cam_id, msg: NOT_EMPTY, param: "sv_cam_id" }],
+          };
 
         const device = await deviceModel.register(
           conn,
           connPromise,
-          body,
+          { ...body, model_type_id: modelType },
           userId,
           infoUser
         );

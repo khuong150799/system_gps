@@ -34,6 +34,7 @@ const {
   tableUsersRole,
   tableDevice,
   tableVehicle,
+  tableDeviceVehicle,
 } = require("../constants/tableName.constant");
 const validateModel = require("./validate.model");
 const vehicleModel = require("./vehicle.model");
@@ -231,7 +232,9 @@ class UsersModel extends DatabaseModel {
     const where = `ud.user_id = ? AND ud.is_deleted = ? AND ud.is_main = 0`;
     const conditions = [chooseUserId, isDeleted];
     const joinTable = `${tableUsersDevices} ud INNER JOIN ${tableDevice} d ON ud.device_id = d.id
-      INNER JOIN ${tableVehicle} v ON d.id = v.device_id`;
+      INNER JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id
+      INNER JOIN ${tableVehicle} v ON dv.vehicle_id = v.id
+      `;
     const selectData = `d.id,d.imei,v.name as vehicle_name`;
 
     const res_ = await this.select(
@@ -476,7 +479,7 @@ class UsersModel extends DatabaseModel {
         selectTableUsers,
         whereTableUsers,
         conditionTableUsers,
-        "u2,id"
+        "u2.id"
       ),
       this.select(conn, tableUsers, "parent_id", "id = ?", reciver),
     ]);
@@ -701,12 +704,16 @@ class UsersModel extends DatabaseModel {
       },
       keyRefreshToken
     );
+    console.log(98765432);
+
     await keyTokenModel.register(conn, {
       user_id: id,
       client_id: clientId,
       publish_key_token: keyToken,
       publish_key_refresh_token: keyRefreshToken,
     });
+
+    console.log(1234567);
 
     await setRedis(
       clientId,

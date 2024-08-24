@@ -36,8 +36,11 @@ class KeyTokenModel extends DatabaseModel {
       created_at: Date.now(),
     });
     delete keyToken.updated_at;
+    console.log("keyToken", keyToken);
 
     const res_ = await this.insert(conn, tableKeyToken, keyToken);
+    console.log("res_", res_);
+
     keyToken.id = res_;
     delete keyToken.is_deleted;
     return keyToken;

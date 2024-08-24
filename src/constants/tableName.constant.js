@@ -40,4 +40,5 @@ module.exports = {
   tableWriteLogs: "tbl_activity_logging",
   tableDeviceLogging: "tbl_device_logging",
   tableInterface: "tbl_interface",
+  tableServerCamera: "tbl_server_camera",
 };

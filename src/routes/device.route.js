@@ -144,21 +144,31 @@ module.exports = (app) => {
         .isNumeric()
         .withMessage(VALIDATE_DATA)
         .escape(),
-      body("activation_date", NOT_EMPTY)
+      body("is_check_exited", NOT_EMPTY)
         .notEmpty()
         .isNumeric()
         .withMessage(VALIDATE_DATA)
         .escape(),
-      body("expired_on", NOT_EMPTY)
+      body("is_use_gps", NOT_EMPTY)
         .notEmpty()
         .isNumeric()
         .withMessage(VALIDATE_DATA)
         .escape(),
-      body("warranty_expired_on", NOT_EMPTY)
-        .notEmpty()
-        .isNumeric()
-        .withMessage(VALIDATE_DATA)
-        .escape(),
+      // body("activation_date", NOT_EMPTY)
+      //   .notEmpty()
+      //   .isNumeric()
+      //   .withMessage(VALIDATE_DATA)
+      //   .escape(),
+      // body("expired_on", NOT_EMPTY)
+      //   .notEmpty()
+      //   .isNumeric()
+      //   .withMessage(VALIDATE_DATA)
+      //   .escape(),
+      // body("warranty_expired_on", NOT_EMPTY)
+      //   .notEmpty()
+      //   .isNumeric()
+      //   .withMessage(VALIDATE_DATA)
+      //   .escape(),
     ],
 
     isAuth,

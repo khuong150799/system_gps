@@ -28,6 +28,16 @@ class Datatbase {
         //   }
         //   console.log(res);
         // });
+        // const sql = `SELECT GPSData FROM jt808_vehicle_gps_3_202408`;
+        // conn.query(sql, (err, data) => {
+        //   if (err) {
+        //     console.log(err);
+        //   } else {
+        //     const binaryData = data[0].GPSData;
+
+        //     console.log("binaryData", JSON.parse(binaryData.toString()));
+        //   }
+        // });
         conn.release();
       }
     });
