@@ -704,16 +704,16 @@ class UsersModel extends DatabaseModel {
       },
       keyRefreshToken
     );
-    console.log(98765432);
+    // console.log(98765432);
 
-    await keyTokenModel.register(conn, {
-      user_id: id,
-      client_id: clientId,
-      publish_key_token: keyToken,
-      publish_key_refresh_token: keyRefreshToken,
-    });
+    // await keyTokenModel.register(conn, {
+    //   user_id: id,
+    //   client_id: clientId,
+    //   publish_key_token: keyToken,
+    //   publish_key_refresh_token: keyRefreshToken,
+    // });
 
-    console.log(1234567);
+    // console.log(1234567);
 
     await setRedis(
       clientId,
@@ -771,12 +771,12 @@ class UsersModel extends DatabaseModel {
       keyToken
     );
 
-    await keyTokenModel.updateById(
-      {
-        publish_key_token: keyToken,
-      },
-      { client_id: clientId }
-    );
+    // await keyTokenModel.updateById(
+    //   {
+    //     publish_key_token: keyToken,
+    //   },
+    //   { client_id: clientId }
+    // );
 
     await setRedis(
       clientId,
@@ -792,9 +792,9 @@ class UsersModel extends DatabaseModel {
 
   //logout
   async logout(conn, clientId) {
-    await keyTokenModel.deleteById(conn, {
-      client_id: clientId,
-    });
+    // await keyTokenModel.deleteById(conn, {
+    //   client_id: clientId,
+    // });
 
     await expireRedis(clientId, -1);
 

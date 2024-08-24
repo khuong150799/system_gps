@@ -53,10 +53,11 @@ class JWTService {
       // console.log("dataStore", dataStore);
       if (dataStore.result && dataStore.data) {
         keyStore = JSON.parse(dataStore.data);
-      } else {
-        const dataStore = await keyTokenService.getData(info.clientId);
-        keyStore = dataStore[0] || {};
       }
+      // else {
+      //   const dataStore = await keyTokenService.getData(info.clientId);
+      //   keyStore = dataStore[0] || {};
+      // }
       if (Object.keys(keyStore).length) {
         const { publish_key_token, publish_key_refresh_token } = keyStore;
         const secret = isAccess

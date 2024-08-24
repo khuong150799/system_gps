@@ -23,10 +23,15 @@ class OrdersController {
   });
 
   register = catchAsync(async (req, res) => {
-    const userId = req?.userId;
-    const customerId = req?.customerId;
-    const body = req.body;
-    const data = await ordersService.register(body, userId, customerId);
+    const { userId, customerId, level, role, body } = req;
+
+    const data = await ordersService.register(
+      body,
+      userId,
+      customerId,
+      level,
+      role
+    );
     CREATED(res, [data]);
   });
 

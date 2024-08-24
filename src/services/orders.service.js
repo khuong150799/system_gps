@@ -35,7 +35,9 @@ class OrdersService {
     listDevice = [],
     reciver = null,
     customerId,
-    id = null
+    id = null,
+    level,
+    role
   ) {
     const errors = [];
 
@@ -148,8 +150,10 @@ class OrdersService {
         );
         // console.log("dataReciverParent", dataReciverParent, customerId);
         if (
-          !dataReciverParent[0]?.id ||
-          dataReciverParent[0]?.id != customerId
+          (!dataReciverParent[0]?.id ||
+            dataReciverParent[0]?.id != customerId) &&
+          level < 30 &&
+          role < 40
         ) {
           errors.push({
             value: reciver,
@@ -403,7 +407,7 @@ class OrdersService {
   }
 
   //Register
-  async register(body, userId, customerId) {
+  async register(body, userId, customerId, level, role) {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
@@ -416,7 +420,10 @@ class OrdersService {
           code,
           listDevice,
           reciver,
-          customerId
+          customerId,
+          null,
+          level,
+          role
         );
 
         const { id: userIdReciver } = dataInfo;
