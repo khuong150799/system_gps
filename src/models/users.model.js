@@ -41,6 +41,8 @@ const vehicleModel = require("./vehicle.model");
 const deviceLoggingModel = require("./deviceLogging.model");
 const writeLogModel = require("./writeLog.model");
 const { users } = require("../constants/module.constant");
+const { hSet } = require("./redis.model");
+const { REDIS_KEY_TOKEN } = require("../constants/redis.constant");
 
 class UsersModel extends DatabaseModel {
   constructor() {
@@ -715,7 +717,8 @@ class UsersModel extends DatabaseModel {
 
     // console.log(1234567);
 
-    await setRedis(
+    await hSet(
+      REDIS_KEY_TOKEN,
       clientId,
       JSON.stringify({
         user_id: id,
@@ -723,6 +726,15 @@ class UsersModel extends DatabaseModel {
         publish_key_refresh_token: keyRefreshToken,
       })
     );
+
+    // await setRedis(
+    //   clientId,
+    //   JSON.stringify({
+    //     user_id: id,
+    //     publish_key_token: keyToken,
+    //     publish_key_refresh_token: keyRefreshToken,
+    //   })
+    // );
     return [
       {
         token,
@@ -778,10 +790,20 @@ class UsersModel extends DatabaseModel {
     //   { client_id: clientId }
     // );
 
-    await setRedis(
+    // await setRedis(
+    //   clientId,
+    //   JSON.stringify({
+    //     user_id: userId,
+    //     publish_key_token: keyToken,
+    //     publish_key_refresh_token: keyRefreshToken,
+    //   })
+    // );
+
+    await hSet(
+      REDIS_KEY_TOKEN,
       clientId,
       JSON.stringify({
-        user_id: userId,
+        user_id: id,
         publish_key_token: keyToken,
         publish_key_refresh_token: keyRefreshToken,
       })

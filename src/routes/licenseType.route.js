@@ -9,8 +9,8 @@ const router = require("express").Router();
 module.exports = (app) => {
   router.get(
     "/rows",
-    isAuth,
-    checkPermission,
+    // isAuth,
+    // checkPermission,
     licenseTypeController.getAllRows
   );
   app.use("/api/v1/license-type", router);

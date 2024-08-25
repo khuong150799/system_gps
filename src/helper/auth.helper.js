@@ -7,8 +7,10 @@ const {
   Api403Error,
   BusinessLogicError,
 } = require("../core/error.response");
-const { get: getRedis, set: setRedis } = require("../models/redis.model_");
+// const { get: getRedis, set: setRedis } = require("../models/redis.model_");
 const { promisify } = require("util");
+const { hGet, get: getRedis, set: setRedis } = require("../models/redis.model");
+const { REDIS_KEY_TOKEN } = require("../constants/redis.constant");
 const {
   ACCESS_TOKEN_TIME_LIFE,
   ACCESS_TOKEN_SECRET_KEY,
@@ -49,11 +51,18 @@ class JWTService {
         throw new Api403Error();
       }
       let keyStore = {};
-      const dataStore = await getRedis(info.clientId);
-      // console.log("dataStore", dataStore);
+
+      const dataStore = await hGet(REDIS_KEY_TOKEN, info.clientId);
       if (dataStore.result && dataStore.data) {
         keyStore = JSON.parse(dataStore.data);
       }
+
+      // const dataStore = await getRedis(info.clientId);
+      // // console.log("dataStore", dataStore);
+      // if (dataStore.result && dataStore.data) {
+      //   keyStore = JSON.parse(dataStore.data);
+      // }
+
       // else {
       //   const dataStore = await keyTokenService.getData(info.clientId);
       //   keyStore = dataStore[0] || {};

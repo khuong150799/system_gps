@@ -500,7 +500,7 @@ class UsersService {
           0,
           1
         );
-        console.log("dataaUser", dataaUser);
+        // console.log("dataaUser", dataaUser);
 
         if (dataaUser?.length <= 0)
           throw {
@@ -532,7 +532,7 @@ class UsersService {
           passwordDB,
           "password"
         );
-        console.log("isCheckComparePass", isCheckComparePass);
+        // console.log("isCheckComparePass", isCheckComparePass);
 
         if (!isCheckComparePass.result) throw isCheckComparePass.errors;
 

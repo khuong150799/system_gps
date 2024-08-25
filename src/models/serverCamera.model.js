@@ -3,6 +3,8 @@ const { tableServerCamera } = require("../constants/tableName.constant");
 const ServerCameraSchema = require("./schema/serverCamera.schema");
 const { login } = require("../api/camera.api");
 const configureEnvironment = require("../config/dotenv.config");
+const { hSet } = require("./redis.model");
+const { REDIS_KEY_SV_CAM } = require("../constants/redis.constant");
 const { ACCOUNT_CMS, PASSWORD_CMS } = configureEnvironment();
 
 class ServerCameraModel extends DatabaseModel {
@@ -97,13 +99,17 @@ class ServerCameraModel extends DatabaseModel {
       host,
       port,
       publish,
-      sort: 0,
       is_deleted: 0,
       created_at: Date.now(),
     });
     delete serverCamera.updated_at;
 
     const res_ = await this.insert(conn, tableServerCamera, serverCamera);
+    await hSet(
+      REDIS_KEY_SV_CAM,
+      res_.toString(),
+      JSON.stringify({ ip, host, port })
+    );
     serverCamera.id = res_;
     delete serverCamera.is_deleted;
     return serverCamera;
@@ -126,6 +132,11 @@ class ServerCameraModel extends DatabaseModel {
     delete serverCamera.is_deleted;
 
     await this.update(conn, tableServerCamera, serverCamera, "id", id);
+    await hSet(
+      REDIS_KEY_SV_CAM,
+      id.toString(),
+      JSON.stringify({ ip, host, port })
+    );
     serverCamera.id = id;
     return serverCamera;
   }

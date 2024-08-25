@@ -192,6 +192,7 @@ class CustomersService {
       const { conn, connPromise } = await db.getConnection();
       try {
         const { id } = params;
+
         const { company, email, phone } = body;
 
         if (company || email || phone) {

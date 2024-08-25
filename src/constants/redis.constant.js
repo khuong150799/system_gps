@@ -5,4 +5,6 @@ module.exports = {
   REDIS_KEY_LIST_DRIVER: "listDriver",
   REDIS_KEY_PERMISSION: "permission",
   REDIS_KEY_PERMISSION_SPAM: "permissionSpam",
+  REDIS_KEY_TOKEN: "listToken",
+  REDIS_KEY_SV_CAM: "svCam",
 };
