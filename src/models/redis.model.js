@@ -135,8 +135,12 @@ class RedisModel {
     try {
       const { instanceConnect: client } = this.redis;
       await client.del(key);
+      // console.log("del", a, "key", key);
+
       return { result: true, data: [] };
     } catch (error) {
+      console.log(error);
+
       return { result: false, error };
     }
   }

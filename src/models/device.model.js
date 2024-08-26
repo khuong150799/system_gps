@@ -28,7 +28,11 @@ const {
   tableModelType,
   tableServerCamera,
 } = require("../constants/tableName.constant");
-const { hSet: hsetRedis, expire: expireRedis } = require("./redis.model");
+const {
+  hSet: hsetRedis,
+  expire: expireRedis,
+  del: delRedis,
+} = require("./redis.model");
 const {
   REDIS_KEY_LIST_DEVICE,
   REDIS_KEY_DEVICE_SPAM,
@@ -62,7 +66,7 @@ class DeviceModel extends DatabaseModel {
       "id = ?",
       svCamId
     );
-    console.log("dataServerCam", dataServerCam);
+    // console.log("dataServerCam", dataServerCam);
 
     if (!dataServerCam?.length)
       throw {
@@ -87,7 +91,7 @@ class DeviceModel extends DatabaseModel {
       ...dataAddDeviceCms,
       url: `${host}:${port}`,
     });
-    console.log("resAddDevice", resAddDevice);
+    // console.log("resAddDevice", resAddDevice);
 
     if (resAddDevice != 0)
       throw {
@@ -122,7 +126,10 @@ class DeviceModel extends DatabaseModel {
 
     //   resCms = await cameraApi.addVehicleCMS2(dataAddVehicleCms);
     // }
-    console.log("resCms", resCms);
+    console.log("resCms", resCms, {
+      ...dataAddVehicleCms,
+      url: `${host}:${port}`,
+    });
 
     const { result: resultCms } = resCms;
     if (resultCms != 0)
@@ -760,7 +767,7 @@ class DeviceModel extends DatabaseModel {
 
     await connPromise.commit();
 
-    await Promise.all([expireRedis(`${REDIS_KEY_DEVICE_SPAM}/${imei}`, -1)]);
+    await Promise.all([delRedis(`${REDIS_KEY_DEVICE_SPAM}/${imei}`)]);
 
     return [];
   }
@@ -936,18 +943,18 @@ class DeviceModel extends DatabaseModel {
     });
 
     if (model_type_id == 2) {
-      const { sv_cam_id } = inforDevice[0];
+      const { sv_cam_id, vehicle_name } = inforDevice[0];
       await this.activationCms(
         conn,
         sv_cam_id,
-        vehicle,
+        vehicle_name,
         imei,
         quantity_channel
       );
     }
 
     await connPromise.commit();
-    await Promise.all([expireRedis(`${REDIS_KEY_DEVICE_SPAM}/${imei}`, -1)]);
+    await Promise.all([delRedis(`${REDIS_KEY_DEVICE_SPAM}/${imei}`)]);
     return [];
   }
 

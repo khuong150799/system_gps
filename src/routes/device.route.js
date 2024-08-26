@@ -119,16 +119,16 @@ module.exports = (app) => {
     "/activation-inside",
     [
       body("user_id").escape(),
-      body("vehicle", NOT_EMPTY)
-        .notEmpty()
-        .isString()
-        .withMessage(VALIDATE_DATA)
-        .escape(),
-      body("type", NOT_EMPTY)
-        .notEmpty()
-        .isNumeric()
-        .withMessage(VALIDATE_DATA)
-        .escape(),
+      // body("vehicle", NOT_EMPTY)
+      //   .notEmpty()
+      //   .isString()
+      //   .withMessage(VALIDATE_DATA)
+      //   .escape(),
+      // body("type", NOT_EMPTY)
+      //   .notEmpty()
+      //   .isNumeric()
+      //   .withMessage(VALIDATE_DATA)
+      //   .escape(),
       body("imei", NOT_EMPTY)
         .notEmpty()
         .isString()

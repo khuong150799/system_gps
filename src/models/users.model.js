@@ -20,7 +20,6 @@ const {
   makeRefreshToken,
   checkToken,
 } = require("../helper/auth.helper");
-const { set: setRedis, expire: expireRedis } = require("./redis.model_");
 
 const CustomersSchema = require("./schema/customers.schema");
 const { makeCode } = require("../ultils/makeCode");
@@ -41,7 +40,7 @@ const vehicleModel = require("./vehicle.model");
 const deviceLoggingModel = require("./deviceLogging.model");
 const writeLogModel = require("./writeLog.model");
 const { users } = require("../constants/module.constant");
-const { hSet } = require("./redis.model");
+const { hSet, del: delRedis } = require("./redis.model");
 const { REDIS_KEY_TOKEN } = require("../constants/redis.constant");
 
 class UsersModel extends DatabaseModel {
@@ -818,7 +817,7 @@ class UsersModel extends DatabaseModel {
     //   client_id: clientId,
     // });
 
-    await expireRedis(clientId, -1);
+    await delRedis(clientId);
 
     return [];
   }

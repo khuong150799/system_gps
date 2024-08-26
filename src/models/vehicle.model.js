@@ -5,9 +5,8 @@ const {
   tableVehicle,
   tableUsersDevices,
 } = require("../constants/tableName.constant");
-const getTableName = require("../ultils/getTableName");
 const DatabaseModel = require("./database.model");
-const { hSet: hsetRedis, expire: expireRedis } = require("./redis.model");
+const { del: delRedis } = require("./redis.model");
 const VehicleSchema = require("./schema/vehicle.schema");
 
 class VehicleModel extends DatabaseModel {
@@ -63,10 +62,10 @@ class VehicleModel extends DatabaseModel {
     // console.log("listUserId", listUserId);
     if (!listUserId?.length) return null;
 
-    const data = await Promise.all([
+    await Promise.all([
       listUserId.map((item) => {
         const user_id = dataUserId.length ? item : item.user_id;
-        return expireRedis(`${REDIS_KEY_LIST_IMEI_OF_USERS}/${user_id}`, -1);
+        return delRedis(`${REDIS_KEY_LIST_IMEI_OF_USERS}/${user_id}`);
       }),
     ]);
     // console.log("listUserId123456", data);
