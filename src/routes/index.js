@@ -27,4 +27,7 @@ module.exports = (app) => {
   require("./writeLog.route")(app);
   require("./deviceLogging.route")(app);
   require("./serverCamera.route")(app);
+  require("./fuelBottleType.route")(app);
+  require("./configFuel.route")(app);
+  require("./configTemperature.route")(app);
 };

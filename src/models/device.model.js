@@ -443,7 +443,7 @@ class DeviceModel extends DatabaseModel {
       LEFT JOIN ${tableOrders} o ON od.orders_id = o.id
       LEFT JOIN ${tableCustomers} c1 ON  o.reciver = c1.id AND o.creator_customer_id = ?`;
       select += ` ,o.code orders_code,d.created_at,d.updated_at,
-        ds.title as device_status_name,MAX(COALESCE(c1.company,c1.name)) as customer_name,c1.id as customer_id`;
+        ds.title as device_status_name,MAX(COALESCE(c1.company,c1.name)) as customer_name,c1.id as customer_id,v.id as vehicle_id`;
       conditions = [customer, ...conditions];
     }
 
@@ -718,6 +718,8 @@ class DeviceModel extends DatabaseModel {
       this.checkTableExit(conn, tableReportRegion),
     ]);
 
+    console.log("listTable", listTable);
+
     const listTableCreate = listTable.map((item, i) => {
       if (item && item.includes(initialNameOfTableGps))
         return this.createTableDeviceGps(conn, item);
@@ -754,16 +756,16 @@ class DeviceModel extends DatabaseModel {
       createdAt,
     });
 
-    if (model_type_id == 2) {
-      const { sv_cam_id } = inforDevice[0];
-      await this.activationCms(
-        conn,
-        sv_cam_id,
-        vehicle,
-        imei,
-        quantity_channel
-      );
-    }
+    // if (model_type_id == 2) {
+    //   const { sv_cam_id } = inforDevice[0];
+    //   await this.activationCms(
+    //     conn,
+    //     sv_cam_id,
+    //     vehicle,
+    //     imei,
+    //     quantity_channel
+    //   );
+    // }
 
     await connPromise.commit();
 
@@ -942,16 +944,16 @@ class DeviceModel extends DatabaseModel {
       createdAt,
     });
 
-    if (model_type_id == 2) {
-      const { sv_cam_id, vehicle_name } = inforDevice[0];
-      await this.activationCms(
-        conn,
-        sv_cam_id,
-        vehicle_name,
-        imei,
-        quantity_channel
-      );
-    }
+    // if (model_type_id == 2) {
+    //   const { sv_cam_id, vehicle_name } = inforDevice[0];
+    //   await this.activationCms(
+    //     conn,
+    //     sv_cam_id,
+    //     vehicle_name,
+    //     imei,
+    //     quantity_channel
+    //   );
+    // }
 
     await connPromise.commit();
     await Promise.all([delRedis(`${REDIS_KEY_DEVICE_SPAM}/${imei}`)]);

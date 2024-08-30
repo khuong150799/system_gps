@@ -7,4 +7,6 @@ module.exports = {
   REDIS_KEY_PERMISSION_SPAM: "permissionSpam",
   REDIS_KEY_TOKEN: "listToken",
   REDIS_KEY_SV_CAM: "svCam",
+  REDIS_KEY_CALIB_FUEL: "calibFuel",
+  REDIS_KEY_SENSOR_TEPM: "sensorTemp",
 };

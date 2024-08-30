@@ -41,4 +41,6 @@ module.exports = {
   tableDeviceLogging: "tbl_device_logging",
   tableInterface: "tbl_interface",
   tableServerCamera: "tbl_server_camera",
+  tableFuelBottleType: "tbl_fuel_bottle_type",
+  tableConfigTemperature: "tbl_config_sensor_temperature",
 };

@@ -58,10 +58,12 @@ const constants = {
   DEVICE_IS_READY: "Thiết bị đã sẳn sàng kích hoạt",
   DEVICE_IS_ACTIVED: "Thiết bị đã được kích hoạt",
   DEVICE_CANNOT_ACTIVATE: "Thiết bị Không thể kích hoạt",
-  NOT_ADD_DEVICE: "Thiết bị này không thể gán",
+  NOT_ADD_DEVICE: "Thiết bị không thể gán",
+  NOT_CONFIG_FUEL_DEVICE: "Thiết bị không thể cấu hình dầu",
+  NOT_CONFIG_TEMP_DEVICE: "Thiết bị không thể cấu hình nhiệt",
   MOVE_SUCCESS: "Chuyển thành công",
   CHOOSE_ERROR: "Không thể gán",
-  NOT_OWN: "Không thuộc sở hữu",
+  NOT_OWN: "không thuộc sở hữu",
   ERROR_STRUCTURE_MOVE_AGENCY: "Chỉ có thể chuyển theo cấu trúc ngang",
   WRITE_CARD_FAIL: "Ghi thẻ thất bại",
   WRITE_CARD_SUCCESS: "Ghi thẻ thành công",
@@ -69,6 +71,8 @@ const constants = {
   TOO_MANY_FILE: "Tối đa 5 image",
   IMAGE_OVER_SIZE: "quá 2MB",
   IMAGE_TYPE_FAIL: "không đúng định dạng",
+  CALIB_FAIL_PARAM: "Thông số calib không hợp lệ",
+  CALIB_FAIL_QUANTITY: "Calib ít nhất 2 lần",
 };
 
 module.exports = constants;

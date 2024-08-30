@@ -477,9 +477,9 @@ class UsersService {
       try {
         const { username, password } = body;
 
-        await validateModel.checkRegexUsername(username);
+        // await validateModel.checkRegexUsername(username);
 
-        await validateModel.checkRegexPassword(password);
+        // await validateModel.checkRegexPassword(password);
 
         const joinTable = `${tableUsers} u INNER JOIN ${tableUsersRole} ur ON u.id = ur.user_id 
           INNER JOIN ${tableRole} r ON ur.role_id = r.id 

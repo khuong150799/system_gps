@@ -62,6 +62,7 @@ class RedisModel {
       await client.hSet(key, field, value);
       return { result: true, data: [] };
     } catch (error) {
+      console.log(error);
       return { result: false, error };
     }
   }

@@ -20,6 +20,7 @@ const {
   tableCustomers,
   tableUsersCustomers,
   tableUsers,
+  tableDeviceVehicle,
 } = require("../constants/tableName.constant");
 const {
   regexAccount,
@@ -35,23 +36,23 @@ class ValidateModel extends DatabaseModel {
   }
 
   async checkOwnerDevice(conn, userId, devices = [], msg = NOT_ADD_DEVICE) {
-    console.log({ userId, devices });
-    const where = `${tableUserDevice}.device_id IN (?) AND ${tableUserDevice}.user_id = ? AND ${tableDevice}.device_status_id = ?`;
+    const where = `ud.device_id IN (?) AND ud.user_id = ? AND d.device_status_id = ?`;
     const conditions = [devices, userId, 3];
-    const joinTable = `${tableDevice} INNER JOIN ${tableUserDevice} ON ${tableDevice}.id = ${tableUserDevice}.device_id`;
-    const select = `${tableDevice}.id`;
+    const joinTable = `${tableDevice} d INNER JOIN ${tableUserDevice} ud ON d.id = ud.device_id
+      INNER JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id`;
+    const select = `d.id,d.imei,dv.vehicle_id`;
     const dataDevices = await this.select(
       conn,
       joinTable,
       select,
       where,
       conditions,
-      `${tableDevice}.id`,
+      `d.id`,
       "DESC",
       0,
       1000000000
     );
-    console.log("dataDevices", dataDevices);
+
     if (dataDevices.length <= 0)
       throw {
         msg: ERROR,
@@ -68,7 +69,7 @@ class ValidateModel extends DatabaseModel {
         errors: [{ value: idNotExit, msg, param: "devices" }],
       };
 
-    return [];
+    return dataDevices;
   }
 
   async checkExitValue(
