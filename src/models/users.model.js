@@ -676,6 +676,44 @@ class UsersModel extends DatabaseModel {
     return [];
   }
 
+  //loginCustomer
+  async loginCustomer(id, parentId, role, level, customer_id) {
+    const clientId = uuidv4();
+    const keyToken = md5(Date.now());
+
+    const token = await makeAccessToken(
+      {
+        userId: id,
+        parentId,
+        clientId,
+        role,
+        level,
+        customerId: customer_id,
+      },
+      keyToken
+    );
+
+    await hSet(
+      REDIS_KEY_TOKEN,
+      clientId,
+      JSON.stringify({
+        user_id: id,
+        publish_key_token: keyToken,
+      })
+    );
+
+    return [
+      {
+        token,
+        parentId,
+        userId: id,
+        role,
+        level,
+        customerId: customer_id,
+      },
+    ];
+  }
+
   //login
   async login(conn, id, parentId, role, level, customer_id) {
     const clientId = uuidv4();

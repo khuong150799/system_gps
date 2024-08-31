@@ -61,6 +61,9 @@ class ServerCameraModel extends DatabaseModel {
           })
         )
       );
+
+      // console.log("dataToken", dataToken);
+
       dataRes = res_.map((item, i) => {
         const { jsession } = dataToken[i];
         if (jsession) {

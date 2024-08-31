@@ -16,11 +16,13 @@ const cameraApi = {
   login: async ({ account, password, baseUrl }) => {
     const url = `${baseUrl}/StandardApiAction_login.action`;
 
-    return await axiosNoConfig({
+    const res = await axiosNoConfig({
       method: "GET",
       url,
       params: { account, password },
     });
+
+    return res;
   },
 
   addVehicleCMS1: async ({ url, vehiIdno, devIdno }) => {

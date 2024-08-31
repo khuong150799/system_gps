@@ -470,6 +470,82 @@ class UsersService {
     }
   }
 
+  //loginCustomer
+  async loginCustomer(params) {
+    try {
+      const { conn } = await db.getConnection();
+      try {
+        const { username } = params;
+
+        // await validateModel.checkRegexUsername(username);
+
+        // await validateModel.checkRegexPassword(password);
+
+        const joinTable = `${tableUsers} u INNER JOIN ${tableUsersRole} ur ON u.id = ur.user_id 
+          INNER JOIN ${tableRole} r ON ur.role_id = r.id 
+          INNER JOIN ${tableUsersCustomers} uc ON u.id = uc.user_id 
+          INNER JOIN ${tableCustomers} c ON uc.customer_id = c.id 
+          INNER JOIN ${tableLevel} l ON c.level_id = l.id`;
+
+        const select = `u.id,u.parent_id,u.password,u.is_actived,u.is_deleted,
+            r.sort as role,c.id as customer_id,l.sort as level`;
+        const dataaUser = await databaseModel.select(
+          conn,
+          joinTable,
+          select,
+          "u.username = ?",
+          [username],
+          "u.id",
+          "ASC",
+          0,
+          1
+        );
+        // console.log("dataaUser", dataaUser);
+
+        if (dataaUser?.length <= 0)
+          throw {
+            msg: ERROR,
+            errors: [
+              {
+                value: username,
+                msg: ACCOUNT_FAILED,
+                param: "username",
+              },
+            ],
+          };
+
+        const {
+          id,
+          parent_id: parentId,
+          is_actived,
+          is_deleted,
+          role,
+          level,
+          customer_id,
+        } = dataaUser[0];
+
+        await validateModel.checkStatusUser(is_actived, is_deleted);
+
+        const data = await usersModel.loginCustomer(
+          id,
+          parentId,
+          role,
+          level,
+          customer_id
+        );
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      console.log(error);
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
+    }
+  }
+
   //login
   async login(body) {
     try {

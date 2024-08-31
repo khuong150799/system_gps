@@ -34,7 +34,7 @@ class FuelBottleType extends DatabaseModel {
         select,
         where,
         conditions,
-        "sort",
+        "id",
         "ASC",
         offset,
         limit

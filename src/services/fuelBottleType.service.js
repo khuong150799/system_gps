@@ -10,7 +10,7 @@ class FuelBottleTypeService {
     try {
       const { conn } = await db.getConnection();
       try {
-        const data = await fuelBottleTypeModel.getallrows(conn, query, role);
+        const data = await fuelBottleTypeModel.getallrows(conn, query);
         return data;
       } catch (error) {
         throw error;
@@ -18,6 +18,8 @@ class FuelBottleTypeService {
         conn.release();
       }
     } catch (error) {
+      console.log("error", error);
+
       throw new BusinessLogicError(error.msg);
     }
   }

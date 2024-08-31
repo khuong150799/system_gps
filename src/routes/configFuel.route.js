@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const { VALIDATE_DATA, NOT_EMPTY } = require("../constants/msg.constant");
-const { body, query, param } = require("express-validator");
+const { body, param } = require("express-validator");
 const { isAuth } = require("../middlewares/jwt.middleware");
 const {
   checkPermission,
@@ -18,13 +18,7 @@ module.exports = (app) => {
   //   checkPermission,
   //   configFuelController.getAllRows
   // );
-  router.get(
-    "/detail/:id",
-    [param("id", VALIDATE_DATA).isNumeric()],
-    isAuth,
-    checkPermission,
-    configFuelController.getById
-  );
+  router.get("/detail", isAuth, checkPermission, configFuelController.getById);
 
   router.post(
     "/register",

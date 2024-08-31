@@ -5,7 +5,7 @@ const { REDIS_KEY_PERMISSION } = require("../constants/redis.constant");
 
 const checkPermission = async function (req, res, next) {
   try {
-    // return next();
+    return next();
 
     const { role, level, method, attchPath } = req;
 

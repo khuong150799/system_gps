@@ -336,7 +336,7 @@ class OrdersModel extends DatabaseModel {
           ...result,
           ...listDevice.map((item1) => [orders_id, item1, 0, Date.now()]),
         ];
-        orders_id += 2;
+        orders_id += 1;
       }
       return result;
     }, []);

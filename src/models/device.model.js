@@ -374,7 +374,7 @@ class DeviceModel extends DatabaseModel {
         `%${keyword}%`,
         `%${keyword}%`
       );
-      if (type == 1) {
+      if (type == 1 || !type) {
         where += ` OR v.name LIKE ?)`;
         conditions.push(`%${keyword}%`);
       } else {
@@ -432,7 +432,7 @@ class DeviceModel extends DatabaseModel {
       conditions = [customer, ...conditions];
 
       select += ` ,o.code orders_code,v.name as vehicle_name, v.is_checked,dv.is_transmission_gps,dv.is_transmission_image,
-        vt.name as vehicle_type_name,dv.quantity_channel,sp.name as service_package_name,MAX(COALESCE(c1.company,c1.name)) as customer_name,c1.id as customer_id`;
+        vt.name as vehicle_type_name,dv.quantity_channel,sp.name as service_package_name,MAX(COALESCE(c1.company,c1.name)) as customer_name,c1.id as customer_id,v.id as vehicle_id`;
     } else if (type == 2) {
       joinTable += ` LEFT JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id 
         LEFT JOIN ${tableVehicle} v ON dv.vehicle_id = v.id`;
@@ -443,7 +443,7 @@ class DeviceModel extends DatabaseModel {
       LEFT JOIN ${tableOrders} o ON od.orders_id = o.id
       LEFT JOIN ${tableCustomers} c1 ON  o.reciver = c1.id AND o.creator_customer_id = ?`;
       select += ` ,o.code orders_code,d.created_at,d.updated_at,
-        ds.title as device_status_name,MAX(COALESCE(c1.company,c1.name)) as customer_name,c1.id as customer_id,v.id as vehicle_id`;
+        ds.title as device_status_name,MAX(COALESCE(c1.company,c1.name)) as customer_name,c1.id as customer_id,v.id as vehicle_id,v.name as vehicle_name`;
       conditions = [customer, ...conditions];
     }
 

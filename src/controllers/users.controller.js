@@ -150,6 +150,12 @@ class CustomersController {
     const data = await usersSrevice.changePass(body, userId);
     UPDATE(res, data);
   });
+
+  loginCustomer = catchAsync(async (req, res) => {
+    const { params } = req;
+    const data = await usersSrevice.loginCustomer(params);
+    OK(res, data);
+  });
   login = catchAsync(async (req, res) => {
     const body = req.body;
     const data = await usersSrevice.login(body);

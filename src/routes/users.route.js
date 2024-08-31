@@ -209,6 +209,19 @@ module.exports = (app) => {
     // checkPermission,
     usersController.changePass
   );
+
+  router.get(
+    "/login-customer",
+    [
+      param("username", NOT_EMPTY)
+        .notEmpty()
+        .isString()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+    ],
+    usersController.loginCustomer
+  );
+
   router.post(
     "/login",
     [
