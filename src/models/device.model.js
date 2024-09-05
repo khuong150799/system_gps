@@ -91,7 +91,7 @@ class DeviceModel extends DatabaseModel {
       ...dataAddDeviceCms,
       url: `${host}:${port}`,
     });
-    // console.log("resAddDevice", resAddDevice);
+    console.log("resAddDevice", resAddDevice);
 
     if (resAddDevice != 0)
       throw {
@@ -930,6 +930,7 @@ class DeviceModel extends DatabaseModel {
     const inforDevice = await this.getInfoDevice(conn, imei);
 
     console.log("inforDevice", inforDevice);
+    console.log("inforDevice?.length", inforDevice?.length);
 
     if (!inforDevice?.length) throw { msg: ERROR };
     await vehicleModel.removeListDeviceOfUsersRedis(conn, device_id);
