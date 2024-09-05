@@ -19,8 +19,7 @@ module.exports = (app) => {
   //   configTemperatureController.getAllRows
   // );
   router.get(
-    "/detail/:id",
-    [param("id", VALIDATE_DATA).isNumeric()],
+    "/detail",
     isAuth,
     checkPermission,
     configTemperatureController.getById

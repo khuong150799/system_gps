@@ -33,7 +33,6 @@ class OrdersModel extends DatabaseModel {
         `%${keyword}%`,
         `%${keyword}%`,
         `%${keyword}%`,
-        `%${keyword}%`,
         `%${keyword}%`
       );
     }

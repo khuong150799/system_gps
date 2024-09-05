@@ -52,6 +52,7 @@ class ValidateModel extends DatabaseModel {
       0,
       1000000000
     );
+    console.log("dataDevices", dataDevices);
 
     if (dataDevices.length <= 0)
       throw {

@@ -142,7 +142,7 @@ class DriverService {
   //Register
   async register(body, accId) {
     try {
-      const { conn } = await db.getConnection();
+      const { conn, connPromise } = await db.getConnection();
       try {
         const { license_number, phone } = body;
 
@@ -152,9 +152,15 @@ class DriverService {
 
         await this.validate(conn, license_number, phone);
 
-        const driver = await driverModel.register(conn, body, accId);
+        const driver = await driverModel.register(
+          conn,
+          connPromise,
+          body,
+          accId
+        );
         return driver;
       } catch (error) {
+        await connPromise.rollback();
         throw error;
       } finally {
         conn.release();

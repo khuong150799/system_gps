@@ -738,6 +738,7 @@ class DeviceModel extends DatabaseModel {
     }
 
     const inforDevice = await this.getInfoDevice(conn, imei);
+    console.log("inforDevice", inforDevice);
 
     if (!inforDevice?.length) throw { msg: ERROR };
 

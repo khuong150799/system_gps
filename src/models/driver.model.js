@@ -156,7 +156,7 @@ class DriverModel extends DatabaseModel {
   }
 
   //Register
-  async register(conn, body, accId) {
+  async register(conn, connPromise, body, accId) {
     const {
       customer_id,
       name,
@@ -190,23 +190,26 @@ class DriverModel extends DatabaseModel {
       created_at: Date.now(),
     });
     delete driver.updated_at;
-
+    await connPromise.beginTransaction();
     const res_ = await this.insert(conn, tableDriver, driver);
     driver.id = res_;
     delete driver.is_deleted;
     delete driver.is_check;
 
     const dataRedis = { name, phone, address, gender, listDevices: [] };
-    await hSet(
+    const { result } = await hSet(
       REDIS_KEY_LIST_DRIVER,
       license_number.toString(),
       JSON.stringify(dataRedis)
     );
+
+    if (!result) throw { msg: ERROR };
+    await connPromise.commit();
     return driver;
   }
 
   //update
-  async updateById(conn, body, params) {
+  async updateById(conn, connPromise, body, params) {
     const {
       customer_id,
       name,
@@ -252,6 +255,8 @@ class DriverModel extends DatabaseModel {
       id
     );
 
+    await connPromise.beginTransaction();
+
     await this.update(conn, tableDriver, driver, "id", id);
     driver.id = id;
 
@@ -266,11 +271,13 @@ class DriverModel extends DatabaseModel {
       dataRedis.listDevices = listDevicesOld;
     }
 
-    await hSet(
+    const { result } = await hSet(
       REDIS_KEY_LIST_DRIVER,
       license_number.toString(),
       JSON.stringify(dataRedis)
     );
+
+    if (!result) throw { msg: ERROR };
 
     if (
       dataOled?.length &&
@@ -281,6 +288,8 @@ class DriverModel extends DatabaseModel {
         dataOled[0].license_number.toString()
       );
     }
+
+    await connPromise.commit();
 
     return driver;
   }

@@ -56,7 +56,7 @@ class ConfigFuelModel extends DatabaseModel {
 
     const where = `vehicle_id = ? AND device_id = ? AND is_deleted = ?`;
     const conditions = [vehicle_id, device_id, is_deleted || 0];
-    const selectData = `id,vehicle_id,device_id,total_volume,fuel_bottle_type_id,calib,note`;
+    const selectData = `id,vehicle_id,device_id,total_volume,fuel_bottle_type_id,calib,note,activation_date`;
 
     const res_ = await this.select(
       conn,
@@ -100,7 +100,12 @@ class ConfigFuelModel extends DatabaseModel {
     const { result } = await hSet(
       REDIS_KEY_CALIB_FUEL,
       imei.toString(),
-      JSON.stringify({ device_fuel_id: res_, calib: JSON.parse(calib) })
+      JSON.stringify({
+        device_fuel_id: res_,
+        calib: JSON.parse(calib),
+        fuel_bottle_type_id,
+        total_volume,
+      })
     );
 
     if (!result) throw { msg: ERROR };
@@ -111,7 +116,7 @@ class ConfigFuelModel extends DatabaseModel {
   }
 
   //update
-  async updateById(conn, body, params) {
+  async updateById(conn, connPromise, body, params) {
     const {
       imei,
       vehicle_id,
@@ -144,7 +149,12 @@ class ConfigFuelModel extends DatabaseModel {
     const { result } = await hSet(
       REDIS_KEY_CALIB_FUEL,
       imei.toString(),
-      JSON.stringify({ device_fuel_id: id, calib: JSON.parse(calib) })
+      JSON.stringify({
+        device_fuel_id: id,
+        calib: JSON.parse(calib),
+        fuel_bottle_type_id,
+        total_volume,
+      })
     );
 
     if (!result) throw { msg: ERROR };

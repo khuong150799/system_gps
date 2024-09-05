@@ -98,7 +98,7 @@ class ConfigTemperatureModel extends DatabaseModel {
   }
 
   //update
-  async updateById(conn, body, params) {
+  async updateById(conn, connPromise, body, params) {
     const { imei, vehicle_id, device_id, activation_date, note } = body;
     const { id } = params;
 
@@ -120,7 +120,7 @@ class ConfigTemperatureModel extends DatabaseModel {
     const { result } = await hSet(
       REDIS_KEY_SENSOR_TEPM,
       imei.toString(),
-      JSON.stringify({ device_sensor_temp_id: res_ })
+      JSON.stringify({ device_sensor_temp_id: id })
     );
 
     if (!result) throw { msg: ERROR };

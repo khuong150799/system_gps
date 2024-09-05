@@ -74,6 +74,7 @@ class VehicleModel extends DatabaseModel {
   //update
   async updateById(conn, body, params) {
     const {
+      display_name,
       name,
       service_package_id,
       vehicle_type_id,
@@ -89,6 +90,7 @@ class VehicleModel extends DatabaseModel {
 
     const vehicle = new VehicleSchema({
       name,
+      display_name,
       service_package_id,
       vehicle_type_id,
       quantity_channel,

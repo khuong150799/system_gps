@@ -66,13 +66,16 @@ class ConfigFuelService {
           if (Object.prototype.hasOwnProperty.call(calibParse, percent)) {
             const lit = calibParse[percent];
             if (i > 0) {
-              if (prevItem?.percent >= percent || prevItem?.lit >= lit) {
+              if (
+                prevItem?.percent >= Number(percent) ||
+                prevItem?.lit >= Number(lit)
+              ) {
                 isStructure = true;
                 break;
               }
             }
-            prevItem.lit = lit;
-            prevItem.percent = percent;
+            prevItem.lit = Number(lit);
+            prevItem.percent = Number(percent);
             i++;
           }
         }
@@ -116,6 +119,8 @@ class ConfigFuelService {
       try {
         const { calib, device_id } = body;
 
+        console.log("body", body);
+
         const calibParse = JSON.parse(calib);
 
         if (Object.keys(calibParse).length < 2)
@@ -124,21 +129,26 @@ class ConfigFuelService {
         let i = 0;
         let prevItem = {};
         let isStructure = false;
+        console.log(12345);
 
         for (const percent in calibParse) {
           if (Object.prototype.hasOwnProperty.call(calibParse, percent)) {
-            const lit = calibParse[percent];
+            const lit = Number(calibParse[percent]);
             if (i > 0) {
-              if (prevItem?.percent >= percent || prevItem?.lit >= lit) {
+              if (
+                prevItem?.percent >= Number(percent) ||
+                prevItem?.lit >= lit
+              ) {
                 isStructure = true;
                 break;
               }
             }
             prevItem.lit = lit;
-            prevItem.percent = percent;
+            prevItem.percent = Number(percent);
             i++;
           }
         }
+        // console.log(76543);
 
         if (isStructure)
           throw { nsg: ERROR, errors: [{ msg: CALIB_FAIL_PARAM }] };
@@ -155,6 +165,7 @@ class ConfigFuelService {
 
         const data = await configFuelModel.updateById(
           conn,
+          connPromise,
           { ...body, imei, vehicle_id },
           params
         );
@@ -166,6 +177,8 @@ class ConfigFuelService {
         conn.release();
       }
     } catch (error) {
+      console.log(error);
+
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
     }

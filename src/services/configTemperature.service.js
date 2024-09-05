@@ -94,11 +94,14 @@ class ConfigTemperatureService {
 
         const data = await configTemperatureModel.updateById(
           conn,
+          connPromise,
           { ...body, imei, vehicle_id },
           params
         );
         return data;
       } catch (error) {
+        console.log(error);
+
         await connPromise.rollback();
         throw error;
       } finally {

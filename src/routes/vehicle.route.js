@@ -12,6 +12,15 @@ module.exports = (app) => {
     "/update/:id",
     [
       param("id", VALIDATE_DATA).isNumeric(),
+      body("device_id", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA),
+      body("name", NOT_EMPTY).notEmpty().isString().withMessage(VALIDATE_DATA),
+      body("display_name", NOT_EMPTY)
+        .notEmpty()
+        .isString()
+        .withMessage(VALIDATE_DATA),
       body("name", NOT_EMPTY).notEmpty().isString().withMessage(VALIDATE_DATA),
       body("service_package_id", NOT_EMPTY)
         .notEmpty()

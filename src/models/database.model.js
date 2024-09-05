@@ -81,7 +81,7 @@ class DatabaseModel {
     return await new Promise((resolve, reject) => {
       const query = `INSERT INTO ${tableName} SET ?`;
       db.query(query, data, (err, dataRes) => {
-        console.log("query", query);
+        // console.log("query", query);
         if (err) {
           console.log(err);
           return reject({ msg: ERROR });

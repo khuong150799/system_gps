@@ -37,7 +37,7 @@ const agent = new https.Agent({
 // });
 
 const axiosCMS1NoAuth = axios.create({
-  timeout: 2000,
+  timeout: 10000,
   httpsAgent: agent,
 });
 
@@ -48,7 +48,7 @@ const axiosCMS1NoAuth = axios.create({
 // });
 
 const axiosCMS = axios.create({
-  timeout: 2000,
+  timeout: 10000,
   httpsAgent: agent,
 });
 
