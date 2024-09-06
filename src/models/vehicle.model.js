@@ -1,4 +1,8 @@
-const { REDIS_KEY_LIST_IMEI_OF_USERS } = require("../constants/redis.constant");
+const { ERROR } = require("../constants/msg.constant");
+const {
+  REDIS_KEY_LIST_IMEI_OF_USERS,
+  REDIS_KEY_LIST_DEVICE,
+} = require("../constants/redis.constant");
 const { initialNameOfTableGps } = require("../constants/setting.constant");
 const {
   tableDevice,
@@ -6,7 +10,7 @@ const {
   tableUsersDevices,
 } = require("../constants/tableName.constant");
 const DatabaseModel = require("./database.model");
-const { del: delRedis } = require("./redis.model");
+const { del: delRedis, hGet, hSet } = require("./redis.model");
 const VehicleSchema = require("./schema/vehicle.schema");
 
 class VehicleModel extends DatabaseModel {
@@ -71,9 +75,53 @@ class VehicleModel extends DatabaseModel {
     // console.log("listUserId123456", data);
   }
 
+  async updateName(con, connPromise, body, params) {
+    const { name, listImei } = body;
+    const { id } = params;
+
+    await connPromise.beginTransaction();
+
+    await this.update(
+      con,
+      tableVehicle,
+      { display_name: name, name },
+      "id",
+      id
+    );
+
+    const listPromiseGetReidis = listImei.map((imei) =>
+      hGet(REDIS_KEY_LIST_DEVICE, imei)
+    );
+
+    const listDataGetRedis = await Promise.all(listPromiseGetReidis);
+
+    let isRollback = false;
+
+    for (let i = 0; i < listDataGetRedis.length; i++) {
+      const { data: dataRedis } = listDataGetRedis[i];
+
+      const { result } = await hSet(
+        REDIS_KEY_LIST_DEVICE,
+        dataRedis.imei.toString(),
+        JSON.stringify({ ...dataRedis, name, display_name: name })
+      );
+
+      if (!result) {
+        isRollback = true;
+      }
+    }
+
+    if (isRollback) throw { msg: ERROR };
+
+    await connPromise.commit();
+
+    return [];
+  }
+
   //update
   async updateById(conn, body, params) {
     const {
+      device_id,
       display_name,
       name,
       service_package_id,
