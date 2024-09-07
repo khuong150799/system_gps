@@ -114,11 +114,11 @@ class DeviceService {
   // }
 
   //getallrow
-  async getallrows(query, customerId) {
+  async getallrows(query, userId) {
     try {
       const { conn } = await db.getConnection();
       try {
-        const data = await deviceModel.getallrows(conn, query, customerId);
+        const data = await deviceModel.getallrows(conn, query, userId);
         return data;
       } catch (error) {
         throw error;
@@ -132,11 +132,11 @@ class DeviceService {
   }
 
   //getbyid
-  async getById(params, query, customerId) {
+  async getById(params, userId) {
     try {
       const { conn } = await db.getConnection();
       try {
-        const data = await deviceModel.getById(conn, params, query, customerId);
+        const data = await deviceModel.getById(conn, params, userId);
         return data;
       } catch (error) {
         throw error;

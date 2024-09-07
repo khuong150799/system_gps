@@ -8,9 +8,11 @@ const {
   tableDevice,
   tableVehicle,
   tableUsersDevices,
+  tableDeviceVehicle,
 } = require("../constants/tableName.constant");
 const DatabaseModel = require("./database.model");
-const { del: delRedis, hGet, hSet } = require("./redis.model");
+const deviceLoggingModel = require("./deviceLogging.model");
+const { del: delRedis, hGet, hSet, hdelOneKey } = require("./redis.model");
 const VehicleSchema = require("./schema/vehicle.schema");
 
 class VehicleModel extends DatabaseModel {
@@ -75,22 +77,34 @@ class VehicleModel extends DatabaseModel {
     // console.log("listUserId123456", data);
   }
 
-  async updateName(con, connPromise, body, params) {
-    const { name, listImei } = body;
+  async updatePackage(con, body, params) {
+    const { device_id, service_package_id } = body;
+    const { id } = params;
+
+    await this.update(
+      con,
+      tableDeviceVehicle,
+      { service_package_id },
+      "",
+      [id, device_id],
+      "service_package_id",
+      true,
+      "vehicle_id = ? AND device_id = ?"
+    );
+
+    return [];
+  }
+
+  async updateName(con, connPromise, body, params, dataInfo) {
+    const { name } = body;
     const { id } = params;
 
     await connPromise.beginTransaction();
 
-    await this.update(
-      con,
-      tableVehicle,
-      { display_name: name, name },
-      "id",
-      id
-    );
+    await this.update(con, tableVehicle, { name }, "id", id);
 
-    const listPromiseGetReidis = listImei.map((imei) =>
-      hGet(REDIS_KEY_LIST_DEVICE, imei)
+    const listPromiseGetReidis = dataInfo.map(({ imei }) =>
+      hdelOneKey(REDIS_KEY_LIST_DEVICE, imei)
     );
 
     const listDataGetRedis = await Promise.all(listPromiseGetReidis);
@@ -98,13 +112,7 @@ class VehicleModel extends DatabaseModel {
     let isRollback = false;
 
     for (let i = 0; i < listDataGetRedis.length; i++) {
-      const { data: dataRedis } = listDataGetRedis[i];
-
-      const { result } = await hSet(
-        REDIS_KEY_LIST_DEVICE,
-        dataRedis.imei.toString(),
-        JSON.stringify({ ...dataRedis, name, display_name: name })
-      );
+      const { result } = listDataGetRedis[i];
 
       if (!result) {
         isRollback = true;
@@ -119,46 +127,52 @@ class VehicleModel extends DatabaseModel {
   }
 
   //update
-  async updateById(conn, body, params) {
-    const {
-      device_id,
-      display_name,
-      name,
-      service_package_id,
-      vehicle_type_id,
-      quantity_channel,
-      weight,
-      warning_speed,
-      note,
-      is_checked,
-      is_transmission_gps,
-      is_transmission_image,
-    } = body;
+  async updateById(conn, connPromise, body, params, userId, dataInfo) {
+    const { display_name, vehicle_type_id, weight, warning_speed } = body;
     const { id } = params;
 
-    const vehicle = new VehicleSchema({
-      name,
+    const vehicle = {
       display_name,
-      service_package_id,
       vehicle_type_id,
-      quantity_channel,
       weight,
       warning_speed,
-      note,
-      is_checked,
-      is_transmission_gps,
-      is_transmission_image,
-      updated_at: Date.now(),
-    });
+    };
     // console.log(id)
-    delete vehicle.device_id;
-    delete vehicle.expired_on;
-    delete vehicle.activation_date;
-    delete vehicle.warranty_expired_on;
-    delete vehicle.is_deleted;
-    delete vehicle.created_at;
+
+    await connPromise.beginTransaction();
 
     await this.update(conn, tableVehicle, vehicle, "id", id);
+
+    const listPromiseGetReidis = dataInfo.map(({ imei }) =>
+      hdelOneKey(REDIS_KEY_LIST_DEVICE, imei)
+    );
+
+    const listDataGetRedis = await Promise.all(listPromiseGetReidis);
+
+    let isRollback = false;
+
+    for (let i = 0; i < listDataGetRedis.length; i++) {
+      const { result } = listDataGetRedis[i];
+
+      if (!result) {
+        isRollback = true;
+      }
+    }
+
+    if (isRollback) throw { msg: ERROR };
+
+    await deviceLoggingModel.postOrDelete(conn, {
+      user_id: userId,
+      device_id,
+      ip: null,
+      os: null,
+      gps: null,
+      des: null,
+      action: "Kích hoạt",
+      createdAt,
+    });
+
+    await connPromise.commit();
     vehicle.id = id;
     return vehicle;
   }

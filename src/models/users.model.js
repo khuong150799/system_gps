@@ -249,7 +249,7 @@ class UsersModel extends DatabaseModel {
     return res_;
   }
 
-  async getInfo(conn, userId) {
+  async getInfo(conn, userId, isGetPass = false) {
     const where = `${tableUsers}.is_deleted = ? AND ${tableUsers}.id = ?`;
     const conditions = [0, userId];
     const joinTable = `${tableUsers} INNER JOIN ${tableUsersRole} ON ${tableUsers}.id = ${tableUsersRole}.user_id 
@@ -258,10 +258,12 @@ class UsersModel extends DatabaseModel {
       INNER JOIN ${tableCustomers} ON ${tableUsersCustomers}.customer_id = ${tableCustomers}.id 
       INNER JOIN ${tableLevel} ON ${tableCustomers}.level_id = ${tableLevel}.id`;
 
-    const selectData = `${tableUsers}.id,${tableUsers}.username,${tableUsers}.parent_id,${tableUsers}.is_actived,
+    let selectData = `${tableUsers}.id,${tableUsers}.username,${tableUsers}.parent_id,${tableUsers}.is_actived,
       ${tableUsersRole}.role_id,${tableRole}.name as role_name,${tableCustomers}.level_id,${tableLevel}.name as level_name,${tableCustomers}.name as customer_name,${tableCustomers}.email,${tableCustomers}.phone,
       ${tableCustomers}.company,${tableCustomers}.address,${tableCustomers}.tax_code,${tableCustomers}.website,${tableCustomers}.id as customer_id`;
-
+    if (isGetPass) {
+      selectData += ` ,${tableUsers}.text_pass`;
+    }
     const res_ = await this.select(
       conn,
       joinTable,
@@ -864,6 +866,12 @@ class UsersModel extends DatabaseModel {
     const { id } = params;
     const { is_actived } = body;
     await this.update(conn, tableUsers, { is_actived }, "id", id);
+    return [];
+  }
+
+  async updateUsername(conn, body, userId) {
+    const { username } = body;
+    await this.update(conn, tableUsers, { username }, "id", userId);
     return [];
   }
 }

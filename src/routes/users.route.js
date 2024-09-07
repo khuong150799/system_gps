@@ -58,7 +58,7 @@ module.exports = (app) => {
     [param("id", VALIDATE_DATA).isNumeric()],
     isAuth,
     checkPermission,
-    usersController.getInfo
+    usersController.getbyid
   );
 
   router.get("/info", isAuth, checkPermission, usersController.getInfo);
@@ -150,6 +150,7 @@ module.exports = (app) => {
     "/update/:id",
     [
       param("id", VALIDATE_DATA).isNumeric(),
+
       body("customer_id", NOT_EMPTY)
         .notEmpty()
         .isNumeric()
@@ -262,6 +263,13 @@ module.exports = (app) => {
     isAuth,
     checkPermission,
     usersController.updateActive
+  );
+
+  router.patch(
+    "/update-username",
+    isAuth,
+    checkPermission,
+    usersController.updateUsername
   );
 
   app.use("/api/v1/users", router);

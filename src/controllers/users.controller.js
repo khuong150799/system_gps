@@ -72,6 +72,16 @@ class CustomersController {
     GET(res, data);
   });
 
+  //getbyid
+  getbyid = catchAsync(async (req, res) => {
+    const { id } = req.params;
+
+    const chooseUserId = id;
+
+    const data = await usersSrevice.getbyid(chooseUserId);
+    GET(res, data);
+  });
+
   register = catchAsync(async (req, res) => {
     const customerId = req.customerId;
     const userId = req.userId;
@@ -177,6 +187,12 @@ class CustomersController {
     const body = req.body;
     const params = req.params;
     const data = await usersSrevice.updateActive(body, params);
+    UPDATE(res, data);
+  });
+
+  updateUsername = catchAsync(async (req, res) => {
+    const { body, userId } = req;
+    const data = await usersSrevice.updateUsername(body, userId);
     UPDATE(res, data);
   });
 }

@@ -11,8 +11,7 @@ const deviceService = require("../services/device.service");
 
 class DeviceController {
   getAllRows = catchAsync(async (req, res) => {
-    const query = req.query;
-    const customerId = req.customerId;
+    const { query, customerId } = req;
     const { data, totalPage, totalRecord } = await deviceService.getallrows(
       query,
       customerId
@@ -22,10 +21,9 @@ class DeviceController {
   });
 
   getById = catchAsync(async (req, res) => {
-    const params = req.params;
-    const query = req.query;
-    const customerId = req.customerId;
-    const data = await deviceService.getById(params, query, customerId);
+    const { userId, params } = req;
+
+    const data = await deviceService.getById(params, userId);
     GET(res, data);
   });
 

@@ -148,6 +148,23 @@ class UsersService {
     }
   }
 
+  // getbyid
+  async getbyid(userId) {
+    try {
+      const { conn } = await db.getConnection();
+      try {
+        const data = await usersModel.getInfo(conn, userId, true);
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      throw new BusinessLogicError(error.msg);
+    }
+  }
+
   async move(body, userId) {
     try {
       const { reciver, user_is_moved } = body;
@@ -569,7 +586,7 @@ class UsersService {
           conn,
           joinTable,
           select,
-          "u.username = ?",
+          "u.username = ? AND u.is_deleted = 0",
           [username],
           "u.id",
           "ASC",
@@ -674,6 +691,35 @@ class UsersService {
       const { conn } = await db.getConnection();
       try {
         await usersModel.updateActive(conn, body, params);
+        return [];
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      throw new BusinessLogicError(error.msg);
+    }
+  }
+
+  //updateUsername
+  async updateUsername(body, userId) {
+    try {
+      const { conn } = await db.getConnection();
+      try {
+        const { username } = body;
+
+        await validateModel.checkExitValue(
+          conn,
+          tableUsers,
+          "username",
+          username,
+          "Tài khoản",
+          "username",
+          userId
+        );
+
+        await usersModel.updateUsername(conn, body, userId);
         return [];
       } catch (error) {
         throw error;

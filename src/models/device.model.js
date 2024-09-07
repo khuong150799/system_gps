@@ -258,90 +258,6 @@ class DeviceModel extends DatabaseModel {
     return data;
   }
 
-  // async getInfoDevice(conn, device_id, vehicle_id, imei_link) {
-  //   const joinTable = `${tableDevice} d INNER JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id
-  //    INNER JOIN ${tableVehicle} v ON dv.vehicle_id = v.id
-  //   INNER JOIN ${tableVehicleType} vt ON v.vehicle_type_id = vt.id
-  //   INNER JOIN ${tableVehicleIcon} vi ON vt.vehicle_icon_id = vi.id
-  //   INNER JOIN ${tableModel} m ON d.model_id = m.id
-  //   INNER JOIN ${tableDeviceStatus} ds ON d.device_status_id = ds.id
-  //   INNER JOIN ${tableUsersDevices} ud ON d.id = ud.device_id
-  //   INNER JOIN ${tableUsersCustomers} uc1 ON ud.user_id = uc1.user_id
-  //   INNER JOIN ${tableCustomers} c0 ON uc1.customer_id = c0.id
-  //   INNER JOIN ${tableUsers} u ON uc1.user_id = u.id
-  //   LEFT JOIN ${tableUsers} u1 ON u.parent_id = u1.id AND u1.is_deleted = 0
-  //   LEFT JOIN ${tableUsersCustomers} uc2 ON u1.id = uc2.user_id
-  //   LEFT JOIN ${tableCustomers} c ON uc2.customer_id = c.id AND c.is_deleted = 0`;
-
-  //   const select = `JSON_ARRAYAGG(JSON_OBJECT('device_id', d.id,'imei', d.imei,'expired_on':dv.expired_on,'activation_date',dv.activation_date,
-  //     'warranty_expired_on':dv.warranty_expired_on,'display_name':v.display_name,'vehicle_name':v.name,'model_type':m.model_type_id,
-  //     'device_status_name':ds.title,'model_name':m.name,'is_use_gps':dv.is_use_gps)) AS devices,
-  //     v.vehicle_type_id,vt.name as vehicle_type_name,vt.vehicle_icon_id,vt.max_speed,COALESCE(MAX(c0.company),MAX(c0.name)) as customer_name,
-  //     COALESCE(MAX(c.company), MAX(c.name)) as agency_name,MAX(c.phone) as agency_phone,vi.name as vehicle_icon_name,
-  //     MAX(c0.id) as customer_id,MAX(c.id) as agency_id`;
-
-  //   let where = `AND ud.is_moved = 0 AND d.is_deleted = 0 AND c0.is_deleted = 0 AND u.is_deleted = 0`;
-  //   const condition = [];
-  //   if (device_id) {
-  //     where = `d.id = ? ${where}`;
-  //     condition.push(device_id);
-  //   } else if (vehicle_id) {
-  //     where = `v.id = ? ${where}`;
-  //     condition.push(vehicle_id);
-  //   } else {
-  //     where = `1 = ? ${where}`;
-  //     condition.push(1);
-  //   }
-
-  //   const data = await this.select(
-  //     conn,
-  //     joinTable,
-  //     select,
-  //     `${where} GROUP BY v.id`,
-  //     condition,
-  //     `d.id`
-  //   );
-  //   if (data.length) {
-  //     const listPromise = data.reduce((result, item) => {
-  //       if (devices?.length === 1) {
-  //         const { is_use_gps: isUseGps, imei } = devices[0];
-  //         if (isUseGps == 1) {
-  //           result.push(
-  //             hsetRedis(REDIS_KEY_LIST_DEVICE, imei, JSON.stringify(item))
-  //           );
-  //         }
-  //       } else if (devices?.length > 1) {
-  //         const {
-  //           model_type: modelType1,
-  //           is_use_gps: isUseGps1,
-  //           imei: imei1,
-  //         } = devices[0];
-  //         const {
-  //           model_type: modelType2,
-  //           is_use_gps: isUseGps2,
-  //           imei: imei2,
-  //         } = devices[1];
-  //         if (modelType1 == 1) {
-  //           result.push(
-  //             hsetRedis(REDIS_KEY_LIST_DEVICE, imei, JSON.stringify(item))
-  //           );
-  //         } else if (modelType2 == 1) {
-  //           return hsetRedis(
-  //             REDIS_KEY_LIST_DEVICE,
-  //             imei2,
-  //             JSON.stringify(item)
-  //           );
-  //         }
-  //       }
-  //       return result;
-  //     }, []);
-
-  //     await Promise.all(listPromise);
-  //   }
-  //   return data;
-  // }
-
-  //getallrow
   async getallrows(conn, query, customerId) {
     const offset = query.offset || 0;
     const limit = query.limit || 10;
@@ -468,31 +384,44 @@ class DeviceModel extends DatabaseModel {
   }
 
   //getbyid
-  async getById(conn, params, query, customerId) {
-    // console.log("customerId", customerId);
+  async getById(conn, params, userId) {
+    console.log("userId", userId);
     const { id } = params;
-    const isDeleted = query.is_deleted || 0;
-    let where = `${tableDevice}.is_deleted = ? AND ${tableDevice}.id = ? AND c.id = ?`;
-    const conditions = [isDeleted, id, customerId];
 
-    const joinTable = `${tableDevice} INNER JOIN ${tableModel} ON ${tableDevice}.model_id = ${tableModel}.id 
-    INNER JOIN ${tableUsersDevices} ON ${tableDevice}.id = ${tableUsersDevices}.device_id 
-    INNER JOIN ${tableUsersCustomers} ON ${tableUsersDevices}.user_id = ${tableUsersCustomers}.user_id 
-    INNER JOIN ${tableCustomers} c ON ${tableUsersCustomers}.customer_id = c.id 
-    LEFT JOIN ${tableFirmware} ON ${tableModel}.id = ${tableFirmware}.model_id`;
+    const joinTable = `${tableDevice} d LEFT JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id
+    LEFT JOIN ${tableVehicle} v ON dv.vehicle_id = v.id
+    LEFT JOIN ${tableVehicleType} vt ON v.vehicle_type_id = vt.id
+    LEFT JOIN ${tableVehicleIcon} vi ON vt.vehicle_icon_id = vi.id
+    INNER JOIN ${tableModel} m ON d.model_id = m.id
+    INNER JOIN ${tableDeviceStatus} ds ON d.device_status_id = ds.id
+    INNER JOIN ${tableUsersDevices} ud ON d.id = ud.device_id
+    INNER JOIN ${tableUsersCustomers} uc1 ON ud.user_id = uc1.user_id
+    INNER JOIN ${tableCustomers} c0 ON uc1.customer_id = c0.id
+    INNER JOIN ${tableUsers} u ON uc1.user_id = u.id
+    LEFT JOIN ${tableUsers} u1 ON u.parent_id = u1.id
+    LEFT JOIN ${tableUsersCustomers} uc2 ON u1.id = uc2.user_id
+    LEFT JOIN ${tableCustomers} c ON uc2.customer_id = c.id`;
 
-    const selectData = `${tableDevice}.id,${tableDevice}.dev_id,${tableDevice}.imei,${tableDevice}.model_id,${tableDevice}.sv_cam_id,
-      ${tableDevice}.serial,${tableFirmware}.version_hardware,${tableFirmware}.version_software,
-      ${tableDevice}.device_status_id,${tableDevice}.note`;
+    const select = `
+      d.id as device_id,d.dev_id,d.serial,d.imei,dv.expired_on,dv.activation_date,dv.warranty_expired_on,dv.is_use_gps,dv.quantity_channel,dv.quantity_channel_lock,dv.is_transmission_gps,dv.is_transmission_image,
+      v.display_name,v.name as vehicle_name,v.id as vehicle_id,v.vehicle_type_id,vt.name as vehicle_type_name,dv.service_package_id,vt.vehicle_icon_id,vt.max_speed,v.weight,v.warning_speed,m.id as model_id,
+      m.name as model_name,m.model_type_id,ds.id as device_status_id,ds.title as device_status_name,COALESCE(c0.company,
+      c0.name) as customer_name,COALESCE(c.company, c.name) as agency_name,c.phone as agency_phone,vi.name as vehicle_icon_name,
+      c0.id as customer_id,c.id as agency_id,d.sv_cam_id`;
 
-    const res_ = await this.select(
+    let where = `d.id = ? AND ud.user_id = ? AND d.is_deleted = 0 AND c0.is_deleted = 0 AND u.is_deleted = 0`;
+    const condition = [id, userId];
+
+    const data = await this.select(
       conn,
       joinTable,
-      selectData,
+      select,
       where,
-      conditions
+      condition,
+      `d.id`
     );
-    return res_;
+
+    return data;
   }
 
   async reference(conn, params, parentId) {
@@ -930,7 +859,7 @@ class DeviceModel extends DatabaseModel {
     const inforDevice = await this.getInfoDevice(conn, imei);
 
     console.log("inforDevice", inforDevice);
-    console.log("inforDevice?.length", inforDevice?.length);
+    // console.log("inforDevice?.length", inforDevice?.length);
 
     if (!inforDevice?.length) throw { msg: ERROR };
     await vehicleModel.removeListDeviceOfUsersRedis(conn, device_id);
@@ -946,16 +875,16 @@ class DeviceModel extends DatabaseModel {
       createdAt,
     });
 
-    // if (model_type_id == 2) {
-    //   const { sv_cam_id, vehicle_name } = inforDevice[0];
-    //   await this.activationCms(
-    //     conn,
-    //     sv_cam_id,
-    //     vehicle_name,
-    //     imei,
-    //     quantity_channel
-    //   );
-    // }
+    if (model_type_id == 2) {
+      const { sv_cam_id, vehicle_name } = inforDevice[0];
+      await this.activationCms(
+        conn,
+        sv_cam_id,
+        vehicle_name,
+        imei,
+        quantity_channel
+      );
+    }
 
     await connPromise.commit();
     await Promise.all([delRedis(`${REDIS_KEY_DEVICE_SPAM}/${imei}`)]);
