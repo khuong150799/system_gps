@@ -166,6 +166,44 @@ class DeviceLoggingModel extends DatabaseModel {
     });
     await this.insert(conn, tableDeviceLogging, logs);
   }
+
+  async nameVehicle(
+    conn,
+    { user_id, device_id, ip, os, gps, name_old, name_new }
+  ) {
+    const des = `BS củ: ${name_old} ===> BS mới: ${name_new}`;
+    const logs = new DeviceLoggingSchema({
+      user_id,
+      device_id,
+      ip: ip || null,
+      os: os || null,
+      des: JSON.stringify([des]),
+      action: "Sửa",
+      gps,
+      is_deleted: 0,
+      created_at: Date.now(),
+    });
+    await this.insert(conn, tableDeviceLogging, logs);
+  }
+
+  async servicePackageVehicle(
+    conn,
+    { user_id, device_id, ip, os, gps, package_old, package_new }
+  ) {
+    const des = `Gói dịch vụ củ: ${package_old} ===> Gói dịch vụ mới: ${package_new}`;
+    const logs = new DeviceLoggingSchema({
+      user_id,
+      device_id,
+      ip: ip || null,
+      os: os || null,
+      des: JSON.stringify([des]),
+      action: "Sửa",
+      gps,
+      is_deleted: 0,
+      created_at: Date.now(),
+    });
+    await this.insert(conn, tableDeviceLogging, logs);
+  }
 }
 
 module.exports = new DeviceLoggingModel();

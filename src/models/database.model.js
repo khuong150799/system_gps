@@ -153,7 +153,9 @@ class DatabaseModel {
   ) {
     return await new Promise((resolve, reject) => {
       const query =
-        typeof data === "string"
+        typeof data === "string" && where
+          ? `UPDATE ${tableName} SET ${data} WHERE ${where}`
+          : typeof data === "string"
           ? `UPDATE ${tableName} SET ${data} WHERE ${field} IN (?)`
           : where
           ? `UPDATE ${tableName} SET ? WHERE ${where}`
@@ -166,6 +168,8 @@ class DatabaseModel {
           ? [data, condition]
           : [data, ...condition],
         (err, dataRes) => {
+          console.log("query", query);
+
           if (err) {
             console.log(err);
             return reject({ msg: ERROR });

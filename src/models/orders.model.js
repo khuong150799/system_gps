@@ -85,8 +85,8 @@ class OrdersModel extends DatabaseModel {
   async getById(conn, params, query) {
     const { id } = params;
     const isDeleted = query.is_deleted || 0;
-    const where = `${tableOrders}.is_deleted = ? AND ${tableOrders}.id = ?`;
-    const conditions = [isDeleted, id];
+    const where = `${tableOrders}.is_deleted = ? AND ${tableOrdersDevice}.is_deleted = ? AND ${tableOrders}.id = ?`;
+    const conditions = [isDeleted, 0, id];
 
     const joinTable = `${tableOrders} INNER JOIN ${tableOrdersDevice} ON ${tableOrders}.id = ${tableOrdersDevice}.orders_id 
       INNER JOIN ${tableDevice} ON ${tableOrdersDevice}.device_id = ${tableDevice}.id 
@@ -495,6 +495,7 @@ class OrdersModel extends DatabaseModel {
   async deleteDevice(
     conn,
     connPromise,
+    customerId,
     dataOwnerDevice,
     dataOwnerOrders,
     body
@@ -502,9 +503,9 @@ class OrdersModel extends DatabaseModel {
     const { device_id } = body;
 
     const joinTableUserWithUsersCustomersWithUsersDevice = `
-          ${tableUsers} INNER JOIN ${tableUsersCustomers} On ${tableUsers}.id = ${tableUsersCustomers}.user_id 
-          INNER JOIN ${tableUsersDevices} On ${tableUsers}.id = ${tableUsersDevices}.user_id
-          LEFT JOIN ${tableOrders} On ${tableUsersCustomers}.customer_id = ${tableOrders}.creator_customer_id
+          ${tableUsers} u INNER JOIN ${tableUsersCustomers} uc ON u.id = uc.user_id 
+          INNER JOIN ${tableUsersDevices} ud ON u.id = ud.user_id
+          LEFT JOIN ${tableOrders} o ON uc.customer_id = o.creator_customer_id
           `;
 
     const dataUserAndCustomerDelete = [];
@@ -513,12 +514,12 @@ class OrdersModel extends DatabaseModel {
       const id = data[0].user_id;
 
       const dataRes = await connPromise.query(
-        `SELECT ${tableUsers}.id as user_id,${tableUsersCustomers}.customer_id,${tableOrders}.quantity FROM ${joinTableUserWithUsersCustomersWithUsersDevice} WHERE ${tableUsers}.parent_id = ? AND ${tableUsers}.is_deleted = ? AND ${tableUsersDevices}.device_id = ? `,
+        `SELECT u.id as user_id,uc.customer_id,o.quantity FROM ${joinTableUserWithUsersCustomersWithUsersDevice} WHERE u.parent_id = ? AND u.is_deleted = ? AND ud.device_id = ? `,
         [id, 0, device_id]
       );
 
       if (
-        dataRes?.[0]?.[0].length > 0 &&
+        dataRes?.[0]?.[0]?.length > 0 &&
         dataRes[0][0].id !== dataOwnerDevice[0].user_id
       ) {
         await dequy(dataRes[0]);
@@ -526,10 +527,15 @@ class OrdersModel extends DatabaseModel {
     };
     await dequy(dataOwnerOrders);
 
+    // console.log("dataOwnerOrders", dataOwnerOrders);
+
     const formatData = dataUserAndCustomerDelete.reduce(
       (result, item) => {
-        result.listUserId = [...result.listUserId, item.user_id];
+        if (item.customer_id != customerId) {
+          result.listUserId = [...result.listUserId, item.user_id];
+        }
         result.listCustomerId = [...result.listCustomerId, item.customer_id];
+
         if (item.quantity > 0) {
           const dateeUpdate = {
             conditionField: [
@@ -546,18 +552,33 @@ class OrdersModel extends DatabaseModel {
         }
         return result;
       },
-      { listUserId: [], listCustomerId: [], dataOrdersUpdateMulti: [] }
+      {
+        listUserId: [dataOwnerDevice[0].user_id],
+        listCustomerId: [],
+        dataOrdersUpdateMulti: [],
+      }
     );
 
     const { listUserId, listCustomerId, dataOrdersUpdateMulti } = formatData;
+    // console.log("{ listUserId, listCustomerId, dataOrdersUpdateMulti }", {
+    //   listUserId,
+    //   listCustomerId,
+    //   dataOrdersUpdateMulti: JSON.stringify(dataOrdersUpdateMulti, null, 2),
+    // });
+
+    // return [];
     await connPromise.beginTransaction();
 
     await this.update(
       conn,
       tableUsersDevices,
       { is_deleted: 1 },
-      `${tableUsersDevices}.user_id IN (?) AND ${tableUsersDevices}.device_id`,
-      [listUserId, device_id]
+      "",
+
+      [listUserId, device_id],
+      "device_id",
+      true,
+      `${tableUsersDevices}.user_id IN (?) AND ${tableUsersDevices}.device_id = ?`
     );
 
     const joinTableOrdersWithOrdersDevice = `${tableOrders} INNER JOIN ${tableOrdersDevice} ON ${tableOrders}.id = ${tableOrdersDevice}.orders_id`;
@@ -565,8 +586,11 @@ class OrdersModel extends DatabaseModel {
       conn,
       joinTableOrdersWithOrdersDevice,
       `${tableOrdersDevice}.is_deleted = 1`,
-      `${tableOrders}.creator_customer_id IN (?) AND ${tableOrdersDevice}.device_id`,
-      [listCustomerId, device_id]
+      "",
+      [listCustomerId, device_id],
+      "device_id",
+      true,
+      `${tableOrders}.creator_customer_id IN (?) AND ${tableOrdersDevice}.device_id = ?`
     );
     if (dataOrdersUpdateMulti?.length) {
       await this.updatMultiRowsWithMultiConditions(

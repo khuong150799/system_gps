@@ -167,11 +167,13 @@ class DeviceService {
   //check
   async checkOutside(params) {
     try {
-      const { imei } = params;
       const { conn } = await db.getConnection();
       try {
-        const { type } = await deviceModel.checkOutside(conn, params);
-        return { imei, type };
+        const { type, imei: imeiReciveData } = await deviceModel.checkOutside(
+          conn,
+          params
+        );
+        return { imei: imeiReciveData, type };
       } catch (error) {
         throw error;
       } finally {
@@ -187,14 +189,13 @@ class DeviceService {
     try {
       const { conn } = await db.getConnection();
       try {
-        const { imei } = params;
-        const { type } = await deviceModel.checkInside(
+        const { type, imei: imeiReciveData } = await deviceModel.checkInside(
           conn,
           params,
           userId,
           parentId
         );
-        return { imei, type };
+        return { imei: imeiReciveData, type };
       } catch (error) {
         throw error;
       } finally {

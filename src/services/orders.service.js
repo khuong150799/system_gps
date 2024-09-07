@@ -590,15 +590,23 @@ class OrdersService {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
+        console.log("body", body);
+
         const { id } = params;
         const { device_id } = body;
 
         const { dataOwnerDevice, dataOwnerOrders } =
           await this.validateDeleteDevice(conn, device_id, id, customerId);
+        // console.log(
+        //   "dataOwnerDevice, dataOwnerOrders",
+        //   dataOwnerDevice,
+        //   dataOwnerOrders
+        // );
 
         const data = await ordersModel.deleteDevice(
           conn,
           connPromise,
+          customerId,
           dataOwnerDevice,
           dataOwnerOrders,
           body
@@ -612,6 +620,8 @@ class OrdersService {
         conn.release();
       }
     } catch (error) {
+      console.log(error);
+
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
     }

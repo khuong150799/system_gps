@@ -5,6 +5,7 @@ const {
   tableVehicle,
   tableDevice,
   tableDeviceVehicle,
+  tableServicePackage,
 } = require("../constants/tableName.constant");
 const DatabaseModel = require("../models/database.model");
 const validateModel = require("../models/validate.model");
@@ -12,7 +13,7 @@ const validateModel = require("../models/validate.model");
 const dataBaseModel = new DatabaseModel();
 
 class vehicleService {
-  async updateName(body, params) {
+  async updateName(body, params, infoUser) {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
@@ -29,24 +30,27 @@ class vehicleService {
           id
         );
 
-        const joinTable = `${tableVehicle} v INNER JOIN ${tableDeviceVehicle} dv ON v.id = dv.device_id
+        const joinTable = `${tableVehicle} v INNER JOIN ${tableDeviceVehicle} dv ON v.id = dv.vehicle_id
           INNER JOIN ${tableDevice} d ON dv.device_id = d.id`;
 
         const dataInfo = await dataBaseModel.select(
           conn,
           joinTable,
-          "d.imei",
+          "d.imei,v.name,d.id as device_id",
           "v.id = ?",
           id,
           "d.id"
         );
+
+        console.log("body", body);
 
         const data = await vehicleModel.updateName(
           conn,
           connPromise,
           body,
           params,
-          dataInfo
+          dataInfo,
+          infoUser
         );
         return data;
       } catch (error) {
@@ -68,7 +72,6 @@ class vehicleService {
         const data = await vehicleModel.updatePackage(conn, body, params);
         return data;
       } catch (error) {
-        await connPromise.rollback();
         throw error;
       } finally {
         conn.release();
@@ -79,7 +82,7 @@ class vehicleService {
     }
   }
 
-  async updateById(body, params, userId) {
+  async updateById(body, params) {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
@@ -100,7 +103,6 @@ class vehicleService {
           connPromise,
           body,
           params,
-          userId,
           dataInfo
         );
         return data;

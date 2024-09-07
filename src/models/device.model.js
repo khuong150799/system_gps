@@ -140,9 +140,9 @@ class DeviceModel extends DatabaseModel {
 
   async validateCheckOutside(conn, imei) {
     let errors = {};
-    const where = `d.imei = ? AND d.is_deleted = ? AND ud.is_moved = ?`;
-    const conditions = [imei, 0, 0];
-    const select = `d.id,d.device_status_id,ud.user_id,m.model_type_id as type`;
+    const where = `(d.imei = ? OR d.dev_id = ?) AND d.is_deleted = ? AND ud.is_moved = ?`;
+    const conditions = [imei, imei, 0, 0];
+    const select = `d.id,d.imei,d.device_status_id,ud.user_id,m.model_type_id as type`;
     const joinTable = `${tableDevice} d INNER JOIN ${tableUsersDevices} ud ON d.id = ud.device_id 
       INNER JOIN ${tableModel} m ON d.model_id = m.id`;
 
@@ -173,11 +173,11 @@ class DeviceModel extends DatabaseModel {
   async validateCheckInside(conn, imei, userId, parentId) {
     // console.log({ imei, userId, parentId });
     let errors = {};
-    const where = `d.imei = ? AND d.is_deleted = ? AND ud.is_moved = ?`;
-    const conditions = [imei, 0, 0];
+    const where = `(d.imei = ? OR d.dev_id = ?) AND d.is_deleted = ? AND ud.is_moved = ?`;
+    const conditions = [imei, imei, 0, 0];
     const joinTable = `${tableDevice} d INNER JOIN ${tableUsersDevices} ud ON d.id = ud.device_id 
       INNER JOIN ${tableModel} m ON d.model_id = m.id`;
-    const select = `d.id,d.device_status_id,ud.user_id,m.model_type_id as type`;
+    const select = `d.id,d.imei,d.device_status_id,ud.user_id,m.model_type_id as type`;
 
     const [res, infoUser] = await Promise.all([
       this.select(conn, joinTable, select, where, conditions, `d.id`),
@@ -385,7 +385,6 @@ class DeviceModel extends DatabaseModel {
 
   //getbyid
   async getById(conn, params, userId) {
-    console.log("userId", userId);
     const { id } = params;
 
     const joinTable = `${tableDevice} d LEFT JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id

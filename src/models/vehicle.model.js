@@ -95,19 +95,48 @@ class VehicleModel extends DatabaseModel {
     return [];
   }
 
-  async updateName(con, connPromise, body, params, dataInfo) {
+  async updateName(
+    con,
+    connPromise,
+    body,
+    params,
+    dataInfo,
+    { user_id, ip, os, gps }
+  ) {
     const { name } = body;
     const { id } = params;
 
     await connPromise.beginTransaction();
 
     await this.update(con, tableVehicle, { name }, "id", id);
+    // console.log("dataInfo", dataInfo);
+    if (!dataInfo?.length) throw { msg: ERROR };
+    const nameOld = dataInfo[0].name;
+    const { redis: listPromiseDelRedis, logging: listPromiseLogging } =
+      dataInfo.reduce(
+        (result, { imei, device_id }) => {
+          // console.log("result", result);
 
-    const listPromiseGetReidis = dataInfo.map(({ imei }) =>
-      hdelOneKey(REDIS_KEY_LIST_DEVICE, imei)
-    );
+          result.redis.push(hdelOneKey(REDIS_KEY_LIST_DEVICE, imei));
+          result.logging.push(
+            deviceLoggingModel.nameVehicle(con, {
+              user_id,
+              device_id,
+              ip,
+              os,
+              gps,
+              name_old: nameOld,
+              name_new: name,
+            })
+          );
 
-    const listDataGetRedis = await Promise.all(listPromiseGetReidis);
+          return result;
+        },
+        { redis: [], logging: [] }
+      );
+
+    const listDataGetRedis = await Promise.all(listPromiseDelRedis);
+    await Promise.all(listPromiseLogging);
 
     let isRollback = false;
 
@@ -127,7 +156,7 @@ class VehicleModel extends DatabaseModel {
   }
 
   //update
-  async updateById(conn, connPromise, body, params, userId, dataInfo) {
+  async updateById(conn, connPromise, body, params, dataInfo) {
     const { display_name, vehicle_type_id, weight, warning_speed } = body;
     const { id } = params;
 
@@ -160,17 +189,6 @@ class VehicleModel extends DatabaseModel {
     }
 
     if (isRollback) throw { msg: ERROR };
-
-    await deviceLoggingModel.postOrDelete(conn, {
-      user_id: userId,
-      device_id,
-      ip: null,
-      os: null,
-      gps: null,
-      des: null,
-      action: "Chỉnh",
-      createdAt,
-    });
 
     await connPromise.commit();
     vehicle.id = id;
