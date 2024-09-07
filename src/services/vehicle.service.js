@@ -50,6 +50,7 @@ class vehicleService {
         );
         return data;
       } catch (error) {
+        await connPromise.rollback();
         throw error;
       } finally {
         conn.release();
@@ -67,6 +68,7 @@ class vehicleService {
         const data = await vehicleModel.updatePackage(conn, body, params);
         return data;
       } catch (error) {
+        await connPromise.rollback();
         throw error;
       } finally {
         conn.release();
@@ -103,6 +105,7 @@ class vehicleService {
         );
         return data;
       } catch (error) {
+        await connPromise.rollback();
         throw error;
       } finally {
         conn.release();

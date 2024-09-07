@@ -5,6 +5,7 @@ const {
   tableDevice,
   tableVehicle,
 } = require("../constants/tableName.constant");
+const { date } = require("../ultils/getTime");
 const DatabaseModel = require("./database.model");
 const DeviceLoggingSchema = require("./schema/deviceLogging.schema");
 
@@ -138,6 +139,27 @@ class DeviceLoggingModel extends DatabaseModel {
       os: os || null,
       des: JSON.stringify(arrChange),
       action: "Sửa",
+      gps,
+      is_deleted: 0,
+      created_at: Date.now(),
+    });
+    await this.insert(conn, tableDeviceLogging, logs);
+  }
+
+  async extendVehicle(
+    conn,
+    { user_id, device_id, ip, os, gps, current_date, extend_date }
+  ) {
+    const des = `Ngày hết hạn củ: ${date(
+      current_date
+    )} ===> Ngày hết hạn mới: ${date(extend_date)}`;
+    const logs = new DeviceLoggingSchema({
+      user_id,
+      device_id,
+      ip: ip || null,
+      os: os || null,
+      des: JSON.stringify([des]),
+      action: "Gia hạn",
       gps,
       is_deleted: 0,
       created_at: Date.now(),

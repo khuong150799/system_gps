@@ -168,13 +168,70 @@ class VehicleModel extends DatabaseModel {
       os: null,
       gps: null,
       des: null,
-      action: "Kích hoạt",
+      action: "Chỉnh",
       createdAt,
     });
 
     await connPromise.commit();
     vehicle.id = id;
     return vehicle;
+  }
+
+  async updateExpiredOn(
+    con,
+    connPromise,
+    body,
+    params,
+    dataInfo,
+    { user_id, ip, os, gps }
+  ) {
+    const { current_date, extend_date, device_id } = body;
+    const { id } = params;
+
+    await connPromise.beginTransaction();
+
+    await this.update(
+      con,
+      tableDeviceVehicle,
+      { expired_on: extend_date },
+      "",
+      [id, device_id],
+      "expired_on",
+      true,
+      "vehicle_id = ? AND device_id = ?"
+    );
+
+    const listPromiseGetReidis = dataInfo.map(({ imei }) =>
+      hdelOneKey(REDIS_KEY_LIST_DEVICE, imei)
+    );
+
+    const listDataGetRedis = await Promise.all(listPromiseGetReidis);
+
+    let isRollback = false;
+
+    for (let i = 0; i < listDataGetRedis.length; i++) {
+      const { result } = listDataGetRedis[i];
+
+      if (!result) {
+        isRollback = true;
+      }
+    }
+
+    if (isRollback) throw { msg: ERROR };
+
+    await deviceLoggingModel.extendVehicle(con, {
+      user_id,
+      device_id,
+      ip,
+      os,
+      gps,
+      current_date,
+      extend_date,
+    });
+
+    await connPromise.commit();
+
+    return [];
   }
 }
 
