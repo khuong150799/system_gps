@@ -227,7 +227,8 @@ class UsersModel extends DatabaseModel {
 
   //getDeviceAdd
   async getDeviceAdd(conn, query, userId) {
-    const { user_id, is_deleted } = query;
+    const { user_id, is_deleted, offset, limit } = query;
+
     const chooseUserId = user_id || userId;
     const isDeleted = is_deleted || 0;
     const where = `ud.user_id = ? AND ud.is_deleted = ? AND ud.is_main = 0`;
@@ -244,7 +245,10 @@ class UsersModel extends DatabaseModel {
       selectData,
       where,
       conditions,
-      "d.id"
+      "d.id",
+      "DESC",
+      offset || 0,
+      limit || 10
     );
     return res_;
   }
