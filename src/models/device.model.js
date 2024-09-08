@@ -344,9 +344,9 @@ class DeviceModel extends DatabaseModel {
         LEFT JOIN ${tableOrdersDevice} od ON ud.device_id = od.device_id
         LEFT JOIN ${tableOrders} o ON od.orders_id = o.id
         LEFT JOIN ${tableCustomers} c1 ON o.reciver = c1.id AND o.creator_customer_id = ?`;
-      where += `${where} AND v.is_deleted = ?`;
+      where += ` AND dv.is_deleted = ? AND v.is_deleted = ?`;
 
-      conditions = [customer, ...conditions, 0];
+      conditions = [customer, ...conditions, 0, 0];
 
       select += ` ,o.code orders_code,v.name as vehicle_name, v.is_checked,dv.is_transmission_gps,dv.is_transmission_image,
         vt.name as vehicle_type_name,dv.quantity_channel,sp.name as service_package_name,MAX(COALESCE(c1.company,c1.name)) as customer_name,c1.id as customer_id,v.id as vehicle_id`;
