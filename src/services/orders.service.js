@@ -46,7 +46,7 @@ class OrdersService {
 
     const jointableUsersDevices = `${tableDevice} d INNER JOIN ${tableUsersDevices} ud ON d.id = ud.device_id 
       INNER JOIN ${tableUsersCustomers} uc ON ud.user_id = uc.user_id 
-      LEFT JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id`;
+      LEFT JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id AND dv.is_deleted = 0`;
 
     const selectDevice = `d.id,d.imei,dv.activation_date`;
     let whereDevice = `d.id IN (?) AND d.is_deleted = ? AND uc.customer_id = ?`;
