@@ -278,9 +278,9 @@ class DeviceModel extends DatabaseModel {
     } = query;
 
     const isDeleted = is_deleted || 0;
-    let where = `d.is_deleted = ? AND c.id = ? AND ud.is_main = ?`;
+    let where = `d.is_deleted = ? AND ud.is_deleted = ? AND c.id = ? AND ud.is_main = ?`;
     const customer = customer_id || customerId;
-    let conditions = [isDeleted, customer, 1];
+    let conditions = [isDeleted, 0, customer, 1];
 
     if (keyword) {
       where += ` AND (d.dev_id LIKE ? OR d.imei LIKE ? OR o.code LIKE ? OR c.name LIKE ?`;
@@ -344,23 +344,26 @@ class DeviceModel extends DatabaseModel {
         LEFT JOIN ${tableOrdersDevice} od ON ud.device_id = od.device_id
         LEFT JOIN ${tableOrders} o ON od.orders_id = o.id
         LEFT JOIN ${tableCustomers} c1 ON o.reciver = c1.id AND o.creator_customer_id = ?`;
+      where += `${where} AND v.is_deleted = ?`;
 
-      conditions = [customer, ...conditions];
+      conditions = [customer, ...conditions, 0];
 
       select += ` ,o.code orders_code,v.name as vehicle_name, v.is_checked,dv.is_transmission_gps,dv.is_transmission_image,
         vt.name as vehicle_type_name,dv.quantity_channel,sp.name as service_package_name,MAX(COALESCE(c1.company,c1.name)) as customer_name,c1.id as customer_id,v.id as vehicle_id`;
     } else if (type == 2) {
-      joinTable += ` LEFT JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id 
+      joinTable += ` LEFT JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id AND dv.is_deleted = ?
         LEFT JOIN ${tableVehicle} v ON dv.vehicle_id = v.id`;
+
+      conditions = [0, ...conditions];
     } else {
       joinTable += ` LEFT JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id 
-      LEFT JOIN ${tableVehicle} v ON dv.vehicle_id = v.id
-      LEFT JOIN ${tableOrdersDevice} od ON ud.device_id = od.device_id
-      LEFT JOIN ${tableOrders} o ON od.orders_id = o.id
+      LEFT JOIN ${tableVehicle} v ON dv.vehicle_id = v.id AND v.is_deleted = ?
+      LEFT JOIN ${tableOrdersDevice} od ON ud.device_id = od.device_id AND od.is_deleted = ?
+      LEFT JOIN ${tableOrders} o ON od.orders_id = o.id AND o.is_deleted = ?
       LEFT JOIN ${tableCustomers} c1 ON  o.reciver = c1.id AND o.creator_customer_id = ?`;
       select += ` ,o.code orders_code,d.created_at,d.updated_at,
         ds.title as device_status_name,MAX(COALESCE(c1.company,c1.name)) as customer_name,c1.id as customer_id,v.id as vehicle_id,v.name as vehicle_name`;
-      conditions = [customer, ...conditions];
+      conditions = [0, 0, 0, customer, ...conditions];
     }
 
     const [res_, count] = await Promise.all([

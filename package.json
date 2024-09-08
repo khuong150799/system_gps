@@ -1,6 +1,6 @@
 {
   "name": "sv_system_api",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "description": "",
   "main": "server.js",
   "scripts": {
