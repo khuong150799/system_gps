@@ -229,13 +229,20 @@ class DeviceService {
         } else {
         }
 
-        const { user_id, id, type: model_type_id } = dataInfoDevice;
+        const {
+          user_id,
+          id,
+          type: model_type_id,
+          imei: imeiDb,
+        } = dataInfoDevice;
         const dataBody = {
           ...body,
           parent_id: user_id,
           device_id: id,
           model_type_id,
+          imei: imeiDb,
         };
+
         const data = await deviceModel.activationOutside(
           conn,
           connPromise,
@@ -280,7 +287,7 @@ class DeviceService {
           parentId
         );
 
-        const { id, type: model_type_id } = dataInfoDevice;
+        const { id, type: model_type_id, imei: imeiDb } = dataInfoDevice;
 
         const { is_actived, is_deleted } = await validateModel.checkUserInfo(
           conn,
@@ -303,6 +310,7 @@ class DeviceService {
           ...body,
           device_id: id,
           model_type_id,
+          imei: imeiDb,
         };
 
         const data = await deviceModel.activationInside(

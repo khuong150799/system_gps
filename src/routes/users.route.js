@@ -267,6 +267,13 @@ module.exports = (app) => {
 
   router.patch(
     "/update-username",
+    [
+      body("username", NOT_EMPTY)
+        .notEmpty()
+        .isString()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+    ],
     isAuth,
     checkPermission,
     usersController.updateUsername

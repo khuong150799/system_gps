@@ -146,13 +146,7 @@ class DeviceLoggingModel extends DatabaseModel {
     await this.insert(conn, tableDeviceLogging, logs);
   }
 
-  async extendVehicle(
-    conn,
-    { user_id, device_id, ip, os, gps, current_date, extend_date }
-  ) {
-    const des = `Ngày hết hạn củ: ${date(
-      current_date
-    )} ===> Ngày hết hạn mới: ${date(extend_date)}`;
+  async extendVehicle(conn, des, { user_id, device_id, ip, os, gps }) {
     const logs = new DeviceLoggingSchema({
       user_id,
       device_id,

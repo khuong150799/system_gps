@@ -191,8 +191,11 @@ class CustomersController {
   });
 
   updateUsername = catchAsync(async (req, res) => {
-    const { body, userId } = req;
-    const data = await usersSrevice.updateUsername(body, userId);
+    const { body, userId, query } = req;
+
+    const chooseUserId = query?.user_id || userId;
+
+    const data = await usersSrevice.updateUsername(body, chooseUserId);
     UPDATE(res, data);
   });
 }

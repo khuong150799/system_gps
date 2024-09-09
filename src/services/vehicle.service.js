@@ -87,7 +87,7 @@ class vehicleService {
       const { conn, connPromise } = await db.getConnection();
       try {
         const { id } = params;
-        const joinTable = `${tableVehicle} v INNER JOIN ${tableDeviceVehicle} dv ON v.id = dv.device_id
+        const joinTable = `${tableVehicle} v INNER JOIN ${tableDeviceVehicle} dv ON v.id = dv.vehicle_id
         INNER JOIN ${tableDevice} d ON dv.device_id = d.id`;
 
         const dataInfo = await dataBaseModel.select(
@@ -104,6 +104,87 @@ class vehicleService {
           body,
           params,
           dataInfo
+        );
+        return data;
+      } catch (error) {
+        await connPromise.rollback();
+        throw error;
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      console.log(error);
+      throw new BusinessLogicError(error.msg);
+    }
+  }
+
+  async updateExpiredOn(body, params, infoUser) {
+    try {
+      const { conn, connPromise } = await db.getConnection();
+      try {
+        const { id } = params;
+        const { device_id } = body;
+
+        // console.log(id, device_id);
+
+        const joinTable = `${tableVehicle} v INNER JOIN ${tableDeviceVehicle} dv ON v.id = dv.vehicle_id
+        INNER JOIN ${tableDevice} d ON dv.device_id = d.id`;
+
+        const dataInfo = await dataBaseModel.select(
+          conn,
+          joinTable,
+          "d.imei,dv.expired_on",
+          "v.id = ? AND d.id = ?",
+          [id, device_id],
+          "d.id"
+        );
+        const data = await vehicleModel.updateExpiredOn(
+          conn,
+          connPromise,
+          body,
+          params,
+          dataInfo,
+          infoUser
+        );
+        return data;
+      } catch (error) {
+        await connPromise.rollback();
+        throw error;
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      console.log(error);
+      throw new BusinessLogicError(error.msg);
+    }
+  }
+
+  //updateActivationDate
+  async updateActivationDate(body, params, infoUser) {
+    try {
+      const { conn, connPromise } = await db.getConnection();
+      try {
+        const { id } = params;
+        const { device_id } = body;
+
+        const joinTable = `${tableVehicle} v INNER JOIN ${tableDeviceVehicle} dv ON v.id = dv.vehicle_id
+        INNER JOIN ${tableDevice} d ON dv.device_id = d.id`;
+
+        const dataInfo = await dataBaseModel.select(
+          conn,
+          joinTable,
+          "d.imei,dv.activation_date",
+          "v.id = ? AND d.id = ?",
+          [id, device_id],
+          "d.id"
+        );
+        const data = await vehicleModel.updateActivationDate(
+          conn,
+          connPromise,
+          body,
+          params,
+          dataInfo,
+          infoUser
         );
         return data;
       } catch (error) {

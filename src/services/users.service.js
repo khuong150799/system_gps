@@ -708,6 +708,7 @@ class UsersService {
       const { conn } = await db.getConnection();
       try {
         const { username } = body;
+        await validateModel.checkRegexUsername(username);
 
         await validateModel.checkExitValue(
           conn,

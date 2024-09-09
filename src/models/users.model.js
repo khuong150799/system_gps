@@ -473,7 +473,7 @@ class UsersModel extends DatabaseModel {
         conn,
         tableUsersDevices,
         "device_id",
-        "user_id = ?",
+        "user_id = ? AND is_deleted = 0",
         user_is_moved,
         "id",
         "ASC",

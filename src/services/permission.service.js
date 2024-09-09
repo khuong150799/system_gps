@@ -20,12 +20,14 @@ class PermissionService {
     const dataCheck = await databaseModel.select(
       conn,
       tablePermission,
-      "id",
+      "id,name,router",
       where,
       conditions
     );
 
     if (dataCheck.length <= 0) return [];
+
+    // console.log("dataCheck", dataCheck);
 
     const errors = dataCheck.map((item) => {
       if (item.name) {
@@ -117,6 +119,8 @@ class PermissionService {
         conn.release();
       }
     } catch (error) {
+      console.log(error);
+
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
     }

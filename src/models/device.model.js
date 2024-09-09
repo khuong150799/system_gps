@@ -32,6 +32,7 @@ const {
   hSet: hsetRedis,
   expire: expireRedis,
   del: delRedis,
+  hdelOneKey,
 } = require("./redis.model");
 const {
   REDIS_KEY_LIST_DEVICE,
@@ -1027,6 +1028,8 @@ class DeviceModel extends DatabaseModel {
       ...infoUser,
       device_id: id,
     });
+
+    await hdelOneKey(REDIS_KEY_LIST_DEVICE, imei.toString());
     await connPromise.commit();
     device.id = id;
     return device;
