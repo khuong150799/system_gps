@@ -40,6 +40,18 @@ class VehicleController {
     );
     UPDATE(res, [data]);
   });
+
+  //updateWarrantyExpiredOn
+  updateWarrantyExpiredOn = catchAsync(async (req, res) => {
+    const { body, params, userId } = req;
+    const infoUser = { user_id: userId, ip: null, os: null, gps: null };
+    const data = await vehicleService.updateWarrantyExpiredOn(
+      body,
+      params,
+      infoUser
+    );
+    UPDATE(res, [data]);
+  });
 }
 
 module.exports = new VehicleController();

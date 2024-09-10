@@ -198,6 +198,46 @@ class vehicleService {
       throw new BusinessLogicError(error.msg);
     }
   }
+
+  //updateWarrantyExpiredOn
+  async updateWarrantyExpiredOn(body, params, infoUser) {
+    try {
+      const { conn, connPromise } = await db.getConnection();
+      try {
+        const { id } = params;
+        const { device_id } = body;
+
+        const joinTable = `${tableVehicle} v INNER JOIN ${tableDeviceVehicle} dv ON v.id = dv.vehicle_id
+        INNER JOIN ${tableDevice} d ON dv.device_id = d.id`;
+
+        const dataInfo = await dataBaseModel.select(
+          conn,
+          joinTable,
+          "d.imei,dv.warranty_expired_on",
+          "v.id = ? AND d.id = ?",
+          [id, device_id],
+          "d.id"
+        );
+        const data = await vehicleModel.updateWarrantyExpiredOn(
+          conn,
+          connPromise,
+          body,
+          params,
+          dataInfo,
+          infoUser
+        );
+        return data;
+      } catch (error) {
+        await connPromise.rollback();
+        throw error;
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      console.log(error);
+      throw new BusinessLogicError(error.msg);
+    }
+  }
 }
 
 module.exports = new vehicleService();

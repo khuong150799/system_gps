@@ -76,6 +76,25 @@ module.exports = (app) => {
     vehicleController.updateActivationDate
   );
 
+  router.patch(
+    "/update-warranty_expired_on/:id",
+    [
+      param("id", VALIDATE_DATA).isNumeric(),
+
+      body("device_id", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA),
+      body("warranty_expired_on", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA),
+    ],
+    isAuth,
+    checkPermission,
+    vehicleController.updateWarrantyExpiredOn
+  );
+
   router.put(
     "/update/:id",
     [

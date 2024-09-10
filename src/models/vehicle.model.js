@@ -286,7 +286,6 @@ class VehicleModel extends DatabaseModel {
   }
 
   //updateActivationDate
-
   async updateActivationDate(
     conn,
     connPromise,
@@ -310,41 +309,112 @@ class VehicleModel extends DatabaseModel {
       true,
       "vehicle_id = ? AND device_id = ?"
     );
-    console.log("dataInfo", dataInfo);
+    // console.log("dataInfo", dataInfo);
 
-    const {
-      redis: listPromiseDelRedis,
-      logging: listPromiseAddDb,
-      extend: listPromiseExtend,
-    } = dataInfo.reduce(
-      (result, { imei, expired_on: current_date }) => {
-        // console.log("result", result);
+    const { redis: listPromiseDelRedis, logging: listPromiseAddDb } =
+      dataInfo.reduce(
+        (result, { imei, activation_date: ac_date }) => {
+          // console.log("result", result);
 
-        result.redis.push(hdelOneKey(REDIS_KEY_LIST_DEVICE, imei));
-        result.logging.push(
-          deviceLoggingModel.extendVehicle(conn, {
-            user_id,
-            device_id,
-            ip,
-            os,
-            gps,
-            current_date,
-            extend_date,
-          })
-        );
+          const des = `Ngày kích hoạt củ: ${date(
+            ac_date
+          )} ===> Ngày kích hoạt mới: ${date(activation_date)}`;
 
-        return result;
-      },
-      { redis: [], logging: [] }
-    );
+          result.redis.push(hdelOneKey(REDIS_KEY_LIST_DEVICE, imei));
+          result.logging.push(
+            deviceLoggingModel.extendVehicle(conn, des, {
+              user_id,
+              device_id,
+              ip,
+              os,
+              gps,
+            })
+          );
 
-    console.log({ listPromiseDelRedis, listPromiseAddDb, listPromiseExtend });
+          return result;
+        },
+        { redis: [], logging: [] }
+      );
+
+    console.log({ listPromiseDelRedis, listPromiseAddDb });
 
     const listDataGetRedis = await Promise.all(listPromiseDelRedis);
 
     await Promise.all(listPromiseAddDb);
 
-    await Promise.all(listPromiseExtend);
+    let isRollback = false;
+
+    for (let i = 0; i < listDataGetRedis.length; i++) {
+      const { result } = listDataGetRedis[i];
+
+      if (!result) {
+        isRollback = true;
+      }
+    }
+
+    if (isRollback) throw { msg: ERROR };
+
+    await connPromise.commit();
+
+    return [];
+  }
+
+  //updateWarrantyExpiredOn
+  async updateWarrantyExpiredOn(
+    conn,
+    connPromise,
+    body,
+    params,
+    dataInfo,
+    { user_id, ip, os, gps }
+  ) {
+    const { warranty_expired_on, device_id } = body;
+    const { id } = params;
+
+    await connPromise.beginTransaction();
+
+    await this.update(
+      conn,
+      tableDeviceVehicle,
+      { warranty_expired_on },
+      "",
+      [id, device_id],
+      "expired_on",
+      true,
+      "vehicle_id = ? AND device_id = ?"
+    );
+    // console.log("dataInfo", dataInfo);
+
+    const { redis: listPromiseDelRedis, logging: listPromiseAddDb } =
+      dataInfo.reduce(
+        (result, { imei, warranty_expired_on: wr_date }) => {
+          // console.log("result", result);
+
+          const des = `Hạn bảo hành củ: ${date(
+            wr_date
+          )} ===> Hạn bảo hành mới: ${date(warranty_expired_on)}`;
+
+          result.redis.push(hdelOneKey(REDIS_KEY_LIST_DEVICE, imei));
+          result.logging.push(
+            deviceLoggingModel.extendVehicle(conn, des, {
+              user_id,
+              device_id,
+              ip,
+              os,
+              gps,
+            })
+          );
+
+          return result;
+        },
+        { redis: [], logging: [] }
+      );
+
+    // console.log({ listPromiseDelRedis, listPromiseAddDb, listPromiseExtend });
+
+    const listDataGetRedis = await Promise.all(listPromiseDelRedis);
+
+    await Promise.all(listPromiseAddDb);
 
     let isRollback = false;
 
