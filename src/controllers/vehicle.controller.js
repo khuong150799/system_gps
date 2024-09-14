@@ -1,4 +1,4 @@
-const { UPDATE } = require("../core/success.response");
+const { UPDATE, DELETE } = require("../core/success.response");
 const catchAsync = require("../helper/catchAsync.helper");
 const vehicleService = require("../services/vehicle.service");
 
@@ -48,6 +48,32 @@ class VehicleController {
     const data = await vehicleService.updateWarrantyExpiredOn(
       body,
       params,
+      infoUser
+    );
+    UPDATE(res, [data]);
+  });
+
+  delete = catchAsync(async (req, res) => {
+    const { query, params, userId, customerId } = req;
+    const infoUser = { user_id: userId, ip: null, os: null, gps: null };
+    const data = await vehicleService.delete(
+      query,
+      params,
+      userId,
+      customerId,
+      infoUser
+    );
+    DELETE(res, data);
+  });
+
+  guarantee = catchAsync(async (req, res) => {
+    const { body, params, userId, customerId } = req;
+    const infoUser = { user_id: userId, ip: null, os: null, gps: null };
+    const data = await vehicleService.guarantee(
+      body,
+      params,
+      userId,
+      customerId,
       infoUser
     );
     UPDATE(res, [data]);

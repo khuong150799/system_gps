@@ -9,6 +9,8 @@ const {
   tableUsersDevices,
   tableDeviceVehicle,
   tableDeviceExtend,
+  tableOrders,
+  tableOrdersDevice,
 } = require("../constants/tableName.constant");
 const { date } = require("../ultils/getTime");
 const DatabaseModel = require("./database.model");
@@ -430,6 +432,236 @@ class VehicleModel extends DatabaseModel {
 
     await connPromise.commit();
 
+    return [];
+  }
+
+  async delete(
+    conn,
+    connPromise,
+    params,
+    query,
+    inforOrder,
+    listOrdersId,
+    idUd,
+    infoUser
+  ) {
+    const { id } = params;
+    const { device_id } = query;
+    const { user_device_id, vehicle_name } = idUd[0];
+    await connPromise.beginTransaction();
+
+    await this.update(
+      conn,
+      tableDevice,
+      { device_status_id: 2 },
+      "",
+      [device_id],
+      "device_id",
+      true,
+      "id = ?"
+    );
+
+    await this.update(
+      conn,
+      tableUsersDevices,
+      { is_deleted: 1 },
+      "",
+      [user_device_id, device_id],
+      "device_id",
+      true,
+      `id > ? AND device_id = ?`
+    );
+
+    await this.update(
+      conn,
+      tableUsersDevices,
+      { is_moved: 0 },
+      "",
+      [user_device_id],
+      "device_id",
+      true,
+      "id = ?"
+    );
+
+    const joinTableVehicle = `${tableVehicle} v INNER JOIN ${tableDeviceVehicle} dv ON v.id = dv.vehicle_id`;
+
+    await this.update(
+      conn,
+      joinTableVehicle,
+      `v.is_deleted = 1,dv.is_deleted = 1`,
+      "",
+      [id],
+      "vehicle_id",
+      true,
+      "v.id = ?"
+    );
+
+    if (inforOrder?.length) {
+      const { od_id } = inforOrder[0];
+      if (listOrdersId?.length) {
+        const quantity = 1;
+        await this.update(
+          conn,
+          tableOrders,
+          `quantity = quantity - ${quantity}`,
+          "",
+          [listOrdersId],
+          "device_id",
+          true,
+          `id IN (?)`
+        );
+      }
+
+      await this.update(
+        conn,
+        tableOrdersDevice,
+        { is_deleted: 1 },
+        "",
+        [od_id, device_id],
+        "device_id",
+        true,
+        `id >= ? AND device_id = ?`
+      );
+    }
+
+    const dataLog = {
+      ...infoUser,
+      device_id,
+      action: "Xoá",
+      des: `Xoá phương tiện ${vehicle_name}`,
+      createdAt: Date.now(),
+    };
+
+    await deviceLoggingModel.postOrDelete(conn, dataLog);
+
+    await connPromise.commit();
+    return [];
+  }
+
+  //guarantee
+  async guarantee(
+    conn,
+    connPromise,
+    params,
+    body,
+    idUd,
+    inforOrder,
+    infoVehicleInsert,
+    infoDeviceNew,
+    infoDeviceOld,
+    listOrdersId,
+    infoUser
+  ) {
+    const { id } = params;
+    const { device_id_old, device_id_new } = body;
+    const { user_device_id, vehicle_name } = idUd[0];
+    await connPromise.beginTransaction();
+
+    await this.update(
+      conn,
+      tableDevice,
+      { device_status_id: 2 },
+      "",
+      [device_id_old],
+      "device_id",
+      true,
+      "id = ?"
+    );
+
+    await this.update(
+      conn,
+      tableDevice,
+      { device_status_id: 3 },
+      "",
+      [device_id_new],
+      "device_id",
+      true,
+      "id = ?"
+    );
+
+    await this.update(
+      conn,
+      tableUsersDevices,
+      { is_deleted: 1 },
+      "",
+      [user_device_id, device_id_old],
+      "device_id",
+      true,
+      `id > ? AND device_id = ?`
+    );
+
+    await this.update(
+      conn,
+      tableUsersDevices,
+      { is_moved: 0 },
+      "",
+      [user_device_id],
+      "device_id",
+      true,
+      "id = ?"
+    );
+
+    await this.update(
+      conn,
+      tableDeviceVehicle,
+      `is_deleted = 1`,
+      "",
+      [id],
+      "vehicle_id",
+      true,
+      "vehicle_id = ?"
+    );
+
+    if (inforOrder?.length) {
+      const { od_id } = inforOrder[0];
+      if (listOrdersId?.length) {
+        const quantity = 1;
+        await this.update(
+          conn,
+          tableOrders,
+          `quantity = quantity - ${quantity}`,
+          "",
+          [listOrdersId],
+          "device_id",
+          true,
+          `id IN (?)`
+        );
+      }
+
+      await this.update(
+        conn,
+        tableOrdersDevice,
+        { is_deleted: 1 },
+        "",
+        [od_id, device_id_old],
+        "device_id",
+        true,
+        `id >= ? AND device_id = ?`
+      );
+    }
+
+    await this.insert(conn, tableDeviceVehicle, infoVehicleInsert);
+
+    const [{ result: resultOld }, { result: resultNew }] = await Promise.all([
+      hdelOneKey(REDIS_KEY_LIST_DEVICE, infoDeviceOld.imei),
+      hdelOneKey(REDIS_KEY_LIST_DEVICE, infoDeviceNew.imei),
+    ]);
+    let isRollback = false;
+    if (!resultOld || !resultNew) {
+      isRollback = true;
+    }
+    if (isRollback) throw { msg: ERROR };
+    const dataLog = {
+      ...infoUser,
+      device_id: device_id_old,
+      action: "Sửa",
+      des: `Bảo hành phương tiện ${vehicle_name}: ${infoDeviceOld.imei} ===> ${infoDeviceNew.imei}`,
+      createdAt: Date.now(),
+    };
+
+    await deviceLoggingModel.postOrDelete(conn, dataLog);
+
+    await connPromise.commit();
     return [];
   }
 }

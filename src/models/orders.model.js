@@ -492,81 +492,10 @@ class OrdersModel extends DatabaseModel {
   }
 
   //delete
-  async deleteDevice(
-    conn,
-    connPromise,
-    customerId,
-    dataOwnerDevice,
-    dataOwnerOrders,
-    body
-  ) {
+  async deleteDevice(conn, connPromise, inforOrder, listOrdersId, idUd, body) {
     const { device_id } = body;
+    const { user_device_id } = idUd[0];
 
-    const joinTableUserWithUsersCustomersWithUsersDevice = `
-          ${tableUsers} u INNER JOIN ${tableUsersCustomers} uc ON u.id = uc.user_id 
-          INNER JOIN ${tableUsersDevices} ud ON u.id = ud.user_id
-          LEFT JOIN ${tableOrders} o ON uc.customer_id = o.creator_customer_id
-          `;
-
-    const dataUserAndCustomerDelete = [];
-    const dequy = async (data) => {
-      dataUserAndCustomerDelete.push(data[0]);
-      const id = data[0].user_id;
-
-      const dataRes = await connPromise.query(
-        `SELECT u.id as user_id,uc.customer_id,o.quantity FROM ${joinTableUserWithUsersCustomersWithUsersDevice} WHERE u.parent_id = ? AND u.is_deleted = ? AND ud.device_id = ? `,
-        [id, 0, device_id]
-      );
-
-      if (
-        dataRes?.[0]?.[0]?.length > 0 &&
-        dataRes[0][0].id !== dataOwnerDevice[0].user_id
-      ) {
-        await dequy(dataRes[0]);
-      }
-    };
-    await dequy(dataOwnerOrders);
-
-    // console.log("dataOwnerOrders", dataOwnerOrders);
-
-    const formatData = dataUserAndCustomerDelete.reduce(
-      (result, item) => {
-        if (item.customer_id != customerId) {
-          result.listUserId = [...result.listUserId, item.user_id];
-        }
-        result.listCustomerId = [...result.listCustomerId, item.customer_id];
-
-        if (item.quantity > 0) {
-          const dateeUpdate = {
-            conditionField: [
-              `${tableOrders}.creator_customer_id`,
-              `${tableOrdersDevice}.device_id`,
-            ],
-            conditionValue: [item.customer_id, device_id],
-            updateValue: item.quantity - 1,
-          };
-          result.dataOrdersUpdateMulti = [
-            ...result.dataOrdersUpdateMulti,
-            dateeUpdate,
-          ];
-        }
-        return result;
-      },
-      {
-        listUserId: [dataOwnerDevice[0].user_id],
-        listCustomerId: [],
-        dataOrdersUpdateMulti: [],
-      }
-    );
-
-    const { listUserId, listCustomerId, dataOrdersUpdateMulti } = formatData;
-    // console.log("{ listUserId, listCustomerId, dataOrdersUpdateMulti }", {
-    //   listUserId,
-    //   listCustomerId,
-    //   dataOrdersUpdateMulti: JSON.stringify(dataOrdersUpdateMulti, null, 2),
-    // });
-
-    // return [];
     await connPromise.beginTransaction();
 
     await this.update(
@@ -574,38 +503,53 @@ class OrdersModel extends DatabaseModel {
       tableUsersDevices,
       { is_deleted: 1 },
       "",
-
-      [listUserId, device_id],
+      [user_device_id, device_id],
       "device_id",
       true,
-      `${tableUsersDevices}.user_id IN (?) AND ${tableUsersDevices}.device_id = ?`
+      `id > ? AND device_id = ?`
     );
 
-    const joinTableOrdersWithOrdersDevice = `${tableOrders} INNER JOIN ${tableOrdersDevice} ON ${tableOrders}.id = ${tableOrdersDevice}.orders_id`;
     await this.update(
       conn,
-      joinTableOrdersWithOrdersDevice,
-      `${tableOrdersDevice}.is_deleted = 1`,
+      tableUsersDevices,
+      { is_moved: 0 },
       "",
-      [listCustomerId, device_id],
+      [user_device_id],
       "device_id",
       true,
-      `${tableOrders}.creator_customer_id IN (?) AND ${tableOrdersDevice}.device_id = ?`
+      "id = ?"
     );
-    if (dataOrdersUpdateMulti?.length) {
-      await this.updatMultiRowsWithMultiConditions(
+
+    if (inforOrder?.length) {
+      const { od_id } = inforOrder[0];
+      if (listOrdersId?.length) {
+        const quantity = 1;
+        await this.update(
+          conn,
+          tableOrders,
+          `quantity = quantity - ${quantity}`,
+          "",
+          [listOrdersId],
+          "device_id",
+          true,
+          `id IN (?)`
+        );
+      }
+
+      await this.update(
         conn,
-        joinTableOrdersWithOrdersDevice,
-        [
-          {
-            field: "quantity",
-            conditions: dataOrdersUpdateMulti,
-          },
-        ]
+        tableOrdersDevice,
+        { is_deleted: 1 },
+        "",
+        [od_id, device_id],
+        "device_id",
+        true,
+        `id >= ? AND device_id = ?`
       );
     }
+
     await connPromise.commit();
-    return dataUserAndCustomerDelete;
+    return [];
   }
 }
 

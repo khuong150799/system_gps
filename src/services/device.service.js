@@ -114,11 +114,11 @@ class DeviceService {
   // }
 
   //getallrow
-  async getallrows(query, userId) {
+  async getallrows(query, customerId) {
     try {
       const { conn } = await db.getConnection();
       try {
-        const data = await deviceModel.getallrows(conn, query, userId);
+        const data = await deviceModel.getallrows(conn, query, customerId);
         return data;
       } catch (error) {
         throw error;

@@ -66,10 +66,14 @@ class OrdersController {
   });
 
   deleteDevice = catchAsync(async (req, res) => {
-    const customerId = req?.customerId;
-    const body = req.body;
-    const params = req.params;
-    const data = await ordersService.deleteDevice(body, params, customerId);
+    const { customerId, body, params, userId } = req;
+
+    const data = await ordersService.deleteDevice(
+      body,
+      params,
+      customerId,
+      userId
+    );
     DELETE(res, data);
   });
 }

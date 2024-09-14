@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const { VALIDATE_DATA, NOT_EMPTY } = require("../constants/msg.constant");
-const { param, body } = require("express-validator");
+const { param, body, query } = require("express-validator");
 const { isAuth } = require("../middlewares/jwt.middleware");
 const {
   checkPermission,
@@ -112,6 +112,40 @@ module.exports = (app) => {
     isAuth,
     checkPermission,
     vehicleController.updateById
+  );
+
+  router.delete(
+    "/delete/:id",
+    [
+      param("id", VALIDATE_DATA).isNumeric(),
+
+      query("device_id", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA),
+    ],
+    isAuth,
+    // checkPermission,
+    vehicleController.delete
+  );
+
+  router.put(
+    "/guarantee/:id",
+    [
+      param("id", VALIDATE_DATA).isNumeric(),
+
+      body("device_id_old", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA),
+      body("device_id_new", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA),
+    ],
+    isAuth,
+    // checkPermission,
+    vehicleController.guarantee
   );
 
   app.use("/api/v1/vehicle", router);

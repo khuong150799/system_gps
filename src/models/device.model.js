@@ -361,7 +361,7 @@ class DeviceModel extends DatabaseModel {
       LEFT JOIN ${tableVehicle} v ON dv.vehicle_id = v.id AND v.is_deleted = ?
       LEFT JOIN ${tableOrdersDevice} od ON ud.device_id = od.device_id AND od.is_deleted = ?
       LEFT JOIN ${tableOrders} o ON od.orders_id = o.id AND o.is_deleted = ?
-      LEFT JOIN ${tableCustomers} c1 ON  o.reciver = c1.id AND o.creator_customer_id = ?`;
+      LEFT JOIN ${tableCustomers} c1 ON o.reciver = c1.id AND o.creator_customer_id = ?`;
       select += ` ,o.code orders_code,d.created_at,d.updated_at,
         ds.title as device_status_name,MAX(COALESCE(c1.company,c1.name)) as customer_name,c1.id as customer_id,v.id as vehicle_id,v.name as vehicle_name`;
       conditions = [0, 0, 0, customer, ...conditions];
@@ -391,8 +391,8 @@ class DeviceModel extends DatabaseModel {
   async getById(conn, params, userId) {
     const { id } = params;
 
-    const joinTable = `${tableDevice} d LEFT JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id
-    LEFT JOIN ${tableVehicle} v ON dv.vehicle_id = v.id
+    const joinTable = `${tableDevice} d LEFT JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id AND dv.is_deleted = 0
+    LEFT JOIN ${tableVehicle} v ON dv.vehicle_id = v.id AND v.is_deleted = 0
     LEFT JOIN ${tableVehicleType} vt ON v.vehicle_type_id = vt.id
     LEFT JOIN ${tableVehicleIcon} vi ON vt.vehicle_icon_id = vi.id
     INNER JOIN ${tableModel} m ON d.model_id = m.id
@@ -412,7 +412,7 @@ class DeviceModel extends DatabaseModel {
       c0.name) as customer_name,COALESCE(c.company, c.name) as agency_name,c.phone as agency_phone,vi.name as vehicle_icon_name,
       c0.id as customer_id,c.id as agency_id,d.sv_cam_id`;
 
-    let where = `d.id = ? AND ud.user_id = ? AND d.is_deleted = 0 AND c0.is_deleted = 0 AND u.is_deleted = 0`;
+    let where = `d.id = ? AND ud.user_id = ? AND d.is_deleted = 0 AND c0.is_deleted = 0 AND u.is_deleted = 0 AND ud.is_deleted = 0`;
     const condition = [id, userId];
 
     const data = await this.select(

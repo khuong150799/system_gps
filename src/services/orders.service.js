@@ -12,6 +12,7 @@ const {
   NOT_PERMISSION,
   MERGE_ORDER_FAIL,
   DEVICE_IS_ACTIVED,
+  NOT_OWN,
 } = require("../constants/msg.constant");
 const { BusinessLogicError } = require("../core/error.response");
 const DatabaseModel = require("../models/database.model");
@@ -24,6 +25,8 @@ const {
   tableUsersCustomers,
   tableUsersDevices,
   tableDeviceVehicle,
+  tableUserDevice,
+  tableOrdersDevice,
 } = require("../constants/tableName.constant");
 
 const databaseModel = new DatabaseModel();
@@ -364,7 +367,7 @@ class OrdersService {
     } else if (Number(customerId) !== Number(dataOwnerOrders[0].customer_id)) {
       errors.push({ msg: NOT_PERMISSION });
     } else if (dataOwnerDevice[0].activation_date) {
-      errors.push({ msg: `${DEVICE_IS_ACTIVED} không thể xoá` });
+      errors.push({ msg: `${DEVICE_IS_ACTIVED} không thể thu hồi` });
     }
 
     if (errors.length) throw { msg: ERROR, errors };
@@ -586,7 +589,7 @@ class OrdersService {
   }
 
   //delete
-  async deleteDevice(body, params, customerId) {
+  async deleteDevice(body, params, customerId, userId) {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
@@ -597,18 +600,69 @@ class OrdersService {
 
         const { dataOwnerDevice, dataOwnerOrders } =
           await this.validateDeleteDevice(conn, device_id, id, customerId);
-        // console.log(
-        //   "dataOwnerDevice, dataOwnerOrders",
-        //   dataOwnerDevice,
-        //   dataOwnerOrders
-        // );
+
+        console.log(
+          "dataOwnerDevice, dataOwnerOrders",
+          dataOwnerDevice,
+          dataOwnerOrders
+        );
+
+        const seletInfoVehicle = `ud.id as user_device_id`;
+
+        const idUd = await databaseModel.select(
+          conn,
+          `${tableUserDevice} ud`,
+          seletInfoVehicle,
+          "ud.user_id = ? AND ud.device_id = ? AND ud.is_main = ?",
+          [userId, device_id, 1],
+          "ud.id"
+        );
+
+        if (!idUd?.length) throw { msg: `Phương tiện ${NOT_OWN}` };
+
+        const joinTableCustomerOrders = `${tableOrders} o INNER JOIN ${tableOrdersDevice} od ON o.id = od.orders_id`;
+
+        const selectInfoOrders = `o.id as orders_id, od.id as od_id`;
+
+        const whereOrders = `o.creator_customer_id = ? AND od.device_id = ?`;
+
+        const inforOrder = await databaseModel.select(
+          conn,
+          joinTableCustomerOrders,
+          selectInfoOrders,
+          whereOrders,
+          [customerId, device_id],
+          "o.id"
+        );
+
+        console.log("inforOrder", inforOrder);
+        let listOrdersId = [];
+        if (inforOrder?.length) {
+          const { od_id } = inforOrder[0];
+          const joinTableOrder = `${tableOrders} o INNER JOIN ${tableOrdersDevice} od ON o.id = od.orders_id`;
+          const select = "o.id";
+          const where = "od.id >= ? AND device_id = ?";
+          const allOrders = await databaseModel.select(
+            conn,
+            joinTableOrder,
+            select,
+            where,
+            [od_id, device_id],
+            "od.id",
+            "ASC"
+          );
+
+          listOrdersId = allOrders?.map((item) => item.id);
+
+          console.log("listOrdersId", listOrdersId);
+        }
 
         const data = await ordersModel.deleteDevice(
           conn,
           connPromise,
-          customerId,
-          dataOwnerDevice,
-          dataOwnerOrders,
+          inforOrder,
+          listOrdersId,
+          idUd,
           body
         );
 

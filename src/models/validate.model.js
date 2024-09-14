@@ -120,7 +120,12 @@ class ValidateModel extends DatabaseModel {
 
     return dataCheck;
   }
-  async CheckCustomerTree(conn, listCustomer, param = "recivers") {
+  async CheckCustomerTree(
+    conn,
+    listCustomer,
+    param = "recivers",
+    msg = STRUCTURE_ORDERS_FAIL
+  ) {
     const errors = [];
 
     if (listCustomer.length <= 0) {
@@ -165,7 +170,7 @@ class ValidateModel extends DatabaseModel {
     if (checkStructureRecivers) {
       errors.push({
         value: listCustomer,
-        msg: STRUCTURE_ORDERS_FAIL,
+        msg,
         param,
       });
     }

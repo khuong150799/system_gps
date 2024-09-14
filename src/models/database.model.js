@@ -160,27 +160,26 @@ class DatabaseModel {
           : where
           ? `UPDATE ${tableName} SET ? WHERE ${where}`
           : `UPDATE ${tableName} SET ? WHERE ${field} IN (?)`;
-      db.query(
-        query,
+
+      const conditions =
         typeof data === "string"
           ? condition
           : typeof data === "object" && !where
           ? [data, condition]
-          : [data, ...condition],
-        (err, dataRes) => {
-          console.log("query", query);
+          : [data, ...condition];
+      db.query(query, conditions, (err, dataRes) => {
+        // console.log("query", query, data, conditions);
 
-          if (err) {
-            console.log(err);
-            return reject({ msg: ERROR });
-          }
-          if (dataRes.affectedRows === 0 && checkExit) {
-            return reject({ msg: `${fieldNameError} ${NOT_EXITS}` });
-          }
-          // console.log('dataRes.insertId', dataRes.insertId);
-          return resolve(dataRes);
+        if (err) {
+          console.log(err);
+          return reject({ msg: ERROR });
         }
-      );
+        if (dataRes.affectedRows === 0 && checkExit) {
+          return reject({ msg: `${fieldNameError} ${NOT_EXITS}` });
+        }
+        // console.log('dataRes.insertId', dataRes.insertId);
+        return resolve(dataRes);
+      });
     });
   }
 
