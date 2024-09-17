@@ -41,7 +41,7 @@ class vehicleService {
           conn,
           joinTable,
           "d.imei,v.name,d.id as device_id",
-          "v.id = ?",
+          "v.id = ? AND d.device_status_id = 3",
           id,
           "d.id"
         );
@@ -403,7 +403,7 @@ class vehicleService {
           0,
           9999
         );
-        // console.log("infoDevice", infoDevice);
+        console.log("infoDevice", infoDevice);
 
         if (!infoDevice?.length || infoDevice?.length <= 1)
           throw { msg: `Thiết bị ${NOT_OWN}` };
@@ -417,8 +417,6 @@ class vehicleService {
         } = infoDevice.reduce(
           (result, item, i, arr) => {
             if (item.vehicle_id == vehicle_id) {
-              console.log(12345, vehicle_id);
-
               result.infoVehicle = {
                 expired_on: item.expired_on,
                 activation_date: item.activation_date,
@@ -433,6 +431,8 @@ class vehicleService {
               };
 
               result.infoDeviceOld = { imei: item.imei };
+            } else {
+              result.infoDeviceNew = { imei: item.imei };
             }
             if (i == 0) {
               minExpiredOn = item.expired_on;
@@ -450,7 +450,6 @@ class vehicleService {
                   activation_date: item.activation_date,
                   warranty_expired_on: item.warranty_expired_on,
                 };
-                result.infoDeviceNew = { imei: item.imei };
               }
             }
 

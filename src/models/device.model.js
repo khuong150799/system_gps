@@ -25,15 +25,9 @@ const {
   tableVehicleType,
   tableVehicleIcon,
   tableDeviceVehicle,
-  tableModelType,
   tableServerCamera,
 } = require("../constants/tableName.constant");
-const {
-  hSet: hsetRedis,
-  expire: expireRedis,
-  del: delRedis,
-  hdelOneKey,
-} = require("./redis.model");
+const { hSet: hsetRedis, del: delRedis, hdelOneKey } = require("./redis.model");
 const {
   REDIS_KEY_LIST_DEVICE,
   REDIS_KEY_DEVICE_SPAM,
@@ -52,8 +46,6 @@ const vehicleModel = require("./vehicle.model");
 const deviceLoggingModel = require("./deviceLogging.model");
 const DeviceVehicleSchema = require("./schema/deviceVehicle.schema");
 const cameraApi = require("../api/camera.api");
-const configureEnvironment = require("../config/dotenv.config");
-const { SV_CMS1, SV_CMS2 } = configureEnvironment();
 
 class DeviceModel extends DatabaseModel {
   constructor() {
@@ -204,62 +196,6 @@ class DeviceModel extends DatabaseModel {
     }
 
     return { result: true, data: res[0] };
-  }
-
-  async getInfoDevice(conn, imei, device_id) {
-    const joinTable = `${tableDevice} d INNER JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id
-    INNER JOIN ${tableVehicle} v ON dv.vehicle_id = v.id
-    INNER JOIN ${tableVehicleType} vt ON v.vehicle_type_id = vt.id
-    INNER JOIN ${tableVehicleIcon} vi ON vt.vehicle_icon_id = vi.id
-    INNER JOIN ${tableModel} m ON d.model_id = m.id
-    INNER JOIN ${tableDeviceStatus} ds ON d.device_status_id = ds.id
-    INNER JOIN ${tableUsersDevices} ud ON d.id = ud.device_id
-    INNER JOIN ${tableUsersCustomers} uc1 ON ud.user_id = uc1.user_id
-    INNER JOIN ${tableCustomers} c0 ON uc1.customer_id = c0.id
-    INNER JOIN ${tableUsers} u ON uc1.user_id = u.id
-    LEFT JOIN ${tableUsers} u1 ON u.parent_id = u1.id
-    LEFT JOIN ${tableUsersCustomers} uc2 ON u1.id = uc2.user_id
-    LEFT JOIN ${tableCustomers} c ON uc2.customer_id = c.id`;
-
-    const select = `
-      d.id as device_id,d.imei,dv.expired_on,dv.activation_date,dv.warranty_expired_on,dv.is_use_gps,dv.quantity_channel,dv.quantity_channel_lock,dv.is_transmission_gps,dv.is_transmission_image,
-      v.display_name,v.name as vehicle_name,v.id as vehicle_id,v.vehicle_type_id,vt.name as vehicle_type_name,vt.vehicle_icon_id,vt.max_speed,
-      m.name as model_name,m.model_type_id,ds.title as device_status_name,COALESCE(c0.company,
-      c0.name) as customer_name,COALESCE(c.company, c.name) as agency_name,c.phone as agency_phone,vi.name as vehicle_icon_name,
-      c0.id as customer_id,c.id as agency_id,d.sv_cam_id`;
-
-    let where = `AND ud.is_moved = 0 AND d.is_deleted = 0 AND c0.is_deleted = 0 AND u.is_deleted = 0`;
-    const condition = [];
-    if (device_id) {
-      where = `d.id = ? ${where}`;
-      condition.push(device_id);
-    } else if (imei) {
-      where = `d.imei = ? ${where}`;
-      condition.push(imei);
-    } else {
-      where = `1 = ? ${where}`;
-      condition.push(1);
-    }
-
-    const data = await this.select(
-      conn,
-      joinTable,
-      select,
-      where,
-      condition,
-      `d.id`
-    );
-
-    console.log("data", data);
-
-    if (data.length) {
-      await Promise.all(
-        data.map((item) =>
-          hsetRedis(REDIS_KEY_LIST_DEVICE, item.imei, JSON.stringify(item))
-        )
-      );
-    }
-    return data;
   }
 
   async getallrows(conn, query, customerId) {
@@ -672,7 +608,7 @@ class DeviceModel extends DatabaseModel {
       await Promise.all(listTableCreate);
     }
 
-    const inforDevice = await this.getInfoDevice(conn, imei);
+    const inforDevice = await vehicleModel.getInfoDevice(conn, imei);
     console.log("inforDevice", inforDevice);
 
     if (!inforDevice?.length) throw { msg: ERROR };
@@ -862,7 +798,7 @@ class DeviceModel extends DatabaseModel {
       await Promise.all(listTableCreate);
     }
 
-    const inforDevice = await this.getInfoDevice(conn, imei);
+    const inforDevice = await vehicleModel.getInfoDevice(conn, imei);
 
     console.log("inforDevice", inforDevice);
     // console.log("inforDevice?.length", inforDevice?.length);
@@ -1022,7 +958,7 @@ class DeviceModel extends DatabaseModel {
       this.select(conn, tableDeviceStatus, "id,title", "1 = ?", 1),
     ]);
     await this.update(conn, tableDevice, device, "id", id);
-    await this.getInfoDevice(conn, null, id);
+    await vehicleModel.getInfoDevice(conn, null, id);
     await deviceLoggingModel.update(conn, {
       dataModel,
       dataStatus,
@@ -1060,7 +996,7 @@ class DeviceModel extends DatabaseModel {
 
     await deviceLoggingModel.postOrDelete(conn, dataSaveLog);
     await connPromise.commit();
-    await this.getInfoDevice(conn, null, id);
+    await vehicleModel.getInfoDevice(conn, null, id);
     return [];
   }
 }

@@ -11,18 +11,81 @@ const {
   tableDeviceExtend,
   tableOrders,
   tableOrdersDevice,
+  tableVehicleType,
+  tableVehicleIcon,
+  tableModel,
+  tableDeviceStatus,
+  tableUsersCustomers,
+  tableCustomers,
+  tableUsers,
 } = require("../constants/tableName.constant");
 const { date } = require("../ultils/getTime");
 const DatabaseModel = require("./database.model");
-const deviceModel = require("./device.model");
 const deviceLoggingModel = require("./deviceLogging.model");
-const { del: delRedis, hdelOneKey } = require("./redis.model");
+const { del: delRedis, hdelOneKey, hSet: hsetRedis } = require("./redis.model");
 const DeviceExtendSchema = require("./schema/deviceExtend.schema");
 
 class VehicleModel extends DatabaseModel {
   constructor() {
     super();
   }
+
+  async getInfoDevice(conn, imei, device_id) {
+    const joinTable = `${tableDevice} d INNER JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id
+    INNER JOIN ${tableVehicle} v ON dv.vehicle_id = v.id
+    INNER JOIN ${tableVehicleType} vt ON v.vehicle_type_id = vt.id
+    INNER JOIN ${tableVehicleIcon} vi ON vt.vehicle_icon_id = vi.id
+    INNER JOIN ${tableModel} m ON d.model_id = m.id
+    INNER JOIN ${tableDeviceStatus} ds ON d.device_status_id = ds.id
+    INNER JOIN ${tableUsersDevices} ud ON d.id = ud.device_id
+    INNER JOIN ${tableUsersCustomers} uc1 ON ud.user_id = uc1.user_id
+    INNER JOIN ${tableCustomers} c0 ON uc1.customer_id = c0.id
+    INNER JOIN ${tableUsers} u ON uc1.user_id = u.id
+    LEFT JOIN ${tableUsers} u1 ON u.parent_id = u1.id
+    LEFT JOIN ${tableUsersCustomers} uc2 ON u1.id = uc2.user_id
+    LEFT JOIN ${tableCustomers} c ON uc2.customer_id = c.id`;
+
+    const select = `
+      d.id as device_id,d.imei,dv.expired_on,dv.activation_date,dv.warranty_expired_on,dv.is_use_gps,dv.quantity_channel,dv.quantity_channel_lock,dv.is_transmission_gps,dv.is_transmission_image,
+      v.display_name,v.name as vehicle_name,v.id as vehicle_id,v.vehicle_type_id,vt.name as vehicle_type_name,vt.vehicle_icon_id,vt.max_speed,
+      m.name as model_name,m.model_type_id,ds.title as device_status_name,COALESCE(c0.company,
+      c0.name) as customer_name,COALESCE(c.company, c.name) as agency_name,c.phone as agency_phone,vi.name as vehicle_icon_name,
+      c0.id as customer_id,c.id as agency_id,d.sv_cam_id`;
+
+    let where = `AND ud.is_moved = 0 AND d.is_deleted = 0 AND c0.is_deleted = 0 AND u.is_deleted = 0 AND dv.is_deleted = 0`;
+    const condition = [];
+    if (device_id) {
+      where = `d.id = ? ${where}`;
+      condition.push(device_id);
+    } else if (imei) {
+      where = `d.imei = ? ${where}`;
+      condition.push(imei);
+    } else {
+      where = `1 = ? ${where}`;
+      condition.push(1);
+    }
+
+    const data = await this.select(
+      conn,
+      joinTable,
+      select,
+      where,
+      condition,
+      `d.id`
+    );
+
+    // console.log("data", data);
+
+    if (data.length) {
+      await Promise.all(
+        data.map((item) =>
+          hsetRedis(REDIS_KEY_LIST_DEVICE, item.imei, JSON.stringify(item))
+        )
+      );
+    }
+    return data;
+  }
+
   handleGetListDeviceId = async (
     conn,
     imei,
@@ -121,7 +184,7 @@ class VehicleModel extends DatabaseModel {
         (result, { imei, device_id }) => {
           // console.log("result", result);
 
-          result.redis.push(deviceModel.getInfoDevice(conn, imei));
+          result.redis.push(this.getInfoDevice(conn, imei));
           result.logging.push(
             deviceLoggingModel.nameVehicle(conn, {
               user_id,
@@ -177,7 +240,7 @@ class VehicleModel extends DatabaseModel {
     await this.update(conn, tableVehicle, vehicle, "id", id);
 
     const listPromiseGetReidis = dataInfo.map(({ imei }) =>
-      deviceModel.getInfoDevice(conn, imei)
+      this.getInfoDevice(conn, imei)
     );
 
     const listDataGetRedis = await Promise.all(listPromiseGetReidis);
@@ -245,7 +308,7 @@ class VehicleModel extends DatabaseModel {
           current_date
         )} ===> Ngày hết hạn mới: ${date(extend_date)}`;
 
-        result.redis.push(deviceModel.getInfoDevice(conn, imei));
+        result.redis.push(this.getInfoDevice(conn, imei));
         result.logging.push(
           deviceLoggingModel.extendVehicle(conn, des, {
             user_id,
@@ -323,7 +386,7 @@ class VehicleModel extends DatabaseModel {
             ac_date
           )} ===> Ngày kích hoạt mới: ${date(activation_date)}`;
 
-          result.redis.push(deviceModel.getInfoDevice(conn, imei));
+          result.redis.push(this.getInfoDevice(conn, imei));
           result.logging.push(
             deviceLoggingModel.extendVehicle(conn, des, {
               user_id,
@@ -397,7 +460,7 @@ class VehicleModel extends DatabaseModel {
             wr_date
           )} ===> Hạn bảo hành mới: ${date(warranty_expired_on)}`;
 
-          result.redis.push(deviceModel.getInfoDevice(conn, imei));
+          result.redis.push(this.getInfoDevice(conn, imei));
           result.logging.push(
             deviceLoggingModel.extendVehicle(conn, des, {
               user_id,
@@ -561,7 +624,22 @@ class VehicleModel extends DatabaseModel {
     body,
     idUd,
     inforOrder,
-    infoVehicleInsert,
+    {
+      device_id,
+      vehicle_id,
+      expired_on,
+      activation_date,
+      warranty_expired_on,
+      service_package_id,
+      type,
+      is_use_gps,
+      quantity_channel,
+      quantity_channel_lock,
+      is_transmission_gps,
+      is_transmission_image,
+      is_deleted,
+      created_at,
+    },
     infoDeviceNew,
     infoDeviceOld,
     listOrdersId,
@@ -571,6 +649,8 @@ class VehicleModel extends DatabaseModel {
     const { device_id_old, device_id_new } = body;
     const { user_device_id, vehicle_name } = idUd[0];
     await connPromise.beginTransaction();
+
+    // console.log("body", body);
 
     await this.update(
       conn,
@@ -655,11 +735,44 @@ class VehicleModel extends DatabaseModel {
       );
     }
 
-    await this.insert(conn, tableDeviceVehicle, infoVehicleInsert);
+    const field =
+      "device_id,vehicle_id,expired_on,activation_date,warranty_expired_on,service_package_id,type,is_use_gps,quantity_channel,quantity_channel_lock,is_transmission_gps,is_transmission_image,is_deleted,created_at";
+    const dataInsert = [
+      [
+        device_id,
+        vehicle_id,
+        expired_on,
+        activation_date,
+        warranty_expired_on,
+        service_package_id,
+        type,
+        is_use_gps,
+        quantity_channel,
+        quantity_channel_lock,
+        is_transmission_gps,
+        is_transmission_image,
+        is_deleted,
+        created_at,
+      ],
+    ];
+    const dataDuplicate = `expired_on=VALUES(expired_on),activation_date=VALUES(activation_date),
+      warranty_expired_on=VALUES(warranty_expired_on),service_package_id=VALUES(service_package_id),
+      type=VALUES(type),is_use_gps=VALUES(is_use_gps),quantity_channel=VALUES(quantity_channel),
+      quantity_channel_lock=VALUES(quantity_channel_lock),is_transmission_gps=VALUES(is_transmission_gps),
+      is_transmission_image=VALUES(is_transmission_image),is_deleted=VALUES(is_deleted),created_at=VALUES(created_at)`;
+    await this.insertDuplicate(
+      conn,
+      tableDeviceVehicle,
+      field,
+      dataInsert,
+      dataDuplicate
+    );
+
+    // console.log("infoDeviceNew.imei", infoDeviceNew.imei);
 
     const [{ result: resultOld }, resultNew] = await Promise.all([
       hdelOneKey(REDIS_KEY_LIST_DEVICE, infoDeviceOld.imei),
-      deviceModel.getInfoDevice(conn, infoDeviceNew.imei),
+      this.getInfoDevice(conn, infoDeviceNew.imei),
     ]);
     let isRollback = false;
     if (!resultOld || !resultNew?.length) {

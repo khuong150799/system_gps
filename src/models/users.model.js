@@ -10,8 +10,6 @@ const {
   PASSWORD_DEFAULT,
 
   REFRESH_TOKEN_SECRET_KEY,
-  ERROR,
-  ERROR_STRUCTURE_MOVE_AGENCY,
 } = require("../constants/msg.constant");
 
 const bcrypt = require("bcrypt");
