@@ -145,9 +145,9 @@ class VehicleModel extends DatabaseModel {
     let isRollback = false;
 
     for (let i = 0; i < listDataGetRedis.length; i++) {
-      const { result } = listDataGetRedis[i];
+      const result = listDataGetRedis[i];
 
-      if (!result) {
+      if (!result?.length) {
         isRollback = true;
       }
     }
@@ -185,9 +185,9 @@ class VehicleModel extends DatabaseModel {
     let isRollback = false;
 
     for (let i = 0; i < listDataGetRedis.length; i++) {
-      const { result } = listDataGetRedis[i];
+      const result = listDataGetRedis[i];
 
-      if (!result) {
+      if (!result?.length) {
         isRollback = true;
       }
     }
@@ -274,9 +274,9 @@ class VehicleModel extends DatabaseModel {
     let isRollback = false;
 
     for (let i = 0; i < listDataGetRedis.length; i++) {
-      const { result } = listDataGetRedis[i];
+      const result = listDataGetRedis[i];
 
-      if (!result) {
+      if (!result?.length) {
         isRollback = true;
       }
     }
@@ -348,9 +348,9 @@ class VehicleModel extends DatabaseModel {
     let isRollback = false;
 
     for (let i = 0; i < listDataGetRedis.length; i++) {
-      const { result } = listDataGetRedis[i];
+      const result = listDataGetRedis[i];
 
-      if (!result) {
+      if (!result?.length) {
         isRollback = true;
       }
     }
@@ -422,9 +422,9 @@ class VehicleModel extends DatabaseModel {
     let isRollback = false;
 
     for (let i = 0; i < listDataGetRedis.length; i++) {
-      const { result } = listDataGetRedis[i];
+      const result = listDataGetRedis[i];
 
-      if (!result) {
+      if (!result?.length) {
         isRollback = true;
       }
     }
@@ -657,14 +657,12 @@ class VehicleModel extends DatabaseModel {
 
     await this.insert(conn, tableDeviceVehicle, infoVehicleInsert);
 
-    const [{ result: resultOld }, { result: resultNew }] = await Promise.all([
-      deviceModel.getInfoDevice(conn, infoDeviceOld.imei),
+    const [{ result: resultOld }, resultNew] = await Promise.all([
+      hdelOneKey(REDIS_KEY_LIST_DEVICE, infoDeviceOld.imei),
       deviceModel.getInfoDevice(conn, infoDeviceNew.imei),
-      // hdelOneKey(REDIS_KEY_LIST_DEVICE, infoDeviceOld.imei),
-      // hdelOneKey(REDIS_KEY_LIST_DEVICE, infoDeviceNew.imei),
     ]);
     let isRollback = false;
-    if (!resultOld || !resultNew) {
+    if (!resultOld || !resultNew?.length) {
       isRollback = true;
     }
     if (isRollback) throw { msg: ERROR };
