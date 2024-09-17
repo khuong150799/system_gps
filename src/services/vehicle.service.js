@@ -248,22 +248,34 @@ class vehicleService {
       const { conn, connPromise } = await db.getConnection();
       try {
         const { device_id } = query;
+        const { id } = params;
 
         const joinTableVehicle = `${tableVehicle} v INNER JOIN ${tableDeviceVehicle} dv ON v.id = dv.vehicle_id
           INNER JOIN ${tableUserDevice} ud ON dv.device_id = ud.device_id`;
 
         const seletInfoVehicle = `v.name as vehicle_name,ud.id as user_device_id`;
 
-        const idUd = await dataBaseModel.select(
-          conn,
-          joinTableVehicle,
-          seletInfoVehicle,
-          "v.is_deleted = 0 AND dv.is_deleted = 0 AND ud.user_id = ? AND ud.device_id = ? AND ud.is_main = ?",
-          [userId, device_id, 1],
-          "ud.id"
-        );
+        const [idUd, countDevice] = await Promise.all([
+          dataBaseModel.select(
+            conn,
+            joinTableVehicle,
+            seletInfoVehicle,
+            "v.is_deleted = 0 AND dv.is_deleted = 0 AND ud.user_id = ? AND ud.device_id = ? AND ud.is_main = ?",
+            [userId, device_id, 1],
+            "ud.id"
+          ),
+          dataBaseModel.count(
+            conn,
+            tableDeviceVehicle,
+            "*",
+            "vehicle_id = ? AND is_deleted = ?",
+            [id, 0]
+          ),
+        ]);
 
         if (!idUd?.length) throw { msg: `Phương tiện ${NOT_OWN}` };
+
+        const quantityDevice = countDevice?.[0]?.total;
 
         const joinTableCustomerOrders = `${tableOrders} o INNER JOIN ${tableOrdersDevice} od ON o.id = od.orders_id`;
 
@@ -307,6 +319,7 @@ class vehicleService {
           connPromise,
           params,
           query,
+          quantityDevice,
           inforOrder,
           listOrdersId,
           idUd,
@@ -347,7 +360,7 @@ class vehicleService {
         if (dataCheckSameUser?.length <= 1)
           throw { msg: `Thiết bị ${NOT_OWN}` };
 
-        let owner = null;
+        let owner = false;
 
         for (let i = 0; i < dataCheckSameUser.length; i++) {
           const item = dataCheckSameUser[i];
@@ -358,13 +371,17 @@ class vehicleService {
 
           if (owner && item.is_moved == 0 && item.user_id == owner) {
             owner = true;
+            break;
           }
           if (item.is_moved == 0) {
             owner = item.user_id;
           }
         }
 
-        if (!owner && typeof owner === "boolean")
+        if (
+          typeof owner !== "boolean" ||
+          (typeof owner === "boolean" && !owner)
+        )
           throw { msg: `Thiết bị ${NOT_OWN}` };
 
         const jointableUsersDevicesWithDeviceVehicle = `${tableDevice} d LEFT JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id`;
@@ -550,6 +567,114 @@ class vehicleService {
     } catch (error) {
       console.log(error);
       throw new BusinessLogicError(error.msg);
+    }
+  }
+
+  async move(params, body, userId, customerId, parentId) {
+    try {
+      const { reciver } = body;
+      const { id: vehicle_id } = params;
+      const { conn, connPromise } = await db.getConnection();
+      try {
+        const listDevice = dataBaseModel.select(
+          conn,
+          tableDeviceVehicle,
+          "device_id",
+          "vehicle_id = ? AND is_deleted = ?",
+          [vehicle_id, 0],
+          "device_id",
+          "ASC"
+        );
+
+        const [treeReciver, treeUserIsMoved, listDevices] = await Promise.all([
+          validateModel.CheckIsChild(
+            connPromise,
+            userId,
+            customerId,
+            parentId,
+            reciver,
+            "reciver"
+          ),
+          validateModel.CheckIsChild(
+            connPromise,
+            userId,
+            customerId,
+            parentId,
+            user_is_moved,
+            "user_is_moved"
+          ),
+          databaseModel.select(
+            conn,
+            tableUserDevice,
+            "device_id",
+            "user_id = ? AND is_main = ? AND is_deleted = ?",
+            [user_is_moved, 1, 0],
+            "device_id",
+            "ASC",
+            0,
+            100000
+          ),
+        ]);
+
+        const customerIdUserIsMove =
+          treeUserIsMoved?.[treeUserIsMoved?.length - 1]?.customer_id;
+
+        console.log({
+          treeReciver,
+          treeUserIsMoved,
+          listDevices,
+          customerIdUserIsMove,
+        });
+
+        const dataInfoParent = [];
+
+        for (let i = 0; i < treeReciver.length; i++) {
+          const { id } = treeReciver[i];
+          if (id != treeUserIsMoved[i].id) {
+            dataInfoParent.push({ index: i - 1, ...treeReciver[i - 1] });
+          } else if (!dataInfoParent.length && i === treeReciver.length - 1) {
+            dataInfoParent.push({ index: i, ...treeReciver[i] });
+          }
+
+          if (i == treeUserIsMoved.length - 1) break;
+        }
+
+        const dataRemoveOrders = treeUserIsMoved.splice(
+          dataInfoParent[0].index + 1,
+          treeUserIsMoved.length - 2
+        );
+        const dataAddOrders = treeReciver.splice(
+          dataInfoParent[0].index + 1,
+          treeUserIsMoved.length
+        );
+
+        // return {
+        //   dataInfoParent,
+        //   dataRemoveOrders,
+        //   dataAddOrders,
+        //   treeUserIsMoved,
+        //   treeReciver,
+        // };
+
+        const data = await usersModel.move(
+          conn,
+          connPromise,
+          userId,
+          body,
+          dataRemoveOrders,
+          dataAddOrders,
+          listDevices
+        );
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      console.log(error);
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
     }
   }
 }

@@ -5,6 +5,7 @@ const {
   ALREADY_EXITS,
   NOT_EXITS,
   NOT_EMPTY,
+  ACC_CHILD_NOT_ACTIVE,
 } = require("../constants/msg.constant");
 const { BusinessLogicError } = require("../core/error.response");
 const DatabaseModel = require("../models/database.model");
@@ -289,10 +290,10 @@ class DeviceService {
 
         const { id, type: model_type_id, imei: imeiDb } = dataInfoDevice;
 
-        const { is_actived, is_deleted } = await validateModel.checkUserInfo(
-          conn,
-          userId
-        );
+        const { is_actived, is_deleted, is_main } =
+          await validateModel.checkUserInfo(conn, userId);
+
+        if (is_main == 0) throw { msg: ACC_CHILD_NOT_ACTIVE };
 
         await validateModel.checkStatusUser(is_actived, is_deleted);
         if (!vehicle_id) {

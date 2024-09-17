@@ -34,6 +34,8 @@ const {
   tableDevice,
   tableVehicle,
   tableDeviceVehicle,
+  tableOrders,
+  tableOrdersDevice,
 } = require("../constants/tableName.constant");
 const validateModel = require("./validate.model");
 const vehicleModel = require("./vehicle.model");
@@ -42,6 +44,7 @@ const writeLogModel = require("./writeLog.model");
 const { users } = require("../constants/module.constant");
 const { hSet, del: delRedis } = require("./redis.model");
 const { REDIS_KEY_TOKEN } = require("../constants/redis.constant");
+const ordersModel = require("./orders.model");
 
 class UsersModel extends DatabaseModel {
   constructor() {
@@ -460,36 +463,44 @@ class UsersModel extends DatabaseModel {
     return [];
   }
 
-  async move(conn, connPromise, body) {
+  async move(
+    conn,
+    connPromise,
+    userId,
+    body,
+    dataRemoveOrders,
+    dataAddOrders,
+    listDevices
+  ) {
     const { reciver, user_is_moved } = body;
 
-    const joinTableUsers = `${tableUsers} u1 INNER JOIN ${tableUsers} u2 ON u1.parent_id = u2.id`;
-    const whereTableUsers = "u1.id = ?";
-    const conditionTableUsers = [user_is_moved];
-    const selectTableUsers = "u2.parent_id,u2.id";
+    // const joinTableUsers = `${tableUsers} u1 INNER JOIN ${tableUsers} u2 ON u1.parent_id = u2.id`;
+    // const whereTableUsers = "u1.id = ?";
+    // const conditionTableUsers = [user_is_moved];
+    // const selectTableUsers = "u2.parent_id,u2.id";
 
-    const [listDevices, infoUserMove, infoReciver] = await Promise.all([
-      this.select(
-        conn,
-        tableUsersDevices,
-        "device_id",
-        "user_id = ? AND is_deleted = 0",
-        user_is_moved,
-        "id",
-        "ASC",
-        0,
-        1000000000
-      ),
-      this.select(
-        conn,
-        joinTableUsers,
-        selectTableUsers,
-        whereTableUsers,
-        conditionTableUsers,
-        "u2.id"
-      ),
-      this.select(conn, tableUsers, "parent_id", "id = ?", reciver),
-    ]);
+    // const [listDevices, infoUserMove, infoReciver] = await Promise.all([
+    //   this.select(
+    //     conn,
+    //     tableUsersDevices,
+    //     "device_id",
+    //     "user_id = ? AND is_deleted = 0",
+    //     user_is_moved,
+    //     "id",
+    //     "ASC",
+    //     0,
+    //     1000000000
+    //   ),
+    //   this.select(
+    //     conn,
+    //     joinTableUsers,
+    //     selectTableUsers,
+    //     whereTableUsers,
+    //     conditionTableUsers,
+    //     "u2.id"
+    //   ),
+    //   this.select(conn, tableUsers, "parent_id", "id = ?", reciver),
+    // ]);
 
     await connPromise.beginTransaction();
     await this.update(
@@ -501,42 +512,111 @@ class UsersModel extends DatabaseModel {
     );
 
     if (listDevices.length) {
-      if (infoUserMove[0]?.parent_id == infoReciver[0]?.parent_id)
-        throw { msg: ERROR, errors: [{ msg: ERROR_STRUCTURE_MOVE_AGENCY }] };
-      if (infoUserMove[0]?.parent_id == infoReciver[0]?.parent_id) {
+      const listDeviceId = listDevices.map(({ device_id }) => device_id);
+
+      if (dataAddOrders?.length) {
+        const dataInsertUserDevice = [];
+        const dateNow = Date.now();
+        const listReciver = [];
+        for (let i = 0; i < dataAddOrders.length; i++) {
+          const { id: user_id, customer_id } = dataAddOrders[i];
+          for (let i1 = 0; i1 < listDeviceId.length; i1++) {
+            const deviceID = listDeviceId[i1];
+            dataInsertUserDevice.push([user_id, deviceID, 0, dateNow]);
+          }
+          listReciver.push(customer_id);
+        }
+        await ordersModel.registerTree(
+          conn,
+          connPromise,
+          dataAddOrders,
+          {
+            code: makeCode(),
+            devices_id: JSON.stringify(listDeviceId),
+            recivers: JSON.stringify(listReciver),
+            note: "Đơn hàng chuyển khách hàng",
+          },
+          userId,
+          false
+        );
+      }
+
+      if (dataRemoveOrders?.length) {
+        const { listUserId, listCustomerId } = dataRemoveOrders.reduce(
+          (result, { id, customer_id }) => {
+            result.listUserId.push(id);
+            result.listCustomerId.push(customer_id);
+            return result;
+          },
+          {
+            listUserId: [],
+            listCustomerId: [],
+          }
+        );
+
         await this.update(
           conn,
           tableUsersDevices,
           { is_deleted: 1 },
           "",
-          [infoUserMove[0]?.id, listDevices],
-          "ID",
+          [listUserId, listDeviceId],
+          "device_id",
           false,
-          `user_id = ? device_id IN (?)`
+          `user_id IN (?) AND device_id IN (?)`
         );
 
-        await vehicleModel.removeListDeviceOfUsersRedis(conn, "", [
-          infoUserMove[0].id,
-          reciver,
-        ]);
+        const joinTableOrder = `${tableOrders} o INNER JOIN ${tableOrdersDevice} od ON o.id = od.orders_id`;
+
+        const whereOrders = `(o.creator_customer_id IN (?) OR o.reciver IN (?)) AND od.device_id IN (?)`;
+
+        await this.update(
+          conn,
+          joinTableOrder,
+          `od.is_deleted = 1`,
+          "",
+          [listCustomerId, listDeviceId],
+          "device_id",
+          false,
+          whereOrders
+        );
       }
 
-      const dataInsert = listDevices.map((item) => [
-        reciver,
-        item.device_id,
-        1,
-        0,
-        1,
-        Date.now(),
-      ]);
+      // if (infoUserMove[0]?.parent_id == infoReciver[0]?.parent_id)
+      //   throw { msg: ERROR, errors: [{ msg: ERROR_STRUCTURE_MOVE_AGENCY }] };
+      // if (infoUserMove[0]?.parent_id == infoReciver[0]?.parent_id) {
+      //   await this.update(
+      //     conn,
+      //     tableUsersDevices,
+      //     { is_deleted: 1 },
+      //     "",
+      //     [infoUserMove[0]?.id, listDevices],
+      //     "ID",
+      //     false,
+      //     `user_id = ? device_id IN (?)`
+      //   );
 
-      await this.insertDuplicate(
-        conn,
-        tableUsersDevices,
-        "user_id,device_id,is_main,is_deleted,is_moved,created_at",
-        dataInsert,
-        "is_main=VALUES(is_main),is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved)"
-      );
+      //   await vehicleModel.removeListDeviceOfUsersRedis(conn, "", [
+      //     infoUserMove[0].id,
+      //     reciver,
+      //   ]);
+      // }
+
+      // const dataInsert = listDevices.map((item) => [
+      //   reciver,
+      //   item.device_id,
+      //   1,
+      //   0,
+      //   1,
+      //   Date.now(),
+      // ]);
+
+      // await this.insertDuplicate(
+      //   conn,
+      //   tableUsersDevices,
+      //   "user_id,device_id,is_main,is_deleted,is_moved,created_at",
+      //   dataInsert,
+      //   "is_main=VALUES(is_main),is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved)"
+      // );
     }
 
     await connPromise.commit();

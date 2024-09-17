@@ -22,6 +22,9 @@ const {
   tableUsersRole,
   tableUsersCustomers,
   tableLevel,
+  tableUserDevice,
+  tableOrders,
+  tableOrdersDevice,
 } = require("../constants/tableName.constant");
 
 const databaseModel = new DatabaseModel();
@@ -165,28 +168,92 @@ class UsersService {
     }
   }
 
-  async move(body, userId) {
+  async move(body, userId, customerId, parentId) {
     try {
       const { reciver, user_is_moved } = body;
       const { conn, connPromise } = await db.getConnection();
       try {
         if (Number(userId) === Number(user_is_moved)) throw "lỗi";
 
-        await validateModel.CheckIsChild(
-          connPromise,
-          userId,
-          reciver,
-          "reciver"
+        const [treeReciver, treeUserIsMoved, listDevices] = await Promise.all([
+          validateModel.CheckIsChild(
+            connPromise,
+            userId,
+            customerId,
+            parentId,
+            reciver,
+            "reciver"
+          ),
+          validateModel.CheckIsChild(
+            connPromise,
+            userId,
+            customerId,
+            parentId,
+            user_is_moved,
+            "user_is_moved"
+          ),
+          databaseModel.select(
+            conn,
+            tableUserDevice,
+            "device_id",
+            "user_id = ? AND is_main = ? AND is_deleted = ?",
+            [user_is_moved, 1, 0],
+            "device_id",
+            "ASC",
+            0,
+            100000
+          ),
+        ]);
+
+        const customerIdUserIsMove =
+          treeUserIsMoved?.[treeUserIsMoved?.length - 1]?.customer_id;
+
+        console.log({
+          treeReciver,
+          treeUserIsMoved,
+          listDevices,
+          customerIdUserIsMove,
+        });
+
+        const dataInfoParent = [];
+
+        for (let i = 0; i < treeReciver.length; i++) {
+          const { id } = treeReciver[i];
+          if (id != treeUserIsMoved[i].id) {
+            dataInfoParent.push({ index: i - 1, ...treeReciver[i - 1] });
+          } else if (!dataInfoParent.length && i === treeReciver.length - 1) {
+            dataInfoParent.push({ index: i, ...treeReciver[i] });
+          }
+
+          if (i == treeUserIsMoved.length - 1) break;
+        }
+
+        const dataRemoveOrders = treeUserIsMoved.splice(
+          dataInfoParent[0].index + 1,
+          treeUserIsMoved.length - 2
+        );
+        const dataAddOrders = treeReciver.splice(
+          dataInfoParent[0].index + 1,
+          treeUserIsMoved.length
         );
 
-        await validateModel.CheckIsChild(
+        // return {
+        //   dataInfoParent,
+        //   dataRemoveOrders,
+        //   dataAddOrders,
+        //   treeUserIsMoved,
+        //   treeReciver,
+        // };
+
+        const data = await usersModel.move(
+          conn,
           connPromise,
           userId,
-          user_is_moved,
-          "user_is_moved"
+          body,
+          dataRemoveOrders,
+          dataAddOrders,
+          listDevices
         );
-
-        const data = await usersModel.move(conn, connPromise, body);
         return data;
       } catch (error) {
         throw error;
@@ -440,10 +507,10 @@ class UsersService {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
-        console.log("userId", userId);
+        // console.log("userId", userId);
         const { new_password, old_password } = body;
 
-        await validateModel.checkRegexPassword(old_password);
+        // await validateModel.checkRegexPassword(old_password);
 
         await validateModel.checkRegexPassword(new_password, true);
 

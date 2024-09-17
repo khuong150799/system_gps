@@ -249,6 +249,9 @@ class DeviceModel extends DatabaseModel {
       condition,
       `d.id`
     );
+
+    console.log("data", data);
+
     if (data.length) {
       await Promise.all(
         data.map((item) =>
@@ -374,7 +377,7 @@ class DeviceModel extends DatabaseModel {
         select,
         `${where} GROUP BY d.id`,
         conditions,
-        `d.id`,
+        `dv.activation_date,d.id`,
         "DESC",
         offset,
         limit
@@ -430,17 +433,17 @@ class DeviceModel extends DatabaseModel {
   async reference(conn, params, parentId) {
     const { id } = params;
 
-    const joinTable = `${tableUsersDevices} INNER JOIN ${tableUsersCustomers} ON ${tableUsersDevices}.user_id = ${tableUsersCustomers}.user_id 
-      INNER JOIN ${tableCustomers} ON ${tableUsersCustomers}.customer_id = ${tableCustomers}.id 
-      INNER JOIN ${tableLevel} ON ${tableCustomers}.level_id = ${tableLevel}.id`;
+    const joinTable = `${tableUsersDevices} ud INNER JOIN ${tableUsersCustomers} uc ON ud.user_id = uc.user_id 
+      INNER JOIN ${tableCustomers} c ON uc.customer_id = c.id 
+      INNER JOIN ${tableLevel} l ON c.level_id = l.id`;
 
     const data = await this.select(
       conn,
       joinTable,
-      `${tableUsersDevices}.user_id,COALESCE(${tableCustomers}.company,${tableCustomers}.name) as customer_name,${tableLevel}.name as level_name`,
-      `${tableUsersDevices}.device_id = ? AND ${tableUsersDevices}.is_deleted = ? GROUP BY ${tableUsersDevices}.id`,
+      `ud.user_id,COALESCE(c.company,c.name) as customer_name,l.name as level_name`,
+      `ud.device_id = ? AND ud.is_deleted = ? AND ud.is_main = 1  GROUP BY ud.id`,
       [id, 0],
-      `${tableUsersDevices}.id`,
+      `ud.is_moved DESC,ud.created_at`,
       "ASC",
       0,
       10000
@@ -878,16 +881,16 @@ class DeviceModel extends DatabaseModel {
       createdAt,
     });
 
-    if (model_type_id == 2) {
-      const { sv_cam_id, vehicle_name } = inforDevice[0];
-      await this.activationCms(
-        conn,
-        sv_cam_id,
-        vehicle_name,
-        imei,
-        quantity_channel
-      );
-    }
+    // if (model_type_id == 2) {
+    //   const { sv_cam_id, vehicle_name } = inforDevice[0];
+    //   await this.activationCms(
+    //     conn,
+    //     sv_cam_id,
+    //     vehicle_name,
+    //     imei,
+    //     quantity_channel
+    //   );
+    // }
 
     await connPromise.commit();
     await Promise.all([delRedis(`${REDIS_KEY_DEVICE_SPAM}/${imei}`)]);

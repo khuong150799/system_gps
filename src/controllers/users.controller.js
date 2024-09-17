@@ -92,9 +92,8 @@ class CustomersController {
   });
 
   move = catchAsync(async (req, res) => {
-    const userId = req.userId;
-    const body = req.body;
-    const data = await usersSrevice.move(body, userId);
+    const { userId, body, customerId, parentId } = req;
+    const data = await usersSrevice.move(body, userId, customerId, parentId);
     OK(res, [data], {}, MOVE_SUCCESS);
   });
 

@@ -316,18 +316,36 @@ class ValidateModel extends DatabaseModel {
       };
     return [];
   }
-  async CheckIsChild(connPromise, parent, child, fieldRes = "parent_id") {
+  async CheckIsChild(
+    connPromise,
+    parentAcc,
+    customerIdAcc,
+    parentIdAcc,
+    child,
+    fieldRes = "parent_id"
+  ) {
     const dataReturn = [];
     let result = false;
-    const dequy = async (data) => {
-      dataReturn.push(data[0]);
-      const parentId = data[0].parent_id;
 
-      if (parentId?.toString() === parent.toString()) {
+    const joinTable = `${tableUsers} u INNER JOIN ${tableUsersCustomers} uc ON u.id = uc.user_id`;
+    const dequy = async (data) => {
+      const parentId = data[0].parent_id;
+      const id = data[0]?.id;
+
+      if (id) {
+        dataReturn.unshift(data[0]);
+      }
+
+      if (parentId?.toString() === parentAcc.toString()) {
+        dataReturn.unshift({
+          id: parentAcc,
+          parent_id: parentIdAcc,
+          customer_id: customerIdAcc,
+        });
         return (result = true);
       }
       const dataRes = await connPromise.query(
-        `SELECT ${tableUsers}.id,${tableUsers}.parent_id FROM ${tableUsers} WHERE ${tableUsers}.id = ? AND ${tableUsers}.is_deleted = ?`,
+        `SELECT u.id,u.parent_id,uc.customer_id FROM ${joinTable} WHERE u.id = ? AND u.is_deleted = ?`,
         [parentId, 0]
       );
 
@@ -345,7 +363,7 @@ class ValidateModel extends DatabaseModel {
         errors: [{ value: child, msg: ADD_CHILD_ERROR, param: fieldRes }],
       };
 
-    return [];
+    return dataReturn;
   }
 
   async checkUserInfo(conn, id) {
@@ -354,7 +372,7 @@ class ValidateModel extends DatabaseModel {
     const dataInfo = await this.select(
       conn,
       tableUsers,
-      "password,is_actived,is_deleted",
+      "password,is_actived,is_deleted,is_main",
       "id = ?",
       [id]
     );

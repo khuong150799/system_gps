@@ -125,7 +125,7 @@ module.exports = (app) => {
         .withMessage(VALIDATE_DATA),
     ],
     isAuth,
-    // checkPermission,
+    checkPermission,
     vehicleController.delete
   );
 

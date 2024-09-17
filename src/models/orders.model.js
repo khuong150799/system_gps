@@ -289,14 +289,22 @@ class OrdersModel extends DatabaseModel {
   }
 
   //Register tree
-  async registerTree(conn, connPromise, dataInfo, body, userId) {
+  async registerTree(
+    conn,
+    connPromise,
+    dataInfo,
+    body,
+    userId,
+    isBeginTransaction = true
+  ) {
     const { code, devices_id, recivers, note } = body;
 
     const listDevice = JSON.parse(devices_id);
     const listReciver = JSON.parse(recivers);
     const createdAt = Date.now();
-
-    await connPromise.beginTransaction();
+    if (isBeginTransaction) {
+      await connPromise.beginTransaction();
+    }
 
     const dataInsertOrders = listReciver.reduce((result, item, i) => {
       if (i !== listReciver.length - 1) {
@@ -348,35 +356,37 @@ class OrdersModel extends DatabaseModel {
       `orders_id=VALUES(orders_id),device_id=VALUES(device_id),is_deleted=VALUES(is_deleted),updated_at=VALUES(created_at)`
     );
 
-    const usersDevicesUpdate = listDevice.map((item) => ({
-      conditionField: ["is_moved", "device_id"],
-      conditionValue: [0, item],
-      updateValue: 1,
-    }));
-    const dataUpdate = [
-      {
-        field: "is_moved",
-        conditions: usersDevicesUpdate,
-      },
-    ];
-    await this.updatMultiRowsWithMultiConditions(
-      conn,
-      tableUsersDevices,
-      dataUpdate,
-      "",
-      "ID",
-      "AND"
-    );
+    if (isBeginTransaction) {
+      const usersDevicesUpdate = listDevice.map((item) => ({
+        conditionField: ["is_moved", "device_id"],
+        conditionValue: [0, item],
+        updateValue: 1,
+      }));
+      const dataUpdate = [
+        {
+          field: "is_moved",
+          conditions: usersDevicesUpdate,
+        },
+      ];
+      await this.updatMultiRowsWithMultiConditions(
+        conn,
+        tableUsersDevices,
+        dataUpdate,
+        "",
+        "ID",
+        "AND"
+      );
+    }
 
     const usersDevicesInsert = dataInfo.reduce((result, item, i) => {
       result = [
         ...result,
         ...listDevice.map((item1) => [
-          item[0].id,
+          !isBeginTransaction ? item.id : item[0].id,
           item1,
           1,
           0,
-          i === dataInfo.length - 1 ? 0 : 1,
+          !isBeginTransaction ? 1 : i === dataInfo.length - 1 ? 0 : 1,
           Date.now(),
         ]),
       ];
@@ -391,7 +401,9 @@ class OrdersModel extends DatabaseModel {
       `is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved)`
     );
 
-    await connPromise.commit();
+    if (isBeginTransaction) {
+      await connPromise.commit();
+    }
 
     return [];
   }

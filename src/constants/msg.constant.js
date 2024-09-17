@@ -73,6 +73,7 @@ const constants = {
   IMAGE_TYPE_FAIL: "không đúng định dạng",
   CALIB_FAIL_PARAM: "Thông số calib không hợp lệ",
   CALIB_FAIL_QUANTITY: "Calib ít nhất 2 lần",
+  ACC_CHILD_NOT_ACTIVE: "Tài khoản con không thể kích hoạt",
 };
 
 module.exports = constants;
