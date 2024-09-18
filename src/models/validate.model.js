@@ -324,6 +324,8 @@ class ValidateModel extends DatabaseModel {
     child,
     fieldRes = "parent_id"
   ) {
+    // console.log(parentAcc, customerIdAcc, parentIdAcc, child);
+
     const dataReturn = [];
     let result = false;
 
@@ -348,6 +350,7 @@ class ValidateModel extends DatabaseModel {
         `SELECT u.id,u.parent_id,uc.customer_id FROM ${joinTable} WHERE u.id = ? AND u.is_deleted = ?`,
         [parentId, 0]
       );
+      // console.log("dataRes[0]", dataRes, parentId);
 
       if (Object.keys(dataRes?.[0]?.[0] || {}).length > 0) {
         await dequy(dataRes[0]);
@@ -356,6 +359,7 @@ class ValidateModel extends DatabaseModel {
       }
     };
     await dequy([{ parent_id: child }]);
+    // console.log("dataReturn", dataReturn);
 
     if (!result)
       throw {

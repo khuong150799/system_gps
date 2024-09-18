@@ -471,6 +471,7 @@ class UsersModel extends DatabaseModel {
     listDevices
   ) {
     const { reciver, user_is_moved } = body;
+    console.log(reciver, user_is_moved);
 
     // const joinTableUsers = `${tableUsers} u1 INNER JOIN ${tableUsers} u2 ON u1.parent_id = u2.id`;
     // const whereTableUsers = "u1.id = ?";
@@ -566,13 +567,14 @@ class UsersModel extends DatabaseModel {
         const joinTableOrder = `${tableOrders} o INNER JOIN ${tableOrdersDevice} od ON o.id = od.orders_id`;
 
         const whereOrders = `(o.creator_customer_id IN (?) OR o.reciver IN (?)) AND od.device_id IN (?)`;
+        console.log("listDeviceId", listDeviceId);
 
         await this.update(
           conn,
           joinTableOrder,
           `od.is_deleted = 1`,
           "",
-          [listCustomerId, listDeviceId],
+          [listCustomerId, listCustomerId, listDeviceId],
           "device_id",
           false,
           whereOrders

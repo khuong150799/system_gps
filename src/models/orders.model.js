@@ -299,15 +299,37 @@ class OrdersModel extends DatabaseModel {
   ) {
     const { code, devices_id, recivers, note } = body;
 
+    console.log(
+      "code, devices_id, recivers, note",
+      code,
+      devices_id,
+      recivers,
+      note
+    );
+
     const listDevice = JSON.parse(devices_id);
     const listReciver = JSON.parse(recivers);
     const createdAt = Date.now();
     if (isBeginTransaction) {
       await connPromise.beginTransaction();
     }
+    console.log("listReciver", listReciver);
 
     const dataInsertOrders = listReciver.reduce((result, item, i) => {
-      if (i !== listReciver.length - 1) {
+      if (listReciver?.length == 1) {
+        const data = [
+          code,
+          userId,
+          item,
+          listReciver[i],
+          listDevice?.length,
+          1,
+          note || null,
+          0,
+          createdAt,
+        ];
+        result = [data];
+      } else if (i !== listReciver.length - 1) {
         const data = [
           i === 0 ? code : makeCode(),
           userId,
@@ -325,6 +347,8 @@ class OrdersModel extends DatabaseModel {
       return result;
     }, []);
 
+    console.log("dataInsertOrders", dataInsertOrders);
+
     const res_ = await this.insertDuplicate(
       conn,
       tableOrders,
@@ -338,7 +362,11 @@ class OrdersModel extends DatabaseModel {
     console.log("listReciver.length", listReciver.length);
     let orders_id = res_;
     const dataInsertOrdersDevice = listReciver.reduce((result, item, i) => {
-      if (i !== listReciver.length - 1) {
+      if (listReciver.length == 1) {
+        result = [
+          ...listDevice.map((item1) => [orders_id, item1, 0, Date.now()]),
+        ];
+      } else if (i !== listReciver.length - 1) {
         result = [
           ...result,
           ...listDevice.map((item1) => [orders_id, item1, 0, Date.now()]),

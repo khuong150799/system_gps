@@ -228,22 +228,26 @@ class UsersService {
           if (i == treeUserIsMoved.length - 1) break;
         }
 
-        const dataRemoveOrders = treeUserIsMoved.splice(
-          dataInfoParent[0].index + 1,
-          treeUserIsMoved.length - 2
+        const indexUserMove = treeUserIsMoved.findIndex(
+          (item) => item.id == user_is_moved
         );
-        const dataAddOrders = treeReciver.splice(
+
+        const dataRemoveOrders = treeUserIsMoved.slice(
+          dataInfoParent[0].index + 1,
+          indexUserMove + 1
+        );
+        const dataAddOrders = treeReciver.slice(
           dataInfoParent[0].index + 1,
           treeUserIsMoved.length
         );
 
-        // return {
-        //   dataInfoParent,
-        //   dataRemoveOrders,
-        //   dataAddOrders,
-        //   treeUserIsMoved,
-        //   treeReciver,
-        // };
+        return {
+          dataInfoParent,
+          dataRemoveOrders,
+          dataAddOrders,
+          treeUserIsMoved,
+          treeReciver,
+        };
 
         const data = await usersModel.move(
           conn,
@@ -268,7 +272,7 @@ class UsersService {
   }
 
   //Register
-  async register(body, userId, customerId, role) {
+  async register(body, userId, customerId, parentId, role) {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
@@ -278,7 +282,13 @@ class UsersService {
 
         await validateModel.checkRegexPassword(password, true);
 
-        await validateModel.CheckIsChild(connPromise, userId, parent_id);
+        await validateModel.CheckIsChild(
+          connPromise,
+          userId,
+          customerId,
+          parentId,
+          parent_id
+        );
 
         await validateModel.checkParentAndChildPermission(
           conn,
@@ -320,13 +330,19 @@ class UsersService {
   }
 
   //RegisterTeam
-  async registerTeam(body, userId) {
+  async registerTeam(body, userId, customerId, parentId) {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
         const { parent_id, name } = body;
 
-        await validateModel.CheckIsChild(connPromise, userId, parent_id);
+        await validateModel.CheckIsChild(
+          connPromise,
+          userId,
+          customerId,
+          parentId,
+          parent_id
+        );
 
         const username = `${makeUsername(name)}${Date.now()}`;
         const password = `Mv${Date.now()}`;
@@ -403,13 +419,19 @@ class UsersService {
   }
 
   //update
-  async updateById(body, params, userId) {
+  async updateById(body, params, userId, customerId, parentId) {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
         const { parent_id } = body;
 
-        await validateModel.CheckIsChild(connPromise, userId, parent_id);
+        await validateModel.CheckIsChild(
+          connPromise,
+          userId,
+          customerId,
+          parentId,
+          parent_id
+        );
 
         const data = await usersModel.updateById(
           conn,
@@ -432,12 +454,18 @@ class UsersService {
   }
 
   //delete
-  async deleteDevice(params, body, userId, infoUser) {
+  async deleteDevice(params, body, userId, customerId, parentId, infoUser) {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
         const { id } = params;
-        await validateModel.CheckIsChild(connPromise, userId, id);
+        await validateModel.CheckIsChild(
+          connPromise,
+          userId,
+          customerId,
+          parentId,
+          id
+        );
 
         await usersModel.deleteDevice(
           conn,
@@ -460,12 +488,18 @@ class UsersService {
   }
 
   //delete
-  async deleteById(params, userId) {
+  async deleteById(params, userId, customerId, parentId) {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
         const { id } = params;
-        await validateModel.CheckIsChild(connPromise, userId, id);
+        await validateModel.CheckIsChild(
+          connPromise,
+          userId,
+          customerId,
+          parentId,
+          id
+        );
 
         await usersModel.deleteById(conn, params);
         return [];
@@ -481,12 +515,18 @@ class UsersService {
   }
 
   //reset pass
-  async resetPass(params, userId) {
+  async resetPass(params, userId, customerId, parentId) {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
         const { id } = params;
-        await validateModel.CheckIsChild(connPromise, userId, id);
+        await validateModel.CheckIsChild(
+          connPromise,
+          userId,
+          customerId,
+          parentId,
+          id
+        );
 
         const data = await usersModel.resetPass(conn, params);
         return data;

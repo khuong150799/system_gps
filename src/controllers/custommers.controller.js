@@ -21,10 +21,15 @@ class CustomersController {
   });
 
   register = catchAsync(async (req, res) => {
-    const body = req.body;
-    const userId = req.userId;
-    const level = req.level;
-    const data = await customersService.register(body, userId, level);
+    const { customerId, parentId, body, userId, level } = req;
+
+    const data = await customersService.register(
+      body,
+      userId,
+      customerId,
+      parentId,
+      level
+    );
     CREATED(res, [data]);
   });
 

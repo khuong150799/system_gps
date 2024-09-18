@@ -120,7 +120,7 @@ class CustomersService {
   }
 
   //Register
-  async register(body, userId, level) {
+  async register(body, userId, customerId, parentId, level) {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
@@ -167,7 +167,13 @@ class CustomersService {
           "username"
         );
 
-        await validateModel.CheckIsChild(connPromise, userId, parent_id);
+        await validateModel.CheckIsChild(
+          connPromise,
+          userId,
+          customerId,
+          parentId,
+          parent_id
+        );
 
         const customer = await customersModel.register(conn, connPromise, body);
 

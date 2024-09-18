@@ -83,11 +83,15 @@ class CustomersController {
   });
 
   register = catchAsync(async (req, res) => {
-    const customerId = req.customerId;
-    const userId = req.userId;
-    const role = req.role;
-    const body = req.body;
-    const data = await usersSrevice.register(body, userId, customerId, role);
+    const { customerId, parentId, userId, role, body } = req;
+
+    const data = await usersSrevice.register(
+      body,
+      userId,
+      customerId,
+      parentId,
+      role
+    );
     CREATED(res, [data]);
   });
 
@@ -98,9 +102,14 @@ class CustomersController {
   });
 
   registerTeam = catchAsync(async (req, res) => {
-    const body = req.body;
-    const userId = req.userId;
-    const data = await usersSrevice.registerTeam(body, userId);
+    const { body, customerId, parentId, userId } = req;
+
+    const data = await usersSrevice.registerTeam(
+      body,
+      userId,
+      customerId,
+      parentId
+    );
     CREATED(res, [data]);
   });
 
@@ -118,15 +127,20 @@ class CustomersController {
   });
 
   updateById = catchAsync(async (req, res) => {
-    const body = req.body;
-    const params = req.params;
-    const userId = req.userId;
-    const data = await usersSrevice.updateById(body, params, userId);
+    const { body, params, customerId, parentId, userId } = req;
+
+    const data = await usersSrevice.updateById(
+      body,
+      params,
+      userId,
+      customerId,
+      parentId
+    );
     UPDATE(res, [data]);
   });
 
   deleteDevice = catchAsync(async (req, res) => {
-    const { body, params, userId } = req;
+    const { body, params, userId, customerId, parentId } = req;
 
     const infoUser = { user_id: userId, ip: null, os: null, gps: null };
 
@@ -134,22 +148,34 @@ class CustomersController {
       params,
       body,
       userId,
+      customerId,
+      parentId,
       infoUser
     );
     DELETE(res, data);
   });
 
   deleteById = catchAsync(async (req, res) => {
-    const params = req.params;
-    const userId = req.userId;
-    const data = await usersSrevice.deleteById(params, userId);
+    const { params, userId, customerId, parentId } = req;
+
+    const data = await usersSrevice.deleteById(
+      params,
+      userId,
+      customerId,
+      parentId
+    );
     DELETE(res, data);
   });
 
   resetPass = catchAsync(async (req, res) => {
-    const params = req.params;
-    const userId = req.userId;
-    const data = await usersSrevice.resetPass(params, userId);
+    const { params, userId, customerId, parentId } = req;
+
+    const data = await usersSrevice.resetPass(
+      params,
+      userId,
+      customerId,
+      parentId
+    );
     UPDATE(res, data);
   });
 

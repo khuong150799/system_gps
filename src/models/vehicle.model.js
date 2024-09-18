@@ -209,6 +209,7 @@ class VehicleModel extends DatabaseModel {
 
     for (let i = 0; i < listDataGetRedis.length; i++) {
       const result = listDataGetRedis[i];
+      console.log("result", result);
 
       if (!result?.length) {
         isRollback = true;
@@ -216,6 +217,7 @@ class VehicleModel extends DatabaseModel {
     }
 
     if (isRollback) throw { msg: ERROR };
+    // throw { msg: ERROR };
 
     await connPromise.commit();
 
