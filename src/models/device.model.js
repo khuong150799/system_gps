@@ -817,16 +817,16 @@ class DeviceModel extends DatabaseModel {
       createdAt,
     });
 
-    // if (model_type_id == 2) {
-    //   const { sv_cam_id, vehicle_name } = inforDevice[0];
-    //   await this.activationCms(
-    //     conn,
-    //     sv_cam_id,
-    //     vehicle_name,
-    //     imei,
-    //     quantity_channel
-    //   );
-    // }
+    if (model_type_id == 2) {
+      const { sv_cam_id, vehicle_name } = inforDevice[0];
+      await this.activationCms(
+        conn,
+        sv_cam_id,
+        vehicle_name,
+        imei,
+        quantity_channel
+      );
+    }
 
     await connPromise.commit();
     await Promise.all([delRedis(`${REDIS_KEY_DEVICE_SPAM}/${imei}`)]);

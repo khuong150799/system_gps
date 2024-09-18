@@ -173,6 +173,8 @@ class UsersService {
       const { reciver, user_is_moved } = body;
       const { conn, connPromise } = await db.getConnection();
       try {
+        console.log(reciver, user_is_moved);
+
         if (Number(userId) === Number(user_is_moved)) throw "lỗi";
 
         const [treeReciver, treeUserIsMoved, listDevices] = await Promise.all([
@@ -219,6 +221,7 @@ class UsersService {
 
         for (let i = 0; i < treeReciver.length; i++) {
           const { id } = treeReciver[i];
+
           if (id != treeUserIsMoved[i].id) {
             dataInfoParent.push({ index: i - 1, ...treeReciver[i - 1] });
           } else if (!dataInfoParent.length && i === treeReciver.length - 1) {
@@ -234,20 +237,21 @@ class UsersService {
 
         const dataRemoveOrders = treeUserIsMoved.slice(
           dataInfoParent[0].index + 1,
-          indexUserMove + 1
+          indexUserMove
         );
         const dataAddOrders = treeReciver.slice(
           dataInfoParent[0].index + 1,
           treeUserIsMoved.length
         );
 
-        return {
-          dataInfoParent,
-          dataRemoveOrders,
-          dataAddOrders,
-          treeUserIsMoved,
-          treeReciver,
-        };
+        // return {
+        //   indexUserMove,
+        //   dataInfoParent,
+        //   dataRemoveOrders,
+        //   dataAddOrders,
+        //   treeUserIsMoved,
+        //   treeReciver,
+        // };
 
         const data = await usersModel.move(
           conn,
