@@ -20,8 +20,10 @@ const {
   tableUsers,
 } = require("../constants/tableName.constant");
 const { date } = require("../ultils/getTime");
+const { makeCode } = require("../ultils/makeCode");
 const DatabaseModel = require("./database.model");
 const deviceLoggingModel = require("./deviceLogging.model");
+const ordersModel = require("./orders.model");
 const { del: delRedis, hdelOneKey, hSet: hsetRedis } = require("./redis.model");
 const DeviceExtendSchema = require("./schema/deviceExtend.schema");
 
@@ -52,7 +54,7 @@ class VehicleModel extends DatabaseModel {
       c0.name) as customer_name,COALESCE(c.company, c.name) as agency_name,c.phone as agency_phone,vi.name as vehicle_icon_name,
       c0.id as customer_id,c.id as agency_id,d.sv_cam_id`;
 
-    let where = `AND ud.is_moved = 0 AND d.is_deleted = 0 AND c0.is_deleted = 0 AND u.is_deleted = 0 AND dv.is_deleted = 0`;
+    let where = `AND ud.is_moved = 0 AND ud.is_main = 1 AND d.is_deleted = 0 AND c0.is_deleted = 0 AND u.is_deleted = 0 AND dv.is_deleted = 0`;
     const condition = [];
     if (device_id) {
       where = `d.id = ? ${where}`;
@@ -74,7 +76,7 @@ class VehicleModel extends DatabaseModel {
       `d.id`
     );
 
-    // console.log("data", data);
+    // console.log("data", imei, data);
 
     if (data.length) {
       await Promise.all(
@@ -182,7 +184,7 @@ class VehicleModel extends DatabaseModel {
     const { redis: listPromiseDelRedis, logging: listPromiseLogging } =
       dataInfo.reduce(
         (result, { imei, device_id }) => {
-          // console.log("result", result);
+          console.log("imei", imei);
 
           result.redis.push(this.getInfoDevice(conn, imei));
           result.logging.push(
@@ -786,6 +788,113 @@ class VehicleModel extends DatabaseModel {
       device_id: device_id_old,
       action: "Sửa",
       des: `Bảo hành phương tiện ${vehicle_name}: ${infoDeviceOld.imei} ===> ${infoDeviceNew.imei}`,
+      createdAt: Date.now(),
+    };
+
+    await deviceLoggingModel.postOrDelete(conn, dataLog);
+
+    await connPromise.commit();
+    return [];
+  }
+
+  async move(
+    conn,
+    connPromise,
+    vehicle_name,
+    userId,
+    infoUserMove,
+    infoReciver,
+    dataRemoveOrders,
+    dataAddOrders,
+    listDeviceId,
+    infoUser
+  ) {
+    await connPromise.beginTransaction();
+
+    const { id: reciver, username: nameReciver } = infoReciver;
+    const { id: userIdMove, username: nameUserMove } = infoUserMove;
+
+    if (dataAddOrders?.length) {
+      const dataInsertUserDevice = [];
+      const dateNow = Date.now();
+      const listReciver = [];
+      for (let i = 0; i < dataAddOrders.length; i++) {
+        const { id: user_id, customer_id } = dataAddOrders[i];
+        for (let i1 = 0; i1 < listDeviceId.length; i1++) {
+          const deviceID = listDeviceId[i1];
+          dataInsertUserDevice.push([user_id, deviceID, 0, dateNow]);
+        }
+        listReciver.push(customer_id);
+      }
+      await ordersModel.registerTree(
+        conn,
+        connPromise,
+        dataAddOrders,
+        {
+          code: makeCode(),
+          devices_id: JSON.stringify(listDeviceId),
+          recivers: JSON.stringify(listReciver),
+          note: "Đơn hàng chuyển phương tiện",
+        },
+        userId,
+        false
+      );
+    }
+
+    if (dataRemoveOrders?.length) {
+      const { listUserId, listCustomerId } = dataRemoveOrders.reduce(
+        (result, { id, customer_id }) => {
+          result.listUserId.push(id);
+          result.listCustomerId.push(customer_id);
+          return result;
+        },
+        {
+          listUserId: [],
+          listCustomerId: [],
+        }
+      );
+
+      await this.update(
+        conn,
+        tableUsersDevices,
+        { is_deleted: 1 },
+        "",
+        [listUserId, listDeviceId],
+        "device_id",
+        false,
+        `user_id IN (?) AND device_id IN (?)`
+      );
+
+      const joinTableOrder = `${tableOrders} o INNER JOIN ${tableOrdersDevice} od ON o.id = od.orders_id`;
+
+      const whereOrders = `(o.creator_customer_id IN (?) OR o.reciver IN (?)) AND od.device_id IN (?)`;
+      console.log("listDeviceId", listDeviceId);
+
+      await this.update(
+        conn,
+        joinTableOrder,
+        `od.is_deleted = 1`,
+        "",
+        [listCustomerId, listCustomerId, listDeviceId],
+        "device_id",
+        false,
+        whereOrders
+      );
+    }
+
+    await this.insertDuplicate(
+      conn,
+      tableUsersDevices,
+      "user_id,device_id,is_main,is_deleted,is_moved,created_at",
+      [[reciver, listDeviceId[0], 1, 0, 0, Date.now()]],
+      `is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved),created_at=VALUES(created_at)`
+    );
+
+    const dataLog = {
+      ...infoUser,
+      device_id: listDeviceId[0],
+      action: "Chuyển",
+      des: `Chuyển phương tiện ${vehicle_name}: ${nameUserMove}(${userIdMove}) ===> ${reciver}(${nameReciver})`,
       createdAt: Date.now(),
     };
 

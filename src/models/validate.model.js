@@ -52,7 +52,7 @@ class ValidateModel extends DatabaseModel {
       0,
       1000000000
     );
-    console.log("dataDevices", dataDevices);
+    // console.log("dataDevices", dataDevices);
 
     if (dataDevices.length <= 0)
       throw {
@@ -124,7 +124,8 @@ class ValidateModel extends DatabaseModel {
     conn,
     listCustomer,
     param = "recivers",
-    msg = STRUCTURE_ORDERS_FAIL
+    msg = STRUCTURE_ORDERS_FAIL,
+    parentId
   ) {
     const errors = [];
 
@@ -164,9 +165,21 @@ class ValidateModel extends DatabaseModel {
 
     const dataInfoParent = await Promise.all(arrayPromiseParent);
 
-    const checkStructureRecivers = dataInfoParent.some(
-      (item, i) => Number(item[0].id) !== Number(listCustomer[i])
-    );
+    const checkStructureRecivers = dataInfoParent.some((item, i) => {
+      if (parentId) {
+        return Number(item[0].id) !== Number(listCustomer[i]);
+      } else if (i > 0) {
+        return Number(item[0].id) !== Number(listCustomer[i]);
+      } else {
+        return false;
+      }
+    });
+    console.log({
+      dataInfo: JSON.stringify(dataInfo, null, 2),
+      dataInfoParent: JSON.stringify(dataInfoParent, null, 2),
+      listCustomer: JSON.stringify(listCustomer, null, 2),
+    });
+
     if (checkStructureRecivers) {
       errors.push({
         value: listCustomer,
@@ -347,7 +360,7 @@ class ValidateModel extends DatabaseModel {
         return (result = true);
       }
       const dataRes = await connPromise.query(
-        `SELECT u.id,u.parent_id,uc.customer_id FROM ${joinTable} WHERE u.id = ? AND u.is_deleted = ?`,
+        `SELECT u.id,u.parent_id,uc.customer_id,u.username FROM ${joinTable} WHERE u.id = ? AND u.is_deleted = ?`,
         [parentId, 0]
       );
       // console.log("dataRes[0]", dataRes, parentId);

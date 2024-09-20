@@ -173,7 +173,7 @@ class UsersService {
       const { reciver, user_is_moved } = body;
       const { conn, connPromise } = await db.getConnection();
       try {
-        console.log(reciver, user_is_moved);
+        // console.log(reciver, user_is_moved);
 
         if (Number(userId) === Number(user_is_moved)) throw "lỗi";
 
@@ -207,15 +207,15 @@ class UsersService {
           ),
         ]);
 
-        const customerIdUserIsMove =
-          treeUserIsMoved?.[treeUserIsMoved?.length - 1]?.customer_id;
+        // const customerIdUserIsMove =
+        //   treeUserIsMoved?.[treeUserIsMoved?.length - 1]?.customer_id;
 
-        console.log({
-          treeReciver,
-          treeUserIsMoved,
-          listDevices,
-          customerIdUserIsMove,
-        });
+        // console.log({
+        //   treeReciver,
+        //   treeUserIsMoved,
+        //   listDevices,
+        //   customerIdUserIsMove,
+        // });
 
         const dataInfoParent = [];
 
@@ -241,17 +241,8 @@ class UsersService {
         );
         const dataAddOrders = treeReciver.slice(
           dataInfoParent[0].index + 1,
-          treeUserIsMoved.length
+          treeReciver.length
         );
-
-        // return {
-        //   indexUserMove,
-        //   dataInfoParent,
-        //   dataRemoveOrders,
-        //   dataAddOrders,
-        //   treeUserIsMoved,
-        //   treeReciver,
-        // };
 
         const data = await usersModel.move(
           conn,
@@ -387,7 +378,7 @@ class UsersService {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
-        console.log("body", body);
+        // console.log("body", body);
         const { devices } = body;
         const { id } = params;
         // console.log("devices", devices);
@@ -617,7 +608,7 @@ class UsersService {
 
         const select = `u.id,u.parent_id,u.password,u.is_actived,u.is_deleted,
             r.sort as role,c.id as customer_id,l.sort as level`;
-        const dataaUser = await databaseModel.select(
+        const dataUser = await databaseModel.select(
           conn,
           joinTable,
           select,
@@ -628,9 +619,9 @@ class UsersService {
           0,
           1
         );
-        // console.log("dataaUser", dataaUser);
+        // console.log("dataUser", dataUser);
 
-        if (dataaUser?.length <= 0)
+        if (dataUser?.length <= 0)
           throw {
             msg: ERROR,
             errors: [
@@ -650,7 +641,7 @@ class UsersService {
           role,
           level,
           customer_id,
-        } = dataaUser[0];
+        } = dataUser[0];
 
         await validateModel.checkStatusUser(is_actived, is_deleted);
 
@@ -691,9 +682,9 @@ class UsersService {
           INNER JOIN ${tableCustomers} c ON uc.customer_id = c.id 
           INNER JOIN ${tableLevel} l ON c.level_id = l.id`;
 
-        const select = `u.id,u.parent_id,u.password,u.is_actived,u.is_deleted,
+        const select = `u.id,u.parent_id,u.password,u.is_actived,u.is_main,u.is_deleted,
             r.sort as role,c.id as customer_id,l.sort as level`;
-        const dataaUser = await databaseModel.select(
+        const dataUser = await databaseModel.select(
           conn,
           joinTable,
           select,
@@ -704,9 +695,9 @@ class UsersService {
           0,
           1
         );
-        // console.log("dataaUser", dataaUser);
+        // console.log("dataUser", dataUser);
 
-        if (dataaUser?.length <= 0)
+        if (dataUser?.length <= 0)
           throw {
             msg: ERROR,
             errors: [
@@ -727,7 +718,8 @@ class UsersService {
           role,
           level,
           customer_id,
-        } = dataaUser[0];
+          is_main: isMain,
+        } = dataUser[0];
 
         await validateModel.checkStatusUser(is_actived, is_deleted);
 
@@ -746,7 +738,8 @@ class UsersService {
           parentId,
           role,
           level,
-          customer_id
+          customer_id,
+          isMain
         );
         return data;
       } catch (error) {

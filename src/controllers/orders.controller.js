@@ -23,14 +23,13 @@ class OrdersController {
   });
 
   register = catchAsync(async (req, res) => {
-    const { userId, customerId, level, role, body } = req;
+    const { userId, customerId, parentId, body } = req;
 
     const data = await ordersService.register(
       body,
       userId,
       customerId,
-      level,
-      role
+      parentId
     );
     CREATED(res, [data]);
   });
@@ -44,10 +43,14 @@ class OrdersController {
   });
 
   registerTree = catchAsync(async (req, res) => {
-    const customerId = req?.customerId;
-    const userId = req?.userId;
-    const body = req.body;
-    const data = await ordersService.registerTree(body, userId, customerId);
+    const { userId, customerId, parentId, body } = req;
+
+    const data = await ordersService.registerTree(
+      body,
+      userId,
+      customerId,
+      parentId
+    );
     CREATED(res, data);
   });
 

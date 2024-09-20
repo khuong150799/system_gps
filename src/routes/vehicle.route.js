@@ -144,8 +144,30 @@ module.exports = (app) => {
         .withMessage(VALIDATE_DATA),
     ],
     isAuth,
-    // checkPermission,
+    checkPermission,
     vehicleController.guarantee
+  );
+
+  router.post(
+    "/move",
+    [
+      body("vehicle_id", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA),
+      body("reciver", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA),
+      body("device_id", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+    ],
+    isAuth,
+    checkPermission,
+    vehicleController.move
   );
 
   app.use("/api/v1/vehicle", router);

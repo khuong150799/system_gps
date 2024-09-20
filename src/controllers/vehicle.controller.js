@@ -78,6 +78,19 @@ class VehicleController {
     );
     UPDATE(res, [data]);
   });
+
+  move = catchAsync(async (req, res) => {
+    const { body, userId, customerId, parentId } = req;
+    const infoUser = { user_id: userId, ip: null, os: null, gps: null };
+    const data = await vehicleService.move(
+      body,
+      userId,
+      customerId,
+      parentId,
+      infoUser
+    );
+    UPDATE(res, [data]);
+  });
 }
 
 module.exports = new VehicleController();

@@ -39,8 +39,7 @@ class OrdersService {
     reciver = null,
     customerId,
     id = null,
-    level,
-    role
+    parentId
   ) {
     const errors = [];
 
@@ -155,8 +154,7 @@ class OrdersService {
         if (
           (!dataReciverParent[0]?.id ||
             dataReciverParent[0]?.id != customerId) &&
-          level < 30 &&
-          role < 40
+          parentId
         ) {
           errors.push({
             value: reciver,
@@ -410,7 +408,7 @@ class OrdersService {
   }
 
   //Register
-  async register(body, userId, customerId, level, role) {
+  async register(body, userId, customerId, parentId) {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
@@ -425,8 +423,7 @@ class OrdersService {
           reciver,
           customerId,
           null,
-          level,
-          role
+          parentId
         );
 
         const { id: userIdReciver } = dataInfo;
@@ -488,8 +485,8 @@ class OrdersService {
   }
 
   //Register tree
-  async registerTree(body, userId, customerId) {
-    console.log({ body, userId, customerId });
+  async registerTree(body, userId, customerId, parentId) {
+    console.log({ body, userId, customerId, parentId });
 
     try {
       const { conn, connPromise } = await db.getConnection();
@@ -499,11 +496,22 @@ class OrdersService {
         const listDevice = JSON.parse(devices_id);
         const listReciver = JSON.parse(recivers);
 
-        await this.validate(conn, code, listDevice, null, customerId);
+        await this.validate(
+          conn,
+          code,
+          listDevice,
+          null,
+          customerId,
+          null,
+          parentId
+        );
 
         const dataInfo = await validateModel.CheckCustomerTree(
           conn,
-          listReciver
+          listReciver,
+          "recivers",
+          STRUCTURE_ORDERS_FAIL,
+          parentId
         );
 
         await ordersModel.registerTree(

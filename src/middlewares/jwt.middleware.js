@@ -11,7 +11,8 @@ const isAuth = async function (req, res, next) {
     // return next();
     if (token) {
       const { data } = await checkToken(token, ACCESS_TOKEN_SECRET_KEY);
-      const { userId, parentId, role, clientId, level, customerId } = data;
+      const { userId, parentId, role, clientId, level, customerId, isMain } =
+        data;
       req.userId = userId;
       req.role = role;
       req.level = level;
@@ -19,6 +20,7 @@ const isAuth = async function (req, res, next) {
       req.clientId = clientId;
       req.parentId = parentId;
       req.attchPath = req.baseUrl + req.route.path;
+      req.isMain = isMain;
       next();
     } else {
       return next(new Api403Error());

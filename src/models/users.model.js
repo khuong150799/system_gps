@@ -453,7 +453,7 @@ class UsersModel extends DatabaseModel {
       tableUsersDevices,
       "user_id,device_id,is_main,is_deleted,is_moved,created_at",
       dataAssign,
-      `is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved)`
+      `is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved),updated_at=VALUES(created_at)`
     );
     await vehicleModel.removeListDeviceOfUsersRedis(conn, "", listDevice);
     await deviceLoggingModel.postMulti(conn, dataLogs);
@@ -471,35 +471,7 @@ class UsersModel extends DatabaseModel {
     listDevices
   ) {
     const { reciver, user_is_moved } = body;
-    console.log(reciver, user_is_moved);
-
-    // const joinTableUsers = `${tableUsers} u1 INNER JOIN ${tableUsers} u2 ON u1.parent_id = u2.id`;
-    // const whereTableUsers = "u1.id = ?";
-    // const conditionTableUsers = [user_is_moved];
-    // const selectTableUsers = "u2.parent_id,u2.id";
-
-    // const [listDevices, infoUserMove, infoReciver] = await Promise.all([
-    //   this.select(
-    //     conn,
-    //     tableUsersDevices,
-    //     "device_id",
-    //     "user_id = ? AND is_deleted = 0",
-    //     user_is_moved,
-    //     "id",
-    //     "ASC",
-    //     0,
-    //     1000000000
-    //   ),
-    //   this.select(
-    //     conn,
-    //     joinTableUsers,
-    //     selectTableUsers,
-    //     whereTableUsers,
-    //     conditionTableUsers,
-    //     "u2.id"
-    //   ),
-    //   this.select(conn, tableUsers, "parent_id", "id = ?", reciver),
-    // ]);
+    // console.log(reciver, user_is_moved);
 
     await connPromise.beginTransaction();
     await this.update(
@@ -567,7 +539,7 @@ class UsersModel extends DatabaseModel {
         const joinTableOrder = `${tableOrders} o INNER JOIN ${tableOrdersDevice} od ON o.id = od.orders_id`;
 
         const whereOrders = `(o.creator_customer_id IN (?) OR o.reciver IN (?)) AND od.device_id IN (?)`;
-        console.log("listDeviceId", listDeviceId);
+        // console.log("listDeviceId", listDeviceId);
 
         await this.update(
           conn,
@@ -580,43 +552,6 @@ class UsersModel extends DatabaseModel {
           whereOrders
         );
       }
-
-      // if (infoUserMove[0]?.parent_id == infoReciver[0]?.parent_id)
-      //   throw { msg: ERROR, errors: [{ msg: ERROR_STRUCTURE_MOVE_AGENCY }] };
-      // if (infoUserMove[0]?.parent_id == infoReciver[0]?.parent_id) {
-      //   await this.update(
-      //     conn,
-      //     tableUsersDevices,
-      //     { is_deleted: 1 },
-      //     "",
-      //     [infoUserMove[0]?.id, listDevices],
-      //     "ID",
-      //     false,
-      //     `user_id = ? device_id IN (?)`
-      //   );
-
-      //   await vehicleModel.removeListDeviceOfUsersRedis(conn, "", [
-      //     infoUserMove[0].id,
-      //     reciver,
-      //   ]);
-      // }
-
-      // const dataInsert = listDevices.map((item) => [
-      //   reciver,
-      //   item.device_id,
-      //   1,
-      //   0,
-      //   1,
-      //   Date.now(),
-      // ]);
-
-      // await this.insertDuplicate(
-      //   conn,
-      //   tableUsersDevices,
-      //   "user_id,device_id,is_main,is_deleted,is_moved,created_at",
-      //   dataInsert,
-      //   "is_main=VALUES(is_main),is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved)"
-      // );
     }
 
     await connPromise.commit();
@@ -801,7 +736,7 @@ class UsersModel extends DatabaseModel {
   }
 
   //login
-  async login(conn, id, parentId, role, level, customer_id) {
+  async login(conn, id, parentId, role, level, customer_id, isMain) {
     const clientId = uuidv4();
     const keyToken = md5(Date.now());
     const keyRefreshToken = md5(Date.now() + 1);
@@ -814,6 +749,7 @@ class UsersModel extends DatabaseModel {
         role,
         level,
         customerId: customer_id,
+        isMain,
       },
       keyToken
     );
@@ -826,6 +762,7 @@ class UsersModel extends DatabaseModel {
         role,
         level,
         customerId: customer_id,
+        isMain,
       },
       keyRefreshToken
     );
@@ -867,6 +804,7 @@ class UsersModel extends DatabaseModel {
         role,
         level,
         customerId: customer_id,
+        isMain,
       },
     ];
   }

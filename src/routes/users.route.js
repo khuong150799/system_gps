@@ -117,7 +117,7 @@ module.exports = (app) => {
         .escape(),
     ],
     isAuth,
-    // checkPermission,
+    checkPermission,
     usersController.move
   );
   router.post(

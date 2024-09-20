@@ -12,7 +12,7 @@ const {
 } = require("../constants/tableName.constant");
 const DatabaseModel = require("../models/database.model");
 const validateModel = require("../models/validate.model");
-const { NOT_OWN } = require("../constants/msg.constant");
+const { NOT_OWN, NOT_EXITS } = require("../constants/msg.constant");
 
 const dataBaseModel = new DatabaseModel();
 
@@ -569,23 +569,33 @@ class vehicleService {
     }
   }
 
-  async move(params, body, userId, customerId, parentId) {
+  async move(body, userId, customerId, parentId, infoUser) {
     try {
-      const { reciver } = body;
-      const { id: vehicle_id } = params;
+      const { reciver, device_id, vehicle_id } = body;
+
       const { conn, connPromise } = await db.getConnection();
       try {
-        const listDevice = dataBaseModel.select(
-          conn,
-          tableDeviceVehicle,
-          "device_id",
-          "vehicle_id = ? AND is_deleted = ?",
-          [vehicle_id, 0],
-          "device_id",
-          "ASC"
-        );
+        const joinTable = `${tableVehicle} v INNER JOIN ${tableDeviceVehicle} dv ON v.id = dv.vehicle_id 
+          INNER JOIN ${tableUserDevice} ud ON dv.device_id = ud.device_id`;
 
-        const [treeReciver, treeUserIsMoved, listDevices] = await Promise.all([
+        const infoVehicle = await dataBaseModel.select(
+          conn,
+          joinTable,
+          "v.name as vehicle_name,ud.user_id",
+          "dv.vehicle_id = ? AND dv.device_id = ? AND dv.is_deleted = ? AND ud.is_deleted = ? AND ud.is_moved = ?",
+          [vehicle_id, device_id, 0, 0, 0],
+          "v.id",
+          "ASC",
+          0,
+          1
+        );
+        // console.log("infoVehicle", infoVehicle);
+
+        if (!infoVehicle?.length) throw { msg: `Phương tiện ${NOT_EXITS}` };
+
+        const { user_id, vehicle_name } = infoVehicle[0];
+
+        const [treeReciver, treeUserIsMoved] = await Promise.all([
           validateModel.CheckIsChild(
             connPromise,
             userId,
@@ -599,36 +609,25 @@ class vehicleService {
             userId,
             customerId,
             parentId,
-            user_is_moved,
-            "user_is_moved"
-          ),
-          databaseModel.select(
-            conn,
-            tableUserDevice,
-            "device_id",
-            "user_id = ? AND is_main = ? AND is_deleted = ?",
-            [user_is_moved, 1, 0],
-            "device_id",
-            "ASC",
-            0,
-            100000
+            user_id,
+            "user_id"
           ),
         ]);
 
-        const customerIdUserIsMove =
-          treeUserIsMoved?.[treeUserIsMoved?.length - 1]?.customer_id;
+        // const customerIdUserIsMove =
+        //   treeUserIsMoved?.[treeUserIsMoved?.length - 1]?.customer_id;
 
-        console.log({
-          treeReciver,
-          treeUserIsMoved,
-          listDevices,
-          customerIdUserIsMove,
-        });
+        // console.log({
+        //   treeReciver,
+        //   treeUserIsMoved,
+        //   customerIdUserIsMove,
+        // });
 
         const dataInfoParent = [];
 
         for (let i = 0; i < treeReciver.length; i++) {
           const { id } = treeReciver[i];
+
           if (id != treeUserIsMoved[i].id) {
             dataInfoParent.push({ index: i - 1, ...treeReciver[i - 1] });
           } else if (!dataInfoParent.length && i === treeReciver.length - 1) {
@@ -638,16 +637,17 @@ class vehicleService {
           if (i == treeUserIsMoved.length - 1) break;
         }
 
-        const dataRemoveOrders = treeUserIsMoved.splice(
-          dataInfoParent[0].index + 1,
-          treeUserIsMoved.length - 2
-        );
-        const dataAddOrders = treeReciver.splice(
+        const dataRemoveOrders = treeUserIsMoved.slice(
           dataInfoParent[0].index + 1,
           treeUserIsMoved.length
         );
+        const dataAddOrders = treeReciver.slice(
+          dataInfoParent[0].index + 1,
+          treeReciver.length
+        );
 
         // return {
+        //   indexUserMove,
         //   dataInfoParent,
         //   dataRemoveOrders,
         //   dataAddOrders,
@@ -655,14 +655,23 @@ class vehicleService {
         //   treeReciver,
         // };
 
-        const data = await usersModel.move(
+        const data = await vehicleModel.move(
           conn,
           connPromise,
+          vehicle_name,
           userId,
-          body,
+          {
+            id: treeUserIsMoved[treeUserIsMoved?.length - 1]?.id,
+            username: treeUserIsMoved[treeUserIsMoved?.length - 1]?.username,
+          },
+          {
+            id: treeReciver[treeReciver?.length - 1]?.id,
+            username: treeReciver[treeReciver?.length - 1]?.username,
+          },
           dataRemoveOrders,
           dataAddOrders,
-          listDevices
+          [device_id],
+          infoUser
         );
         return data;
       } catch (error) {
