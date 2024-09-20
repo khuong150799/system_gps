@@ -21,9 +21,9 @@ class DeviceController {
   });
 
   getById = catchAsync(async (req, res) => {
-    const { userId, params } = req;
-
-    const data = await deviceService.getById(params, userId);
+    const { isMain, parentId, userId, params } = req;
+    const chosseUser = isMain == 1 ? userId : parentId;
+    const data = await deviceService.getById(params, chosseUser);
     GET(res, data);
   });
 

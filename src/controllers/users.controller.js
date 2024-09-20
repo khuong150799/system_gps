@@ -33,9 +33,9 @@ class CustomersController {
   });
 
   getListWithUser = catchAsync(async (req, res) => {
-    const userId = req.userId;
-    const query = req.query;
-    const data = await usersSrevice.getListWithUser(query, userId);
+    const { isMain, parentId, userId, query } = req;
+    const chosseUser = isMain == 1 ? userId : parentId;
+    const data = await usersSrevice.getListWithUser(query, chosseUser);
     GET(res, data);
   });
 

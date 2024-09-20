@@ -575,13 +575,14 @@ class vehicleService {
 
       const { conn, connPromise } = await db.getConnection();
       try {
-        const joinTable = `${tableVehicle} v INNER JOIN ${tableDeviceVehicle} dv ON v.id = dv.vehicle_id 
+        const joinTable = `${tableDevice} d INNER JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id 
+          INNER JOIN ${tableVehicle} v ON dv.vehicle_id = v.id
           INNER JOIN ${tableUserDevice} ud ON dv.device_id = ud.device_id`;
 
         const infoVehicle = await dataBaseModel.select(
           conn,
           joinTable,
-          "v.name as vehicle_name,ud.user_id",
+          "d.imei,v.name as vehicle_name,ud.user_id",
           "dv.vehicle_id = ? AND dv.device_id = ? AND dv.is_deleted = ? AND ud.is_deleted = ? AND ud.is_moved = ?",
           [vehicle_id, device_id, 0, 0, 0],
           "v.id",
@@ -593,7 +594,7 @@ class vehicleService {
 
         if (!infoVehicle?.length) throw { msg: `Phương tiện ${NOT_EXITS}` };
 
-        const { user_id, vehicle_name } = infoVehicle[0];
+        const { user_id, vehicle_name, imei } = infoVehicle[0];
 
         const [treeReciver, treeUserIsMoved] = await Promise.all([
           validateModel.CheckIsChild(
@@ -620,7 +621,7 @@ class vehicleService {
         // console.log({
         //   treeReciver,
         //   treeUserIsMoved,
-        //   customerIdUserIsMove,
+        //   // customerIdUserIsMove,
         // });
 
         const dataInfoParent = [];
@@ -630,11 +631,14 @@ class vehicleService {
 
           if (id != treeUserIsMoved[i].id) {
             dataInfoParent.push({ index: i - 1, ...treeReciver[i - 1] });
+            break;
           } else if (!dataInfoParent.length && i === treeReciver.length - 1) {
             dataInfoParent.push({ index: i, ...treeReciver[i] });
+            break;
+          } else if (i == treeUserIsMoved.length - 1) {
+            dataInfoParent.push({ index: i, ...treeReciver[i] });
+            break;
           }
-
-          if (i == treeUserIsMoved.length - 1) break;
         }
 
         const dataRemoveOrders = treeUserIsMoved.slice(
@@ -658,6 +662,7 @@ class vehicleService {
         const data = await vehicleModel.move(
           conn,
           connPromise,
+          imei,
           vehicle_name,
           userId,
           {

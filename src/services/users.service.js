@@ -224,11 +224,14 @@ class UsersService {
 
           if (id != treeUserIsMoved[i].id) {
             dataInfoParent.push({ index: i - 1, ...treeReciver[i - 1] });
+            break;
           } else if (!dataInfoParent.length && i === treeReciver.length - 1) {
             dataInfoParent.push({ index: i, ...treeReciver[i] });
+            break;
+          } else if (i == treeUserIsMoved.length - 1) {
+            dataInfoParent.push({ index: i, ...treeReciver[i] });
+            break;
           }
-
-          if (i == treeUserIsMoved.length - 1) break;
         }
 
         const indexUserMove = treeUserIsMoved.findIndex(

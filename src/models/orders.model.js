@@ -299,13 +299,13 @@ class OrdersModel extends DatabaseModel {
   ) {
     const { code, devices_id, recivers, note } = body;
 
-    console.log(
-      "code, devices_id, recivers, note",
-      code,
-      devices_id,
-      recivers,
-      note
-    );
+    // console.log(
+    //   "code, devices_id, recivers, note",
+    //   code,
+    //   devices_id,
+    //   recivers,
+    //   note
+    // );
 
     const listDevice = JSON.parse(devices_id);
     const listReciver = JSON.parse(recivers);
@@ -313,7 +313,7 @@ class OrdersModel extends DatabaseModel {
     if (isBeginTransaction) {
       await connPromise.beginTransaction();
     }
-    console.log("listReciver", listReciver);
+    // console.log("listReciver", listReciver);
 
     const dataInsertOrders = listReciver.reduce((result, item, i) => {
       if (listReciver?.length == 1) {
@@ -347,7 +347,7 @@ class OrdersModel extends DatabaseModel {
       return result;
     }, []);
 
-    console.log("dataInsertOrders", dataInsertOrders);
+    // console.log("dataInsertOrders", dataInsertOrders);
 
     const res_ = await this.insertDuplicate(
       conn,
@@ -358,8 +358,8 @@ class OrdersModel extends DatabaseModel {
           reciver=VALUES(reciver),quantity=VALUES(quantity),orders_status_id=VALUES(orders_status_id),note=VALUES(note),
           is_deleted=VALUES(is_deleted),updated_at=VALUES(created_at)`
     );
-    console.log("res_", res_);
-    console.log("listReciver.length", listReciver.length);
+    // console.log("res_", res_);
+    // console.log("listReciver.length", listReciver.length);
     let orders_id = res_;
     const dataInsertOrdersDevice = listReciver.reduce((result, item, i) => {
       if (listReciver.length == 1) {

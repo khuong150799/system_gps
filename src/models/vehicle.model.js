@@ -54,7 +54,7 @@ class VehicleModel extends DatabaseModel {
       c0.name) as customer_name,COALESCE(c.company, c.name) as agency_name,c.phone as agency_phone,vi.name as vehicle_icon_name,
       c0.id as customer_id,c.id as agency_id,d.sv_cam_id`;
 
-    let where = `AND ud.is_moved = 0 AND ud.is_main = 1 AND d.is_deleted = 0 AND c0.is_deleted = 0 AND u.is_deleted = 0 AND dv.is_deleted = 0`;
+    let where = `AND ud.is_moved = 0 AND ud.is_main = 1 AND ud.is_deleted = 0 AND d.is_deleted = 0 AND c0.is_deleted = 0 AND u.is_deleted = 0 AND dv.is_deleted = 0`;
     const condition = [];
     if (device_id) {
       where = `d.id = ? ${where}`;
@@ -76,7 +76,7 @@ class VehicleModel extends DatabaseModel {
       `d.id`
     );
 
-    // console.log("data", imei, data);
+    console.log("data", imei, data);
 
     if (data.length) {
       await Promise.all(
@@ -705,7 +705,7 @@ class VehicleModel extends DatabaseModel {
       tableDeviceVehicle,
       `is_deleted = 1`,
       "",
-      [id, device_id_old],
+      [device_id_old, id],
       "vehicle_id",
       true,
       "device_id = ? AND vehicle_id = ?"
@@ -800,6 +800,7 @@ class VehicleModel extends DatabaseModel {
   async move(
     conn,
     connPromise,
+    imei,
     vehicle_name,
     userId,
     infoUserMove,
@@ -882,6 +883,17 @@ class VehicleModel extends DatabaseModel {
       );
     }
 
+    await this.update(
+      conn,
+      tableUsersDevices,
+      { is_moved: 1 },
+      "",
+      [listDeviceId[0], 0],
+      "device_id",
+      true,
+      "device_id = ? AND is_moved = ?"
+    );
+
     await this.insertDuplicate(
       conn,
       tableUsersDevices,
@@ -889,6 +901,8 @@ class VehicleModel extends DatabaseModel {
       [[reciver, listDeviceId[0], 1, 0, 0, Date.now()]],
       `is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved),created_at=VALUES(created_at)`
     );
+
+    await this.getInfoDevice(conn, imei);
 
     const dataLog = {
       ...infoUser,
