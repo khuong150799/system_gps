@@ -705,10 +705,10 @@ class VehicleModel extends DatabaseModel {
       tableDeviceVehicle,
       `is_deleted = 1`,
       "",
-      [id],
+      [id, device_id_old],
       "vehicle_id",
       true,
-      "vehicle_id = ?"
+      "device_id = ? AND vehicle_id = ?"
     );
 
     if (inforOrder?.length) {
