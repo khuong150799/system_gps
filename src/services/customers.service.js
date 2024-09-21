@@ -213,6 +213,7 @@ class CustomersService {
         );
         return customer;
       } catch (error) {
+        console.log(error);
         await connPromise.rollback();
         throw error;
       } finally {

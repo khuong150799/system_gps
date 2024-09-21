@@ -9,7 +9,7 @@ const {
   tableUsersCustomers,
   tableUsers,
 } = require("../constants/tableName.constant");
-const deviceModel = require("./device.model");
+const vehicleModel = require("./vehicle.model");
 
 class CustomersModel extends DatabaseSchema {
   constructor() {
@@ -224,7 +224,7 @@ class CustomersModel extends DatabaseSchema {
     await connPromise.beginTransaction();
     await this.update(conn, tableCustomers, customer, "id", id);
     await connPromise.commit();
-    await deviceModel.getInfoDevice(conn);
+    await vehicleModel.getInfoDevice(conn);
     customer.id = id;
     return customer;
   }
@@ -233,7 +233,7 @@ class CustomersModel extends DatabaseSchema {
   async deleteById(conn, params) {
     const { id } = params;
     await this.update(conn, tableCustomers, { is_deleted: 1 }, "id", id);
-    await deviceModel.getInfoDevice(conn);
+    await vehicleModel.getInfoDevice(conn);
     return [];
   }
 
