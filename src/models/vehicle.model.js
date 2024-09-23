@@ -32,7 +32,7 @@ class VehicleModel extends DatabaseModel {
     super();
   }
 
-  async getInfoDevice(conn, imei, device_id) {
+  async getInfoDevice(conn, imei, device_id, user_id) {
     const joinTable = `${tableDevice} d INNER JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id
     INNER JOIN ${tableVehicle} v ON dv.vehicle_id = v.id
     INNER JOIN ${tableVehicleType} vt ON v.vehicle_type_id = vt.id
@@ -62,6 +62,9 @@ class VehicleModel extends DatabaseModel {
     } else if (imei) {
       where = `d.imei = ? ${where}`;
       condition.push(imei);
+    } else if (user_id) {
+      where = `ud.user_id = ? ${where}`;
+      condition.push(user_id);
     } else {
       where = `1 = ? ${where}`;
       condition.push(1);
@@ -76,7 +79,7 @@ class VehicleModel extends DatabaseModel {
       `d.id`
     );
 
-    console.log("data", imei, data);
+    // console.log("data", imei, data);
 
     if (data.length) {
       await Promise.all(

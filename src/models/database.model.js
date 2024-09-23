@@ -467,6 +467,41 @@ class DatabaseModel {
     });
   }
 
+  async getAllIDChild(
+    db,
+    tableName,
+    select,
+    conditions,
+    orderByField,
+    orderBySort
+  ) {
+    return await new Promise(async (resolve, reject) => {
+      try {
+        const newArr = [];
+        const dequy = async (data) => {
+          for (let i = 0; i < data.length; i++) {
+            newArr.push(...data[i]);
+            const id = data[i].id;
+
+            const childQuery = `SELECT ${select} FROM ${tableName} WHERE parent_id = ${id} ORDER BY ${orderByField} ${orderBySort}`;
+            const dataRess = await db.promise().query(childQuery);
+
+            if (dataRess[0].length > 0) {
+              // console.log("dataRess", JSON.stringify(dataRess[0], null, 2));
+              // newArr.push(...dataRess[0]);
+              await dequy(dataRess[0]);
+            }
+          }
+        };
+        await dequy(conditions);
+        return resolve(newArr);
+      } catch (error) {
+        // console.log(error);
+        return reject(error);
+      }
+    });
+  }
+
   async createTableDeviceGps(db, tableName) {
     return await new Promise((resolve, reject) => {
       const query = `

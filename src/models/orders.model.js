@@ -415,7 +415,7 @@ class OrdersModel extends DatabaseModel {
           1,
           0,
           !isBeginTransaction ? 1 : i === dataInfo.length - 1 ? 0 : 1,
-          Date.now(),
+          Date.now() + 1,
         ]),
       ];
       return result;
@@ -426,7 +426,7 @@ class OrdersModel extends DatabaseModel {
       tableUsersDevices,
       "user_id,device_id,is_main,is_deleted,is_moved,created_at",
       usersDevicesInsert,
-      `is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved)`
+      `is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved),created_at=VALUES(created_at)`
     );
 
     if (isBeginTransaction) {

@@ -50,6 +50,7 @@ const constants = {
   VALIDATE_PRICE_SALE: "Giá khuyến mãi phải nhỏ hơn giá gốc",
   VALIDATE_DISCOUNT: "Giảm giá phải nhỏ hơn 100%",
   VALIDATE_DATA_LAGER_THAN_0: "Dữ liệu phải lớn hơn 0",
+  VALIDATE_LICENSE: "Số bằng lái không hợp lệ",
   // VALIDATE_NEWS_SIZE: "Dung lượng news phải nhỏ hơn 20MB",
   SERVER_ERROR: "Máy chủ xảy ra lỗi",
   LOGIN_SUCCESS: "Đăng nhập thành công",

@@ -146,6 +146,8 @@ class DriverService {
       try {
         const { license_number, phone } = body;
 
+        await validateModel.checkRegexLicense(license_number);
+
         if (phone) {
           await validateModel.checkRegexPhone(phone);
         }
@@ -178,7 +180,7 @@ class DriverService {
       try {
         const { license_number, phone } = body;
         const { id } = params;
-
+        await validateModel.checkRegexLicense(license_number);
         await this.validate(conn, license_number, phone, id);
 
         const driver = await driverModel.updateById(conn, body, params);

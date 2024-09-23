@@ -11,6 +11,7 @@ const {
   tableUsers,
   tableDevice,
 } = require("../constants/tableName.constant");
+const { default: replaceData } = require("../ultils/replaceData");
 const DatabaseModel = require("./database.model");
 const { hSet, hdelOneKey, hGet } = require("./redis.model");
 const DriverSchema = require("./schema/driver.schema");
@@ -144,10 +145,11 @@ class DriverModel extends DatabaseModel {
     // console.log("infoDevice", infoDevice);
     if (!infoDevice?.length)
       throw { msg: ERROR, errors: [{ msg: WRITE_CARD_FAIL }] };
+    const formatName = replaceData(name);
     const { result, message, status, data, options } =
       await driverApi.writeCard({
         license_number,
-        name,
+        name: formatName,
         imei: infoDevice[0].imei,
       });
     // console.log("result", result);

@@ -13,6 +13,7 @@ const {
   VALIDATE_PHONE,
   VALIDATE_EMAIL,
   NOT_EXITS,
+  VALIDATE_LICENSE,
 } = require("../constants/msg.constant");
 const {
   tableDevice,
@@ -27,6 +28,7 @@ const {
   regexPass,
   regexEmail,
   regexPhoneNumber,
+  regexLicense,
 } = require("../ultils/regex");
 const DatabaseModel = require("./database.model");
 
@@ -410,6 +412,24 @@ class ValidateModel extends DatabaseModel {
     if (Object.keys(errors).length) throw errors;
 
     return dataInfo[0];
+  }
+
+  async checkRegexLicense(licenseNumber) {
+    const errors = [];
+    if (!regexLicense(licenseNumber)) {
+      errors.push({
+        value: licenseNumber,
+        msg: VALIDATE_LICENSE,
+        param: "license_number",
+      });
+    }
+    if (errors.length)
+      throw {
+        msg: ERROR,
+        errors,
+      };
+
+    return [];
   }
 }
 

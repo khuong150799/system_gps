@@ -10,6 +10,7 @@ const {
   tableUsers,
 } = require("../constants/tableName.constant");
 const vehicleModel = require("./vehicle.model");
+const { DELETED_CUSTOMER } = require("../constants/msg.constant");
 
 class CustomersModel extends DatabaseSchema {
   constructor() {
@@ -221,10 +222,28 @@ class CustomersModel extends DatabaseSchema {
     delete customer.is_deleted;
     delete customer.created_at;
 
+    const joinTable = `${tableCustomers} c INNER JOIN ${tableUsersCustomers} uc ON c.id = uc.customer_id`;
+    const infoUser = await this.select(
+      conn,
+      joinTable,
+      "uc.user_id,c.name,c.company",
+      "uc.customer_id = ? AND c.is_deleted = ?",
+      [id, 0],
+      "c.id"
+    );
+
+    if (!infoUser?.length) throw { msg: DELETED_CUSTOMER };
+    const {
+      user_id: userId,
+      name: nameCustomer,
+      company: companyCustomer,
+    } = infoUser[0];
     await connPromise.beginTransaction();
     await this.update(conn, tableCustomers, customer, "id", id);
     await connPromise.commit();
-    await vehicleModel.getInfoDevice(conn);
+    if (name != nameCustomer || company != companyCustomer) {
+      await vehicleModel.getInfoDevice(conn, null, null, userId);
+    }
     customer.id = id;
     return customer;
   }
@@ -233,7 +252,7 @@ class CustomersModel extends DatabaseSchema {
   async deleteById(conn, params) {
     const { id } = params;
     await this.update(conn, tableCustomers, { is_deleted: 1 }, "id", id);
-    await vehicleModel.getInfoDevice(conn);
+    // await vehicleModel.getInfoDevice(conn);
     return [];
   }
 

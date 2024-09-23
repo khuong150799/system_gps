@@ -25,3 +25,9 @@ exports.regexEmail = (email) => {
 
   return regexEmail.test(email) ? true : false;
 };
+
+exports.regexLicense = (licence) => {
+  const regex = /^\d{12}$/;
+
+  return regex.test(licence.toString()) ? true : false;
+};
