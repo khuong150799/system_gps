@@ -819,7 +819,8 @@ class UsersModel extends DatabaseModel {
     );
 
     const keyToken = md5(Date.now());
-    const { userId, role, clientId, level, customerId } = data;
+    const { userId, parentId, role, clientId, level, customerId, isMain } =
+      data;
 
     const dataInfo = await this.select(
       conn,
@@ -836,10 +837,12 @@ class UsersModel extends DatabaseModel {
     const token = await makeAccessToken(
       {
         userId,
-        clientId,
+        parentId,
         role,
+        clientId,
         level,
         customerId,
+        isMain,
       },
       keyToken
     );
@@ -864,7 +867,7 @@ class UsersModel extends DatabaseModel {
       REDIS_KEY_TOKEN,
       clientId,
       JSON.stringify({
-        user_id: id,
+        user_id: userId,
         publish_key_token: keyToken,
         publish_key_refresh_token: keyRefreshToken,
       })
