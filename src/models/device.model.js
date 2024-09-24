@@ -834,7 +834,7 @@ class DeviceModel extends DatabaseModel {
   }
 
   //Register
-  async register(conn, connPromise, body, userId, infoUser) {
+  async register(conn, connPromise, body, userId, isMain, parentId, infoUser) {
     const { dev_id, imei, model_id, serial, sv_cam_id, note } = body;
     const createdAt = Date.now();
 
@@ -894,7 +894,7 @@ class DeviceModel extends DatabaseModel {
       conn,
       tableUsersDevices,
       "user_id,device_id,is_deleted,is_main,is_moved,created_at",
-      [[userId, res_, 0, 1, 0, createdAt]],
+      [[isMain == 0 ? parentId : userId, res_, 0, 1, 0, createdAt]],
       "is_deleted=VALUES(is_deleted)"
     );
 

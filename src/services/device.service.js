@@ -336,7 +336,7 @@ class DeviceService {
   }
 
   //Register
-  async register(body, userId, infoUser) {
+  async register(body, userId, isMain, parentId, infoUser) {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
@@ -369,6 +369,8 @@ class DeviceService {
           connPromise,
           { ...body, model_type_id: modelType },
           userId,
+          isMain,
+          parentId,
           infoUser
         );
         return device;

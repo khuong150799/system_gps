@@ -68,9 +68,15 @@ class DeviceController {
   });
 
   register = catchAsync(async (req, res) => {
-    const { body, userId } = req;
+    const { isMain, parentId, body, userId } = req;
     const infoUser = { user_id: userId, ip: null, os: null, gps: null };
-    const data = await deviceService.register(body, userId, infoUser);
+    const data = await deviceService.register(
+      body,
+      userId,
+      isMain,
+      parentId,
+      infoUser
+    );
     CREATED(res, [data]);
   });
 
