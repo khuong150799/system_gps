@@ -231,7 +231,15 @@ class VehicleModel extends DatabaseModel {
 
   //update
   async updateById(conn, connPromise, body, params, dataInfo) {
-    const { display_name, vehicle_type_id, weight, warning_speed } = body;
+    const {
+      display_name,
+      vehicle_type_id,
+      weight,
+      warning_speed,
+      quantity_channel,
+      quantity_channel_lock,
+      device_id,
+    } = body;
     const { id } = params;
 
     const vehicle = {
@@ -245,6 +253,17 @@ class VehicleModel extends DatabaseModel {
     await connPromise.beginTransaction();
 
     await this.update(conn, tableVehicle, vehicle, "id", id);
+
+    await this.update(
+      conn,
+      tableDeviceVehicle,
+      { quantity_channel, quantity_channel_lock },
+      "",
+      [device_id, id],
+      "id",
+      true,
+      "device_id = ? AND vehicle_id = ?"
+    );
 
     const listPromiseGetReidis = dataInfo.map(({ imei }) =>
       this.getInfoDevice(conn, imei)

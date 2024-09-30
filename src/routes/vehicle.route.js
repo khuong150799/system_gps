@@ -99,6 +99,10 @@ module.exports = (app) => {
     "/update/:id",
     [
       param("id", VALIDATE_DATA).isNumeric(),
+      body("device_id", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA),
 
       body("vehicle_type_id", NOT_EMPTY)
         .notEmpty()

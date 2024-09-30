@@ -29,7 +29,7 @@ class vehicleService {
           tableVehicle,
           "name",
           name,
-          "ID",
+          "Biển số",
           "name",
           id
         );
@@ -65,7 +65,8 @@ class vehicleService {
       }
     } catch (error) {
       console.log(error);
-      throw new BusinessLogicError(error.msg);
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
     }
   }
 
@@ -82,7 +83,8 @@ class vehicleService {
       }
     } catch (error) {
       console.log(error);
-      throw new BusinessLogicError(error.msg);
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
     }
   }
 
@@ -118,7 +120,8 @@ class vehicleService {
       }
     } catch (error) {
       console.log(error);
-      throw new BusinessLogicError(error.msg);
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
     }
   }
 
@@ -159,7 +162,8 @@ class vehicleService {
       }
     } catch (error) {
       console.log(error);
-      throw new BusinessLogicError(error.msg);
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
     }
   }
 
@@ -199,7 +203,8 @@ class vehicleService {
       }
     } catch (error) {
       console.log(error);
-      throw new BusinessLogicError(error.msg);
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
     }
   }
 
@@ -239,7 +244,8 @@ class vehicleService {
       }
     } catch (error) {
       console.log(error);
-      throw new BusinessLogicError(error.msg);
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
     }
   }
 
@@ -334,7 +340,8 @@ class vehicleService {
       }
     } catch (error) {
       console.log(error);
-      throw new BusinessLogicError(error.msg);
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
     }
   }
 
@@ -565,7 +572,8 @@ class vehicleService {
       }
     } catch (error) {
       console.log(error);
-      throw new BusinessLogicError(error.msg);
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
     }
   }
 

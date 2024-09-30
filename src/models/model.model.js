@@ -6,8 +6,8 @@ const {
   tableModelType,
 } = require("../constants/tableName.constant");
 const DatabaseModel = require("./database.model");
-const deviceModel = require("./device.model");
 const ModelSchema = require("./schema/model.schema");
+const vehicleModel = require("./vehicle.model");
 
 class ModelModel extends DatabaseModel {
   constructor() {
@@ -210,7 +210,7 @@ class ModelModel extends DatabaseModel {
       dataInsertModelConnectType
     );
     await connPromise.commit();
-    await deviceModel.getInfoDevice(conn);
+    await vehicleModel.getInfoDevice(conn);
 
     model.id = id;
     model.connection_type_id = connection_type_id;
