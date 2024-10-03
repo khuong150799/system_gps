@@ -49,6 +49,30 @@ class UsersModel extends DatabaseModel {
     super();
   }
 
+  async getInfoParent(conn, parentId, customerId) {
+    const joinTable = `${tableUsers} u INNER JOIN ${tableUsersCustomers} uc ON u.id = uc.user_id`;
+    let where = "AND u.is_deleted = ? AND u.is_main = 1";
+    const conditions = [0];
+    if (parentId) {
+      where = `u.id = ? ${where}`;
+      conditions.unshift(parentId);
+    } else {
+      where = `uc.customer_id = ? ${where}`;
+      conditions.unshift(customerId);
+    }
+
+    const dataParent = await this.select(
+      conn,
+      joinTable,
+      "u.right,u.left",
+      where,
+      conditions,
+      "u.id"
+    );
+
+    return dataParent;
+  }
+
   //getallrow
   async getallrows(conn, query) {
     const offset = query.offset || 0;
@@ -194,35 +218,31 @@ class UsersModel extends DatabaseModel {
     return { data: res_, totalPage, totalRecord: count?.[0]?.total };
   }
 
-  async getListWithUser(conn, query, userId) {
-    const { is_deleted, user_id } = query;
+  async getListWithUser(conn, query, left, right) {
+    const { is_deleted } = query;
 
     const isDeleted = is_deleted || 0;
 
-    const where = `parent_id = ? AND ${tableUsers}.is_deleted = ?`;
-    const chosseUser = user_id || userId;
+    const where = `u.left > ? AND u.right < ? AND u.is_deleted = ?`;
+    const conditions = [left, right, isDeleted];
 
-    const conditions = [chosseUser, isDeleted];
-    const whereDequy = `AND ${tableUsers}.is_deleted = ${isDeleted}`;
+    let joinTable = `${tableUsers} u INNER JOIN ${tableUsersCustomers} uc ON u.id = uc.user_id 
+      INNER JOIN ${tableCustomers} c ON uc.customer_id = c.id`;
 
-    let joinTable = `${tableUsers} INNER JOIN ${tableUsersCustomers} ON ${tableUsers}.id = ${tableUsersCustomers}.user_id 
-      INNER JOIN ${tableCustomers} ON ${tableUsersCustomers}.customer_id = ${tableCustomers}.id`;
+    let select = `u.id,u.username,u.is_main,u.parent_id,u.is_team,c.name as customer_name,c.id as customer_id`;
 
-    let select = `${tableUsers}.id,${tableUsers}.username,${tableUsers}.is_main,${tableUsers}.parent_id,${tableUsers}.is_team,${tableCustomers}.name as customer_name,${tableCustomers}.id as customer_id`;
-
-    const res_ = await this.getAllRowsMenu(
+    const res_ = await this.select(
       conn,
       joinTable,
       select,
       where,
       conditions,
-      `${tableUsers}.id`,
+      "u.left",
       "ASC",
-      select,
-      whereDequy,
-      `${tableUsers}.id`,
-      "ASC"
+      0,
+      9999999
     );
+
     return res_;
   }
 
@@ -280,6 +300,134 @@ class UsersModel extends DatabaseModel {
     return res_;
   }
   //Register
+  // async register(conn, connPromise, body, customerId, isCommit = true) {
+  //   const {
+  //     parent_id,
+  //     username,
+  //     password,
+  //     role_id,
+  //     customer_id,
+  //     is_actived,
+  //     is_child,
+  //   } = body;
+  //   const createdAt = Date.now();
+
+  //   const salt = await bcrypt.genSalt(12);
+  //   const hashPass = await bcrypt.hash(password, salt);
+  //   const user = new UsersSchema({
+  //     parent_id: parent_id || null,
+  //     username,
+  //     password: hashPass,
+  //     text_pass: password,
+  //     is_actived,
+  //     is_deleted: 0,
+  //     is_main: is_child ? 0 : 1,
+  //     is_team: 0,
+  //     created_at: createdAt,
+  //   });
+  //   delete user.expired_on;
+  //   delete user.updated_at;
+  //   if (isCommit) {
+  //     await connPromise.beginTransaction();
+  //   }
+  //   const res_ = await this.insert(conn, tableUsers, user);
+
+  //   const usersRole = new UsersRoleSchema({
+  //     user_id: res_,
+  //     role_id,
+  //     created_at: createdAt,
+  //   });
+
+  //   delete usersRole.updated_at;
+  //   await this.insert(conn, tableUsersRole, usersRole);
+
+  //   const usersCustomers = new UsersCustomersSchema({
+  //     user_id: res_,
+  //     customer_id,
+  //     created_at: createdAt,
+  //   });
+
+  //   delete usersCustomers.updated_at;
+  //   await this.insert(conn, tableUsersCustomers, usersCustomers);
+
+  //   if (isCommit) {
+  //     await connPromise.commit();
+  //   }
+  //   user.id = res_;
+  //   delete user.is_deleted;
+  //   delete user.password;
+  //   delete user.text_pass;
+  //   return [user];
+  // }
+
+  // async registerTeam(conn, username, password, connPromise, body) {
+  //   const { parent_id, name } = body;
+  //   const createdAt = Date.now();
+
+  //   const salt = await bcrypt.genSalt(12);
+  //   const hashPass = await bcrypt.hash(password, salt);
+  //   const user = new UsersSchema({
+  //     parent_id,
+  //     username,
+  //     password: hashPass,
+  //     text_pass: password,
+  //     is_actived: 1,
+  //     is_deleted: 0,
+  //     is_main: 0,
+  //     is_team: 1,
+  //     created_at: createdAt,
+  //   });
+  //   delete user.expired_on;
+  //   delete user.updated_at;
+
+  //   await connPromise.beginTransaction();
+  //   const res_ = await this.insert(conn, tableUsers, user);
+
+  //   const usersRole = new UsersRoleSchema({
+  //     user_id: res_,
+  //     role_id: 1,
+  //     created_at: createdAt,
+  //   });
+
+  //   delete usersRole.updated_at;
+  //   await this.insert(conn, tableUsersRole, usersRole);
+
+  //   const code = makeCode();
+  //   const customer = new CustomersSchema({
+  //     level_id: 6,
+  //     code,
+  //     name,
+  //     company: null,
+  //     email: null,
+  //     phone: null,
+  //     address: null,
+  //     tax_code: null,
+  //     website: null,
+  //     publish: 1,
+  //     is_deleted: 0,
+  //     created_at: Date.now(),
+  //   });
+  //   delete customer.updated_at;
+
+  //   const customerId = await this.insert(conn, tableCustomers, customer);
+
+  //   const usersCustomers = new UsersCustomersSchema({
+  //     user_id: res_,
+  //     customer_id: customerId,
+  //     created_at: createdAt,
+  //   });
+
+  //   delete usersCustomers.updated_at;
+  //   await this.insert(conn, tableUsersCustomers, usersCustomers);
+
+  //   await connPromise.commit();
+  //   user.id = res_;
+  //   delete user.is_deleted;
+  //   delete user.password;
+  //   delete user.text_pass;
+  //   return [user];
+  // }
+
   async register(conn, connPromise, body, customerId, isCommit = true) {
     const {
       parent_id,
@@ -292,6 +440,42 @@ class UsersModel extends DatabaseModel {
     } = body;
     const createdAt = Date.now();
 
+    if (isCommit) {
+      await connPromise.beginTransaction();
+    }
+
+    const dataParent = await this.select_(
+      conn,
+      tableUsers,
+      "`right`",
+      `id = ? FOR UPDATE OF ${tableUsers}`,
+      parent_id
+    );
+
+    const { right } = dataParent[0];
+
+    await this.update(
+      conn,
+      tableUsers,
+      "`right` = `right` + 2",
+      "",
+      [right, 0],
+      "id",
+      false,
+      "`right` >= ? AND is_deleted = ?"
+    );
+
+    await this.update(
+      conn,
+      tableUsers,
+      "`left` = `left` + 2",
+      "",
+      [right, 0],
+      "id",
+      false,
+      "`left` > ? AND is_deleted = ?"
+    );
+
     const salt = await bcrypt.genSalt(12);
     const hashPass = await bcrypt.hash(password, salt);
     const user = new UsersSchema({
@@ -303,13 +487,13 @@ class UsersModel extends DatabaseModel {
       is_deleted: 0,
       is_main: is_child ? 0 : 1,
       is_team: 0,
+      left: right,
+      right: right + 1,
       created_at: createdAt,
     });
     delete user.expired_on;
     delete user.updated_at;
-    if (isCommit) {
-      await connPromise.beginTransaction();
-    }
+
     const res_ = await this.insert(conn, tableUsers, user);
 
     const usersRole = new UsersRoleSchema({
@@ -345,6 +529,40 @@ class UsersModel extends DatabaseModel {
     const { parent_id, name } = body;
     const createdAt = Date.now();
 
+    await connPromise.beginTransaction();
+
+    const dataParent = await this.select_(
+      conn,
+      tableUsers,
+      "`right`",
+      "id = ? FOR UPDATE",
+      parent_id
+    );
+
+    const { right } = dataParent[0];
+
+    await this.update(
+      conn,
+      tableUsers,
+      "`right` = `right` + 2",
+      "",
+      [right, 0],
+      "id",
+      false,
+      "`right` >= ? AND is_deleted = ?"
+    );
+
+    await this.update(
+      conn,
+      tableUsers,
+      "`left` = `left` + 2",
+      "",
+      [right, 0],
+      "id",
+      false,
+      "`left` > ? AND is_deleted = ?"
+    );
+
     const salt = await bcrypt.genSalt(12);
     const hashPass = await bcrypt.hash(password, salt);
     const user = new UsersSchema({
@@ -356,12 +574,13 @@ class UsersModel extends DatabaseModel {
       is_deleted: 0,
       is_main: 0,
       is_team: 1,
+      left: right,
+      right: right + 1,
       created_at: createdAt,
     });
     delete user.expired_on;
     delete user.updated_at;
 
-    await connPromise.beginTransaction();
     const res_ = await this.insert(conn, tableUsers, user);
 
     const usersRole = new UsersRoleSchema({
@@ -474,12 +693,95 @@ class UsersModel extends DatabaseModel {
     // console.log(reciver, user_is_moved);
 
     await connPromise.beginTransaction();
+
+    const newDataParent = await this.select_(
+      conn,
+      tableUsers,
+      "`right`",
+      "id = ? FOR UPDATE",
+      reciver
+    );
+
+    const { right: newParentRight } = newDataParent[0];
+
+    const oldDataUser = await this.select_(
+      conn,
+      tableUsers,
+      "`right`,`left`",
+      "id = ? FOR UPDATE",
+      user_is_moved
+    );
+
+    const { right: oldRight, left: oldLeft } = oldDataUser[0];
+
+    const width = oldRight - oldLeft + 1;
+
+    await this.update(
+      conn,
+      tableUsers,
+      "`right` = `right` + " + `${width}`,
+      "",
+      [newParentRight, 0],
+      "id",
+      false,
+      "`right` >= ? AND is_deleted = ?"
+    );
+
+    await this.update(
+      conn,
+      tableUsers,
+      "`left` = `left` + " + `${width}`,
+      "",
+      [newParentRight, 0],
+      "id",
+      false,
+      "`left` > ? AND is_deleted = ?"
+    );
+
+    const shiftAmount = newParentRight - oldLeft;
+
+    await this.update(
+      conn,
+      tableUsers,
+      "`left` = `left` + " +
+        `${shiftAmount}` +
+        ",`right` = `right` + " +
+        `${shiftAmount}`,
+      "",
+      [oldLeft, oldRight, 0],
+      "id",
+      false,
+      "`left` BETWEEN ? AND ? AND is_deleted = ?"
+    );
+
     await this.update(
       conn,
       tableUsers,
       { parent_id: reciver },
       "id",
       user_is_moved
+    );
+
+    await this.update(
+      conn,
+      tableUsers,
+      "`right` = `right` - " + `${width}`,
+      "",
+      [oldRight, 0],
+      "id",
+      false,
+      "`right` > ? AND is_deleted = ?"
+    );
+
+    await this.update(
+      conn,
+      tableUsers,
+      "`left` = `left` - " + `${width}`,
+      "",
+      [oldRight, 0],
+      "id",
+      false,
+      "`left` > ? AND is_deleted = ?"
     );
 
     if (listDevices.length) {
@@ -615,9 +917,63 @@ class UsersModel extends DatabaseModel {
   }
 
   //delete
-  async deleteById(conn, params) {
+  // async deleteById(conn, params) {
+  //   const { id } = params;
+  //   await this.update(conn, tableUsers, { is_deleted: Date.now() }, "id", id);
+  //   return [];
+  // }
+
+  async deleteById(conn, connPromise, params) {
     const { id } = params;
-    await this.update(conn, tableUsers, { is_deleted: Date.now() }, "id", id);
+
+    await connPromise.beginTransaction();
+
+    const dataParent = await this.select_(
+      conn,
+      tableUsers,
+      "`right`,`left`",
+      `id = ? FOR UPDATE OF ${tableUsers}`,
+      id
+    );
+
+    const { right, left } = dataParent[0];
+
+    const width = right - left + 1;
+
+    await this.update(
+      conn,
+      tableUsers,
+      { is_deleted: Date.now() },
+      "",
+      [left, right, 0],
+      "ID",
+      true,
+      "`left` BETWEEN ? AND ? AND is_deleted = ?"
+    );
+
+    await this.update(
+      conn,
+      tableUsers,
+      "`right` = `right` - " + `${width}`,
+      "",
+      [right, 0],
+      "id",
+      false,
+      "`right` > ? AND is_deleted = ?"
+    );
+
+    await this.update(
+      conn,
+      tableUsers,
+      "`left` = `left` - " + `${width}`,
+      "",
+      [right, 0],
+      "id",
+      false,
+      "`left` > ? AND is_deleted = ?"
+    );
+
+    await connPromise.commit();
     return [];
   }
 

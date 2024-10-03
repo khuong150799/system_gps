@@ -69,13 +69,13 @@ class OrdersController {
   });
 
   deleteDevice = catchAsync(async (req, res) => {
-    const { customerId, body, params, userId } = req;
-
+    const { isMain, parentId, customerId, body, params, userId } = req;
+    const chosseUser = isMain == 1 ? userId : parentId;
     const data = await ordersService.deleteDevice(
       body,
       params,
       customerId,
-      userId
+      chosseUser
     );
     DELETE(res, data);
   });

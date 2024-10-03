@@ -16,20 +16,34 @@ class Datatbase {
     });
   }
   init() {
-    pool.getConnection(function (err, conn) {
+    pool.getConnection(async function (err, conn) {
       if (err) {
         return console.log("error when connecting to Database", err);
       } else {
-        console.log(`SUCCESS:: CONNECTED TO DATABASE >> ${dbConfig.host}`);
+        // try {
+        //   // Bắt đầu transaction
+        //   console.log(`SUCCESS:: CONNECTED TO DATABASE >> ${dbConfig.host}`);
 
-        // const sql = `
-        // `;
-        // conn.query(sql, (err, res) => {
-        //   if (err) {
-        //     console.log(err);
-        //   }
-        //   console.log(res);
-        // });
+        //   await conn.promise().beginTransaction();
+
+        //   // Xác định ID của root node
+        //   const rootId = 1; // Node gốc có parent_id là NULL
+        //   let currentLeft = 1;
+
+        //   // Cập nhật toàn bộ cây từ root
+        //   await updateNode(conn.promise(), rootId, currentLeft);
+
+        //   // Commit transaction
+        //   await conn.promise().commit();
+        //   console.log("Cập nhật thành công Nested Set Model");
+        // } catch (error) {
+        //   // Rollback nếu có lỗi
+        //   await conn.promise().rollback();
+        //   console.error("Có lỗi xảy ra:", error);
+        // } finally {
+        //   // Đóng kết nối
+        //   conn.release();
+        // }
 
         conn.release();
       }
@@ -54,6 +68,37 @@ class Datatbase {
     });
   }
 }
+
+// async function updateNode(connection, nodeId, currentLeft) {
+//   let newLeft = currentLeft;
+
+//   // Cập nhật giá trị left cho node hiện tại
+//   await connection.execute("UPDATE tbl_users SET `left` = ? WHERE `id` = ?", [
+//     newLeft,
+//     nodeId,
+//   ]);
+//   currentLeft++;
+
+//   // Lấy tất cả các node con
+//   const [children] = await connection.execute(
+//     "SELECT id FROM tbl_users WHERE parent_id = ? AND is_deleted = ?",
+//     [nodeId, 0]
+//   );
+
+//   // Đệ quy cập nhật cho các node con
+//   for (let child of children) {
+//     currentLeft = await updateNode(connection, child.id, currentLeft);
+//   }
+
+//   // Cập nhật giá trị right cho node hiện tại
+//   await connection.execute("UPDATE tbl_users SET `right` = ? WHERE `id` = ?", [
+//     currentLeft,
+//     nodeId,
+//   ]);
+//   currentLeft++;
+
+//   return currentLeft;
+// }
 
 const { getConnection, init, getActiveConnections } = new Datatbase();
 

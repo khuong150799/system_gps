@@ -10,7 +10,8 @@ const driverService = require("../services/driver.service");
 
 class DriverController {
   getAllRows = catchAsync(async (req, res) => {
-    const query = req.query;
+    const { query } = req;
+
     const { data, totalPage, totalRecord } = await driverService.getallrows(
       query
     );
@@ -26,9 +27,8 @@ class DriverController {
   });
 
   getTree = catchAsync(async (req, res) => {
-    const userId = req.userId;
-    const query = req.query;
-    const data = await driverService.getTree(query, userId);
+    const { isMain, parentId, userId, query } = req;
+    const data = await driverService.getTree(query, isMain, parentId, userId);
     GET(res, data);
   });
 

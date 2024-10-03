@@ -45,4 +45,5 @@ module.exports = {
   tableConfigTemperature: "tbl_config_sensor_temperature",
   tableConfigFuel: "tbl_config_fuel",
   tableDeviceExtend: "tbl_device_extend",
+  tableCustomersDriver: "tbl_customers_driver",
 };

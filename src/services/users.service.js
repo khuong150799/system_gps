@@ -87,11 +87,27 @@ class UsersService {
     }
   }
 
-  async getListWithUser(query, userId) {
+  async getListWithUser(query, parentId, isMain, userId) {
     try {
       const { conn } = await db.getConnection();
       try {
-        const data = await usersModel.getListWithUser(conn, query, userId);
+        const dataParent = await usersModel.getInfoParent(
+          conn,
+          isMain == 0 ? parentId : userId
+        );
+        if (!dataParent?.length) return [];
+
+        const { right, left } = dataParent[0];
+        const chosseRight = right;
+        const chosseLeft = left;
+
+        const data = await usersModel.getListWithUser(
+          conn,
+          query,
+          // userId,
+          chosseLeft,
+          chosseRight
+        );
         return data;
       } catch (error) {
         throw error;
@@ -504,6 +520,7 @@ class UsersService {
         await usersModel.deleteById(conn, params);
         return [];
       } catch (error) {
+        await connPromise.rollback();
         throw error;
       } finally {
         conn.release();

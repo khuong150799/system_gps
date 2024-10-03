@@ -4,70 +4,43 @@ const {
   ERROR,
   ALREADY_EXITS,
   WRITE_CARD_NOT_PERMISSION,
+  NOT_EXITS,
 } = require("../constants/msg.constant");
 const { BusinessLogicError } = require("../core/error.response");
 const DatabaseModel = require("../models/database.model");
 const validateModel = require("../models/validate.model");
-const { tableDriver } = require("../constants/tableName.constant");
+const {
+  tableDriver,
+  tableCustomersDriver,
+} = require("../constants/tableName.constant");
+const usersModel = require("../models/users.model");
 
 const databaseModel = new DatabaseModel();
 
 class DriverService {
-  async validate(conn, licenseNumber, phone, id = null) {
-    const errors = [];
-
-    let where = `is_deleted = ?`;
-    const conditions = [0];
-
-    if (id) {
-      where += ` AND id <> ?`;
-      conditions.push(id);
-    }
-
-    where += ` AND (license_number = ?`;
-    conditions.push(licenseNumber);
-
-    if (phone) {
-      where += ` OR phone = ?`;
-      conditions.push(phone);
-    }
-
-    where += `)`;
-
-    const dataCheck = await databaseModel.select(
-      conn,
-      tableDriver,
-      "license_number,phone",
-      where,
-      conditions
-    );
-    if (dataCheck.length <= 0) return [];
-
-    dataCheck.forEach((item) => {
-      if (item.license_number === licenseNumber) {
-        errors.push({
-          value: licenseNumber,
-          msg: `Số bằng lái ${ALREADY_EXITS}`,
-          param: "license_number",
-        });
-      } else if (phone && item.phone === phone) {
-        errors.push({
-          value: phone,
-          msg: `Số diện thoại ${ALREADY_EXITS}`,
-          param: "phone",
-        });
-      }
-    });
-
-    throw { msg: ERROR, errors };
-  }
-
   //getallrow
   async getallrows(query) {
     try {
       const { conn } = await db.getConnection();
+      const { customer_id } = query;
+
       try {
-        const data = await driverModel.getallrows(conn, query);
+        const dataInfo = await usersModel.getInfoParent(
+          conn,
+          null,
+          customer_id
+        );
+        if (!dataInfo?.length) return [];
+
+        const { right: rightRes, left: leftRes } = dataInfo[0];
+        const chosseRight = rightRes;
+        const chosseLeft = leftRes;
+        const data = await driverModel.getallrows(
+          conn,
+          query,
+          chosseLeft,
+          chosseRight
+        );
         return data;
       } catch (error) {
         throw error;
@@ -93,15 +66,33 @@ class DriverService {
         conn.release();
       }
     } catch (error) {
+      console.log(error);
+
       throw new BusinessLogicError(error.msg);
     }
   }
 
-  async getTree(query, userId) {
+  async getTree(query, isMain, parentId, userId) {
     try {
       const { conn } = await db.getConnection();
       try {
-        const data = await driverModel.getTree(conn, query, userId);
+        const dataParent = await usersModel.getInfoParent(
+          conn,
+          isMain == 0 ? parentId : userId
+        );
+        if (!dataParent?.length) return [];
+
+        const { right, left } = dataParent[0];
+        const chosseRight = right;
+        const chosseLeft = left;
+
+        // const data = await driverModel.getTree(conn, query, userId, customerId);
+        const data = await driverModel.getTree(
+          conn,
+          query,
+          chosseLeft,
+          chosseRight
+        );
         return data;
       } catch (error) {
         throw error;
@@ -109,6 +100,8 @@ class DriverService {
         conn.release();
       }
     } catch (error) {
+      console.log(error);
+
       throw new BusinessLogicError(error.msg);
     }
   }
@@ -152,8 +145,6 @@ class DriverService {
           await validateModel.checkRegexPhone(phone);
         }
 
-        await this.validate(conn, license_number, phone);
-
         const driver = await driverModel.register(
           conn,
           connPromise,
@@ -176,16 +167,47 @@ class DriverService {
   //update
   async updateById(body, params) {
     try {
-      const { conn } = await db.getConnection();
+      const { conn, connPromise } = await db.getConnection();
       try {
         const { license_number, phone } = body;
         const { id } = params;
         await validateModel.checkRegexLicense(license_number);
-        await this.validate(conn, license_number, phone, id);
+        if (phone) {
+          await validateModel.checkRegexPhone(phone);
+        }
 
-        const driver = await driverModel.updateById(conn, body, params);
+        const driverInfo = await databaseModel.select(
+          conn,
+          `${tableDriver} d INNER JOIN ${tableCustomersDriver} cd ON d.id = cd.driver_id`,
+          "d.id as driver_id, d.license_number,cd.customer_id",
+          "cd.id = ? AND cd.is_deleted = 0 AND d.is_deleted = 0",
+          id,
+          "d.id",
+          "ASC",
+          0,
+          1
+        );
+
+        if (!driverInfo?.length) throw { msg: `ID ${NOT_EXITS}` };
+
+        const {
+          driver_id: driverId,
+          customer_id: customerId,
+          license_number: licenseNumber,
+        } = driverInfo[0];
+
+        const driver = await driverModel.updateById(
+          conn,
+          connPromise,
+          body,
+          params,
+          driverId,
+          customerId,
+          licenseNumber
+        );
         return driver;
       } catch (error) {
+        await connPromise.rollback();
         throw error;
       } finally {
         conn.release();
@@ -199,11 +221,46 @@ class DriverService {
   //delete
   async deleteById(params) {
     try {
-      const { conn } = await db.getConnection();
+      const { conn, connPromise } = await db.getConnection();
       try {
-        await driverModel.deleteById(conn, params);
+        const { id } = params;
+
+        const driverInfo = await databaseModel.select(
+          conn,
+          `${tableDriver} d INNER JOIN ${tableCustomersDriver} cd ON d.id = cd.driver_id`,
+          "d.id as driver_id, d.license_number,cd.customer_id",
+          "cd.id = ? AND cd.is_deleted = 0 AND d.is_deleted = 0",
+          id,
+          "d.id",
+          "ASC",
+          0,
+          1
+        );
+        if (!driverInfo?.length) throw { msg: `ID ${NOT_EXITS}` };
+
+        const { driver_id } = driverInfo[0];
+
+        const countCustomerOfDriver = await databaseModel.count(
+          conn,
+          tableCustomersDriver,
+          "*",
+          "driver_id = ? AND is_deleted = ?",
+          [driver_id, 0]
+        );
+
+        const isDeleteđriver =
+          countCustomerOfDriver[0]?.total > 1 ? false : true;
+
+        await driverModel.deleteById(
+          conn,
+          connPromise,
+          params,
+          driverInfo[0],
+          isDeleteđriver
+        );
         return [];
       } catch (error) {
+        await connPromise.rollback();
         throw error;
       } finally {
         conn.release();

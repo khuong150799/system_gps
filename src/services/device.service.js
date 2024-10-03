@@ -212,23 +212,30 @@ class DeviceService {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
-        const { username, password, is_check_exited, imei } = body;
+        const { username, password, imei, vehicle } = body;
         const dataInfoDevice = await deviceModel.checkOutside(conn, { imei });
 
         await validateModel.checkRegexUsername(username);
 
         await validateModel.checkRegexPassword(password, true);
-        if (Number(is_check_exited) === 1) {
-          await validateModel.checkExitValue(
-            conn,
-            tableUsers,
-            "username",
-            username,
-            "Tài khoản",
-            "username"
-          );
-        } else {
-        }
+
+        await validateModel.checkExitValue(
+          conn,
+          tableUsers,
+          "username",
+          username,
+          "Tài khoản",
+          "username"
+        );
+
+        await validateModel.checkExitValue(
+          conn,
+          tableVehicle,
+          "name",
+          vehicle,
+          "Biển số phương tiện",
+          "vehicle"
+        );
 
         const {
           user_id,

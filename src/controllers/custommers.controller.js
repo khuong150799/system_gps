@@ -4,11 +4,10 @@ const customersService = require("../services/customers.service");
 
 class CustomersController {
   getAllRows = catchAsync(async (req, res) => {
-    const query = req.query;
-    const userId = req.customerId;
+    const { query } = req;
+
     const { data, totalPage, totalRecord } = await customersService.getallrows(
-      query,
-      userId
+      query
     );
     GET(res, data, totalPage, totalRecord);
   });

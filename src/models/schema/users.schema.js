@@ -9,6 +9,8 @@ class UsersSchema {
     is_deleted,
     is_main,
     is_team,
+    left,
+    right,
     created_at,
     updated_at,
   }) {
@@ -21,6 +23,8 @@ class UsersSchema {
     this.is_deleted = is_deleted;
     this.is_main = is_main;
     this.is_team = is_team;
+    this.left = left;
+    this.right = right;
     this.created_at = created_at;
     this.updated_at = updated_at;
   }

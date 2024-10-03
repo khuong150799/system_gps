@@ -9,6 +9,7 @@ const {
   tableLevel,
   tableUsers,
 } = require("../constants/tableName.constant");
+const usersModel = require("../models/users.model");
 
 const databaseModel = new DatabaseModel();
 
@@ -85,11 +86,29 @@ class CustomersService {
   }
 
   //getallrow
-  async getallrows(query, userId) {
+  async getallrows(query) {
     try {
       const { conn } = await db.getConnection();
       try {
-        const data = await customersModel.getallrows(conn, query, userId);
+        const { customer_id } = query;
+
+        const dataInfo = await usersModel.getInfoParent(
+          conn,
+          null,
+          customer_id
+        );
+        if (!dataInfo?.length) return [];
+
+        const { right: rightRes, left: leftRes } = dataInfo[0];
+        const chosseRight = rightRes;
+        const chosseLeft = leftRes;
+
+        const data = await customersModel.getallrows(
+          conn,
+          query,
+          chosseLeft,
+          chosseRight
+        );
         return data;
       } catch (error) {
         throw error;

@@ -4,6 +4,30 @@ const { ERROR, NOT_EXITS } = require("../constants/msg.constant");
 const { DB_NAME } = configureEnvironment();
 
 class DatabaseModel {
+  async select_(
+    db,
+    tableName,
+    fields = "*",
+    where = "",
+    conditions = [],
+    offset = 0,
+    limit = 10
+  ) {
+    return await new Promise((resolve, reject) => {
+      const query = `SELECT ${fields} FROM ${tableName} WHERE ${where}`;
+      db.query(query, conditions, (err, dataRes) => {
+        // console.log(query);
+        // console.log(conditions);
+        if (err) {
+          console.log(err);
+          return reject({ msg: ERROR });
+        }
+        // console.log(dataRes);
+        return resolve(dataRes);
+      });
+    });
+  }
+
   //get all + get by id + get where in
   async select(
     db,
@@ -480,11 +504,15 @@ class DatabaseModel {
         const newArr = [];
         const dequy = async (data) => {
           for (let i = 0; i < data.length; i++) {
-            newArr.push(...data[i]);
-            const id = data[i].id;
+            newArr.push(data[i]);
 
-            const childQuery = `SELECT ${select} FROM ${tableName} WHERE parent_id = ${id} ORDER BY ${orderByField} ${orderBySort}`;
+            const id = data[i].id;
+            // console.log("id", id);
+
+            const childQuery = `SELECT ${select} FROM ${tableName} WHERE parent_id = ${id} AND is_main = 1 ORDER BY ${orderByField} ${orderBySort}`;
             const dataRess = await db.promise().query(childQuery);
+
+            // console.log("dataRess", dataRess);
 
             if (dataRess[0].length > 0) {
               // console.log("dataRess", JSON.stringify(dataRess[0], null, 2));
@@ -496,7 +524,7 @@ class DatabaseModel {
         await dequy(conditions);
         return resolve(newArr);
       } catch (error) {
-        // console.log(error);
+        console.log(error);
         return reject(error);
       }
     });

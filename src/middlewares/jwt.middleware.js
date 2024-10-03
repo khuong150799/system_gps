@@ -21,6 +21,7 @@ const isAuth = async function (req, res, next) {
       req.parentId = parentId;
       req.attchPath = req.baseUrl + req.route.path;
       req.isMain = isMain;
+
       next();
     } else {
       return next(new Api403Error());

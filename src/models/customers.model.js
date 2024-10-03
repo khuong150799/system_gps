@@ -19,53 +19,26 @@ class CustomersModel extends DatabaseSchema {
   }
 
   //getallrow
-  async getallrows(conn, query, userId) {
+  async getallrows(conn, query, left, right) {
     const offset = query.offset || 0;
     const limit = query.limit || 10;
 
-    const { keyword, is_deleted, customer_id, level_id } = query;
+    const { keyword, is_deleted, level_id } = query;
 
-    const joinTableUsersCustomer = `${tableUsersCustomers} INNER JOIN ${tableUsers} ON ${tableUsersCustomers}.user_id = ${tableUsers}.id`;
+    // console.log("left, right", left, right);
 
-    const dataUser = await this.select(
-      conn,
-      joinTableUsersCustomer,
-      "user_id",
-      `${tableUsersCustomers}.customer_id = ? AND ${tableUsers}.is_main = ? AND ${tableUsers}.is_deleted = 0`,
-      [customer_id, 1],
-      `${tableUsers}.id`
-    );
+    const joinTable = `${tableUsers} u INNER JOIN ${tableUsersCustomers} uc ON u.id = uc.user_id 
+      INNER JOIN ${tableCustomers} c ON uc.customer_id = c.id
+      INNER JOIN ${tableLevel} lv ON c.level_id = lv.id`;
 
-    if (!dataUser.length) return { data: [], totalPage: 0 };
-    const isDeleted = is_deleted || 0;
+    const select = `u.username,u.id as user_id,u.is_actived,c.id ,c.name,c.company,c.email,c.phone,c.address,
+      c.tax_code,c.website,lv.name as level_name,c.created_at,c.updated_at`;
 
-    const where = `parent_id = ? AND is_deleted = ? AND is_main = ? AND is_team = ?`;
-    const chosseUser = dataUser[0].user_id;
-    const conditions = [chosseUser, isDeleted, 1, 0];
-    const whereDequy = `AND is_deleted = ${isDeleted} AND is_main = 1 AND is_team = 0`;
-
-    const ListUserId = await this.getAllRowsMenu(
-      conn,
-      tableUsers,
-      "id",
-      where,
-      conditions,
-      `id`,
-      "ASC",
-      "id",
-      whereDequy,
-      `id`,
-      "ASC"
-    );
-    if (!ListUserId?.length) return { data: [], totalPage: 0 };
-
-    const arrUserId = ListUserId.map((item) => item.id);
-
-    let where_ = `${tableCustomers}.is_deleted = ? AND ${tableUsers}.id IN (?)`;
-    const conditions_ = [isDeleted, arrUserId];
+    let where_ = `u.left > ? AND u.right < ? AND u.is_main = 1 AND c.is_deleted = ?`;
+    const conditions_ = [left, right, is_deleted];
 
     if (keyword) {
-      where_ += ` AND (${tableCustomers}.name LIKE ? OR ${tableCustomers}.company LIKE ? OR ${tableCustomers}.email LIKE ? OR ${tableCustomers}.phone LIKE ? OR ${tableCustomers}.address LIKE ? OR ${tableCustomers}.tax_code LIKE ?)`;
+      where_ += ` AND (c.name LIKE ? OR c.company LIKE ? OR c.email LIKE ? OR c.phone LIKE ? OR c.address LIKE ? OR c.tax_code LIKE ?)`;
       conditions_.push(
         `%${keyword}%`,
         `%${keyword}%`,
@@ -77,16 +50,9 @@ class CustomersModel extends DatabaseSchema {
     }
 
     if (level_id) {
-      where_ += ` AND level_id = ?`;
+      where_ += ` AND c.level_id = ?`;
       conditions_.push(level_id);
     }
-
-    const joinTable = `${tableUsers} INNER JOIN ${tableUsersCustomers} ON ${tableUsers}.id = ${tableUsersCustomers}.user_id 
-      INNER JOIN ${tableCustomers} ON ${tableUsersCustomers}.customer_id = ${tableCustomers}.id
-      INNER JOIN ${tableLevel} ON ${tableCustomers}.level_id = ${tableLevel}.id`;
-
-    const select = `${tableUsers}.username,${tableUsers}.id as user_id,${tableUsers}.is_actived,${tableCustomers}.id ,${tableCustomers}.name,${tableCustomers}.company,${tableCustomers}.email,${tableCustomers}.phone,${tableCustomers}.address,
-      ${tableCustomers}.tax_code,${tableCustomers}.website,${tableLevel}.name as level_name,${tableCustomers}.created_at,${tableCustomers}.updated_at`;
 
     const [res_, count] = await Promise.all([
       this.select(
@@ -95,7 +61,7 @@ class CustomersModel extends DatabaseSchema {
         select,
         where_,
         conditions_,
-        `${tableCustomers}.id`,
+        `c.id`,
         "DESC",
         offset,
         limit
@@ -163,6 +129,7 @@ class CustomersModel extends DatabaseSchema {
     if (isCommit) {
       await connPromise.beginTransaction();
     }
+
     const res_ = await this.insert(conn, tableCustomers, customer);
 
     const dataInsertUser = {
