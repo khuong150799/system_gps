@@ -881,6 +881,8 @@ class UsersModel extends DatabaseModel {
     delete user.is_deleted;
     delete user.created_at;
     delete user.is_main;
+    delete user.left;
+    delete user.right;
     await this.update(conn, tableUsers, user, "id", id);
 
     const usersRole = new UsersRoleSchema({

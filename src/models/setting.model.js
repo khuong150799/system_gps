@@ -111,7 +111,7 @@ class SettingModel extends DatabaseModel {
       keyword,
       setting_cate_id,
       on_default: on_default || 0,
-      is_disabled: is_disabled || 0,
+      is_disabled: is_disabled,
       publish,
       sort: sort || 0,
       is_deleted: 0,

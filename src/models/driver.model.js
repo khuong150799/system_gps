@@ -43,8 +43,8 @@ class DriverModel extends DatabaseModel {
 
     const listCustomer = treeUser.map((item) => item.customer_id);
 
-    let whereDriver = `cdr.customer_id IN (?) AND dr.is_deleted = ? `;
-    const conditions = [listCustomer, isDeleted];
+    let whereDriver = `cdr.customer_id IN (?) AND dr.is_deleted = ? AND cdr.is_deleted = ?`;
+    const conditions = [listCustomer, isDeleted, isDeleted];
 
     if (query.keyword) {
       whereDriver += ` AND (dr.name LIKE ? OR dr.license_number LIKE ? OR dr.phone LIKE ?)`;

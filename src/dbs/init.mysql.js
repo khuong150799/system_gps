@@ -21,7 +21,7 @@ class Datatbase {
         return console.log("error when connecting to Database", err);
       } else {
         // try {
-        //   // Bắt đầu transaction
+        // Bắt đầu transaction
         //   console.log(`SUCCESS:: CONNECTED TO DATABASE >> ${dbConfig.host}`);
 
         //   await conn.promise().beginTransaction();

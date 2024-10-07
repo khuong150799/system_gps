@@ -182,13 +182,10 @@ module.exports = (app) => {
       body("dev_id", NOT_EMPTY)
         .notEmpty()
         .isString()
-        .withMessage(VALIDATE_DATA)
-        .escape(),
-      body("imei", NOT_EMPTY)
-        .notEmpty()
-        .isString()
-        .withMessage(VALIDATE_DATA)
-        .escape(),
+        .withMessage(VALIDATE_DATA),
+      // .escape(),
+      body("imei", NOT_EMPTY).notEmpty().isString().withMessage(VALIDATE_DATA),
+      // .escape(),
       body("model_id", NOT_EMPTY)
         .notEmpty()
         .isNumeric()

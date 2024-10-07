@@ -45,9 +45,9 @@ class DeviceService {
     }
   };
 
-  async validate(conn, devId, imei, id = null) {
-    let where = `(dev_id = ? OR imei = ?) AND is_deleted = ?`;
-    const conditions = [devId, imei, 0];
+  async validate(conn, devIds = [], imeis = [], id = null) {
+    let where = `(dev_id IN (?) OR imei IN (?)) AND is_deleted = ?`;
+    const conditions = [devIds, imeis, 0];
 
     if (id) {
       where += ` AND id <> ?`;
@@ -62,22 +62,37 @@ class DeviceService {
       conditions
     );
     if (dataCheck.length <= 0) return [];
-    console.log("dataCheck", dataCheck);
-    const errors = dataCheck.map((item) => {
-      if (item.dev_id) {
-        return {
-          value: devId,
-          msg: `Mã đầu ghi ${ALREADY_EXITS}`,
-          param: "dev_id",
-        };
-      } else if (item.imei) {
-        return {
-          value: imei,
-          msg: `Imei ${ALREADY_EXITS}`,
-          param: "imei",
-        };
+    // console.log("dataCheck", dataCheck);
+
+    const listDevIDExist = [];
+    const listImeiExist = [];
+
+    for (let i = 0; i < dataCheck.length; i++) {
+      const { dev_id, imei } = dataCheck[i];
+      if (devIds.includes(dev_id)) {
+        listDevIDExist.push(dev_id);
+      } else if (imeis.includes(imei)) {
+        listImeiExist.push(imei);
       }
-    });
+    }
+
+    const errors = [];
+
+    if (listDevIDExist?.length) {
+      errors.push({
+        value: listDevIDExist.join(","),
+        msg: `Mã đầu ghi ${ALREADY_EXITS}`,
+        param: "dev_id",
+      });
+    }
+
+    if (listImeiExist?.length) {
+      errors.push({
+        value: listImeiExist.join(","),
+        msg: `Imei ${ALREADY_EXITS}`,
+        param: "imei",
+      });
+    }
 
     throw {
       msg: ERROR,
@@ -348,8 +363,12 @@ class DeviceService {
       const { conn, connPromise } = await db.getConnection();
       try {
         const { dev_id, imei, model_id, sv_cam_id } = body;
+        console.log("body", body);
 
-        await this.validate(conn, dev_id, imei);
+        const listImei = JSON.parse(imei);
+        const listDevId = JSON.parse(dev_id);
+
+        await this.validate(conn, listDevId, listImei);
 
         const dataModel = await validateModel.checkExitValue(
           conn,
@@ -375,6 +394,8 @@ class DeviceService {
           conn,
           connPromise,
           { ...body, model_type_id: modelType },
+          listImei,
+          listDevId,
           userId,
           isMain,
           parentId,
@@ -388,7 +409,7 @@ class DeviceService {
         conn.release();
       }
     } catch (error) {
-      // console.log(error);
+      console.log(error);
 
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);

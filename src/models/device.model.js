@@ -834,23 +834,35 @@ class DeviceModel extends DatabaseModel {
   }
 
   //Register
-  async register(conn, connPromise, body, userId, isMain, parentId, infoUser) {
-    const { dev_id, imei, model_id, serial, sv_cam_id, note } = body;
+  async register(
+    conn,
+    connPromise,
+    body,
+    listImei,
+    listDevId,
+    userId,
+    isMain,
+    parentId,
+    infoUser
+  ) {
+    const { model_id, serial, sv_cam_id, note } = body;
+
+    const listSerial = JSON.parse(serial);
     const createdAt = Date.now();
 
     await connPromise.beginTransaction();
 
-    const device = new DeviceSchema({
-      dev_id,
-      imei,
-      model_id,
-      serial: serial || null,
-      sv_cam_id: sv_cam_id || null,
-      note: note || null,
-      device_status_id: 1,
-      is_deleted: 0,
-      created_at: createdAt,
-    });
+    // const device = new DeviceSchema({
+    //   dev_id,
+    //   imei,
+    //   model_id,
+    //   serial: serial || null,
+    //   sv_cam_id: sv_cam_id || null,
+    //   note: note || null,
+    //   device_status_id: 1,
+    //   is_deleted: 0,
+    //   created_at: createdAt,
+    // });
     // console.log("body", body);
     // console.log("sv_cam_id", sv_cam_id);
 
@@ -859,8 +871,28 @@ class DeviceModel extends DatabaseModel {
     // delete device.activation_date;
     // delete device.warranty_expired_on;
     // delete device.vehicle_type_id;
-    delete device.updated_at;
-    const res_ = await this.insertDuplicate(
+    // delete device.updated_at;
+
+    const dataInsertDevice = [];
+
+    for (let i = 0; i < listImei.length; i++) {
+      const imei = listImei[i];
+      const dev_id = listDevId[i];
+
+      dataInsertDevice.push([
+        dev_id,
+        imei,
+        model_id,
+        listSerial[i],
+        sv_cam_id || null,
+        note || null,
+        1,
+        0,
+        Date.now(),
+      ]);
+    }
+
+    const res_ = await this.insertMulti(
       conn,
       tableDevice,
       ` dev_id,
@@ -872,46 +904,69 @@ class DeviceModel extends DatabaseModel {
           device_status_id,
           is_deleted,
           created_at`,
-
-      [
-        [
-          dev_id,
-          imei,
-          model_id,
-          serial || null,
-          sv_cam_id || null,
-          note || null,
-          1,
-          0,
-          Date.now(),
-        ],
-      ],
-
-      "is_deleted=VALUES(is_deleted)"
+      dataInsertDevice
     );
 
-    await this.insertDuplicate(
+    // await this.insertDuplicate(
+    //   conn,
+    //   tableUsersDevices,
+    //   "user_id,device_id,is_deleted,is_main,is_moved,created_at",
+    //   [[isMain == 0 ? parentId : userId, res_, 0, 1, 0, createdAt]],
+    //   "is_deleted=VALUES(is_deleted)"
+    // );
+
+    const dataInsertUserDevice = [];
+    const dataInsertLogs = [];
+
+    const { user_id, ip, os, gps } = infoUser;
+
+    for (let i = 0; i < listImei.length; i++) {
+      dataInsertUserDevice.push([
+        isMain == 0 ? parentId : userId,
+        res_ + i,
+        0,
+        1,
+        0,
+        createdAt + i,
+      ]);
+
+      dataInsertLogs.push([
+        user_id,
+        ip,
+        os,
+        gps,
+        res_ + i,
+        "Thêm",
+        "[]",
+        0,
+        createdAt + i,
+      ]);
+    }
+
+    await this.insertMulti(
       conn,
       tableUsersDevices,
       "user_id,device_id,is_deleted,is_main,is_moved,created_at",
-      [[isMain == 0 ? parentId : userId, res_, 0, 1, 0, createdAt]],
-      "is_deleted=VALUES(is_deleted)"
+      dataInsertUserDevice,
+      "is_deleted=VALUES(is_deleted),created_at=VALUES(created_at)"
     );
 
-    const dataSaveLog = {
-      ...infoUser,
-      device_id: res_,
-      action: "Thêm",
-      createdAt,
-    };
+    // const dataSaveLog = {
+    //   ...infoUser,
+    //   device_id: res_,
+    //   action: "Thêm",
+    //   createdAt,
+    // };
 
-    await deviceLoggingModel.postOrDelete(conn, dataSaveLog);
+    // await deviceLoggingModel.postOrDelete(conn, dataSaveLog);
+    await deviceLoggingModel.postMulti(conn, dataInsertLogs);
 
     await connPromise.commit();
 
-    device.id = res_;
-    delete device.is_deleted;
-    return device;
+    // device.id = res_;
+    // delete device.is_deleted;
+    // return device;
+    return [];
   }
 
   //update
