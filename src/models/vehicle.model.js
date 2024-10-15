@@ -205,7 +205,7 @@ class VehicleModel extends DatabaseModel {
       state,
       level,
     });
-    console.log("result", result);
+    // console.log("result", result);
     if (!result)
       throw {
         msg:
@@ -289,7 +289,7 @@ class VehicleModel extends DatabaseModel {
   ) {
     const { device_id, is_lock, des } = body;
     const { id } = params;
-    console.log("dataInfo", dataInfo);
+    // console.log("dataInfo", dataInfo);
 
     if (!dataInfo?.length) throw { msg: ERROR };
 
@@ -368,16 +368,17 @@ class VehicleModel extends DatabaseModel {
       99
     );
 
-    const process = fork(`./src/process/notify.process.js`);
-
-    process.send({
-      data: {
-        dataUsers,
-        keyword: is_lock == 1 ? "1_1_13" : "1_1_14",
-        vehicleName: name,
-        sv: SV_NOTIFY,
-      },
-    });
+    if (SV_NOTIFY) {
+      const process = fork(`./src/process/notify.process.js`);
+      process.send({
+        data: {
+          dataUsers,
+          keyword: is_lock == 1 ? "1_1_13" : "1_1_14",
+          vehicleName: name,
+          sv: SV_NOTIFY,
+        },
+      });
+    }
 
     // return dataUsers;
 
