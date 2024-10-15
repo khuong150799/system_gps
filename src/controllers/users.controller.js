@@ -208,8 +208,8 @@ class CustomersController {
     OK(res, data, {}, REFRESH_TOKEN_SUCCESS);
   });
   logout = catchAsync(async (req, res) => {
-    const clientId = req.clientId;
-    const data = await usersSrevice.logout(clientId);
+    const { clientId, userId } = req;
+    const data = await usersSrevice.logout(clientId, userId);
     OK(res, data, {}, LOGOUT_SUCCESS);
   });
 

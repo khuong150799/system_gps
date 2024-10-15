@@ -46,4 +46,5 @@ module.exports = {
   tableConfigFuel: "tbl_config_fuel",
   tableDeviceExtend: "tbl_device_extend",
   tableCustomersDriver: "tbl_customers_driver",
+  tableTokenFirebase: "tbl_token_firebase",
 };

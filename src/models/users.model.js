@@ -43,6 +43,7 @@ const { users } = require("../constants/module.constant");
 const { hSet, del: delRedis } = require("./redis.model");
 const { REDIS_KEY_TOKEN } = require("../constants/redis.constant");
 const ordersModel = require("./orders.model");
+const tokenFirebaseModel = require("./tokenFirebase.model");
 
 class UsersModel extends DatabaseModel {
   constructor() {
@@ -448,7 +449,7 @@ class UsersModel extends DatabaseModel {
       conn,
       tableUsers,
       "`right`",
-      `id = ? FOR UPDATE OF ${tableUsers}`,
+      `id = ? FOR UPDATE`,
       parent_id
     );
 
@@ -934,7 +935,7 @@ class UsersModel extends DatabaseModel {
       conn,
       tableUsers,
       "`right`,`left`",
-      `id = ? FOR UPDATE OF ${tableUsers}`,
+      `id = ? FOR UPDATE`,
       id
     );
 
@@ -1094,7 +1095,7 @@ class UsersModel extends DatabaseModel {
   }
 
   //login
-  async login(conn, id, parentId, role, level, customer_id, isMain) {
+  async login(conn, body, id, parentId, role, level, customer_id, isMain) {
     const clientId = uuidv4();
     const keyToken = md5(Date.now());
     const keyRefreshToken = md5(Date.now() + 1);
@@ -1125,6 +1126,16 @@ class UsersModel extends DatabaseModel {
       keyRefreshToken
     );
     // console.log(98765432);
+
+    const deviceToken = body?.device_token;
+
+    if (deviceToken) {
+      await tokenFirebaseModel.register(conn, {
+        user_id: id,
+        client_id: clientId,
+        token: body?.device_token,
+      });
+    }
 
     // await keyTokenModel.register(conn, {
     //   user_id: id,
@@ -1235,10 +1246,15 @@ class UsersModel extends DatabaseModel {
   }
 
   //logout
-  async logout(conn, clientId) {
+  async logout(conn, clientId, usersId) {
     // await keyTokenModel.deleteById(conn, {
     //   client_id: clientId,
     // });
+
+    await tokenFirebaseModel.deleteById(conn, {
+      client_id: clientId,
+      user_id: usersId,
+    });
 
     await delRedis(clientId);
 

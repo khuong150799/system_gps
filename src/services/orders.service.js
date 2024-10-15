@@ -39,7 +39,8 @@ class OrdersService {
     reciver = null,
     customerId,
     id = null,
-    parentId
+    parentId,
+    isMain
   ) {
     const errors = [];
 
@@ -154,7 +155,8 @@ class OrdersService {
         if (
           (!dataReciverParent[0]?.id ||
             dataReciverParent[0]?.id != customerId) &&
-          parentId
+          parentId &&
+          ((Number(parentId) === 1 && isMain == 1) || Number(parentId) > 1)
         ) {
           errors.push({
             value: reciver,
@@ -330,7 +332,7 @@ class OrdersService {
 
     const jointableUsersDevicesWithUsersCustomers = `
       ${tableUsersDevices} ud INNER JOIN ${tableUsersCustomers} uc ON ud.user_id = uc.user_id 
-      LEFT JOIN ${tableDeviceVehicle} dv ON ud.device_id = dv.device_id`;
+      LEFT JOIN ${tableDeviceVehicle} dv ON ud.device_id = dv.device_id AND dv.is_deleted = ?`;
 
     const joinTableOdersUsersWithUsersCustomersWithUsers = `
       ${tableOrders} o INNER JOIN ${tableUsersCustomers} uc ON o.creator_customer_id = uc.customer_id 
@@ -340,8 +342,8 @@ class OrdersService {
         conn,
         jointableUsersDevicesWithUsersCustomers,
         `ud.user_id ,uc.customer_id,dv.activation_date`,
-        `ud.is_moved = ? AND ud.device_id = ?`,
-        [0, deviceId],
+        `ud.is_moved = ? AND ud.device_id = ? AND ud.is_deleted = ?`,
+        [0, 0, deviceId, 0],
         `ud.id`,
         "ASC",
         0,
@@ -485,8 +487,8 @@ class OrdersService {
   }
 
   //Register tree
-  async registerTree(body, userId, customerId, parentId) {
-    console.log({ body, userId, customerId, parentId });
+  async registerTree(body, userId, customerId, parentId, isMain) {
+    // console.log({ body, userId, customerId, parentId });
 
     try {
       const { conn, connPromise } = await db.getConnection();
@@ -503,7 +505,8 @@ class OrdersService {
           null,
           customerId,
           null,
-          parentId
+          parentId,
+          isMain
         );
 
         const dataInfo = await validateModel.CheckCustomerTree(
@@ -511,7 +514,8 @@ class OrdersService {
           listReciver,
           "recivers",
           STRUCTURE_ORDERS_FAIL,
-          parentId
+          parentId,
+          isMain
         );
 
         await ordersModel.registerTree(

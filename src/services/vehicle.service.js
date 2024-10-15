@@ -12,7 +12,11 @@ const {
 } = require("../constants/tableName.constant");
 const DatabaseModel = require("../models/database.model");
 const validateModel = require("../models/validate.model");
-const { NOT_OWN, NOT_EXITS } = require("../constants/msg.constant");
+const {
+  NOT_OWN,
+  NOT_EXITS,
+  VEHICLE_NOT_PERMISSION,
+} = require("../constants/msg.constant");
 
 const dataBaseModel = new DatabaseModel();
 
@@ -41,14 +45,100 @@ class vehicleService {
           conn,
           joinTable,
           "d.imei,v.name,d.id as device_id",
-          "v.id = ? AND d.device_status_id = 3",
+          "v.id = ? AND dv.is_deleted = 0 AND d.device_status_id = 3  AND v.is_deleted = 0 AND d.is_deleted = 0",
           id,
           "d.id"
         );
 
-        console.log("body", body);
+        // console.log("body", body);
 
         const data = await vehicleModel.updateName(
+          conn,
+          connPromise,
+          body,
+          params,
+          dataInfo,
+          infoUser
+        );
+        return data;
+      } catch (error) {
+        await connPromise.rollback();
+        throw error;
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      console.log(error);
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
+    }
+  }
+
+  async remote(body, chosseUserId, infoUser) {
+    try {
+      const { conn, connPromise } = await db.getConnection();
+      try {
+        const { device_id } = body;
+
+        const joinTable = `${tableDevice} d INNER JOIN ${tableUserDevice} ud ON d.id = ud.device_id`;
+
+        const dataInfo = await dataBaseModel.select(
+          conn,
+          joinTable,
+          "d.imei",
+          "d.id = ? AND d.is_deleted = 0 AND d.device_status_id = 3  AND ud.user_id = ? AND ud.is_deleted = 0",
+          [device_id, chosseUserId],
+          "d.id"
+        );
+
+        console.log("dataInfo", dataInfo);
+        if (!dataInfo?.length) throw { msg: VEHICLE_NOT_PERMISSION };
+
+        const imei = dataInfo[0]?.imei;
+
+        const data = await vehicleModel.remote(
+          conn,
+          connPromise,
+          body,
+          imei,
+          infoUser
+        );
+        return data;
+      } catch (error) {
+        await connPromise.rollback();
+        throw error;
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      console.log(error);
+      const { msg, errors, message } = error;
+      throw new BusinessLogicError(msg || message, errors);
+    }
+  }
+
+  async updateLock(body, params, infoUser) {
+    try {
+      const { conn, connPromise } = await db.getConnection();
+      try {
+        const { device_id } = body;
+        const { id } = params;
+
+        const joinTable = `${tableDeviceVehicle} dv INNER JOIN ${tableDevice} d ON dv.device_id = d.id 
+          INNER JOIN ${tableVehicle} v ON dv.vehicle_id = v.id`;
+
+        const dataInfo = await dataBaseModel.select(
+          conn,
+          joinTable,
+          "d.imei,d.id as device_id,v.name",
+          "dv.device_id = ? AND dv.vehicle_id = ? AND dv.is_deleted = 0 AND d.device_status_id = 3 AND d.is_deleted = 0",
+          [device_id, id],
+          "d.id"
+        );
+
+        // console.log("body", body);
+
+        const data = await vehicleModel.updateLock(
           conn,
           connPromise,
           body,

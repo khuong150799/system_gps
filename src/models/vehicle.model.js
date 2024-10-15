@@ -1,4 +1,10 @@
-const { ERROR } = require("../constants/msg.constant");
+const { eventFeature } = require("notify-services");
+const {
+  ERROR,
+  VEHICLE_NOT_PERMISSION,
+  REMOTE_TURN_OFF_DEVICE_ERROR,
+  REMOTE_TURN_ON_DEVICE_ERROR,
+} = require("../constants/msg.constant");
 const {
   REDIS_KEY_LIST_IMEI_OF_USERS,
   REDIS_KEY_LIST_DEVICE,
@@ -26,6 +32,11 @@ const deviceLoggingModel = require("./deviceLogging.model");
 const ordersModel = require("./orders.model");
 const { del: delRedis, hdelOneKey, hSet: hsetRedis } = require("./redis.model");
 const DeviceExtendSchema = require("./schema/deviceExtend.schema");
+const configureEnvironment = require("../config/dotenv.config");
+const { fork } = require("child_process");
+const deviceApi = require("../api/device.api");
+
+const { SV_NOTIFY } = configureEnvironment();
 
 class VehicleModel extends DatabaseModel {
   constructor() {
@@ -48,7 +59,7 @@ class VehicleModel extends DatabaseModel {
     LEFT JOIN ${tableCustomers} c ON uc2.customer_id = c.id`;
 
     const select = `
-      d.id as device_id,d.imei,dv.expired_on,dv.activation_date,dv.warranty_expired_on,dv.is_use_gps,dv.quantity_channel,dv.quantity_channel_lock,dv.is_transmission_gps,dv.is_transmission_image,
+      d.id as device_id,d.imei,dv.expired_on,dv.activation_date,dv.warranty_expired_on,dv.is_use_gps,dv.quantity_channel,dv.quantity_channel_lock,dv.is_lock,dv.is_transmission_gps,dv.is_transmission_image,
       v.display_name,v.name as vehicle_name,v.id as vehicle_id,v.vehicle_type_id,vt.name as vehicle_type_name,vt.vehicle_icon_id,vt.max_speed,
       m.name as model_name,m.model_type_id,ds.title as device_status_name,COALESCE(c0.company,
       c0.name) as customer_name,COALESCE(c.company, c.name) as agency_name,c.phone as agency_phone,vi.name as vehicle_icon_name,
@@ -79,7 +90,7 @@ class VehicleModel extends DatabaseModel {
       `d.id`
     );
 
-    // console.log("data", imei, data);
+    console.log("data", imei, data);
 
     if (data.length) {
       await Promise.all(
@@ -161,9 +172,48 @@ class VehicleModel extends DatabaseModel {
       [id, device_id],
       "service_package_id",
       true,
-      "vehicle_id = ? AND device_id = ?"
+      "device_id = ? AND vehicle_id = ?"
     );
 
+    return [];
+  }
+
+  async remote(
+    conn,
+    connPromise,
+    body,
+    imei,
+
+    infoUser
+  ) {
+    const { device_id, state, level } = body;
+
+    await connPromise.beginTransaction();
+
+    const dataLog = {
+      ...infoUser,
+      device_id,
+      des: null,
+      action: state == 0 ? "Mở máy" : "Tắt máy",
+      createdAt: Date.now(),
+    };
+
+    await deviceLoggingModel.postOrDelete(conn, dataLog);
+
+    const { result } = await deviceApi.remote({
+      imei,
+      state,
+      level,
+    });
+    console.log("result", result);
+    if (!result)
+      throw {
+        msg:
+          state == 1
+            ? REMOTE_TURN_OFF_DEVICE_ERROR
+            : REMOTE_TURN_ON_DEVICE_ERROR,
+      };
+    await connPromise.commit();
     return [];
   }
 
@@ -178,11 +228,11 @@ class VehicleModel extends DatabaseModel {
     const { name } = body;
     const { id } = params;
 
+    if (!dataInfo?.length) throw { msg: ERROR };
     await connPromise.beginTransaction();
 
     await this.update(conn, tableVehicle, { name }, "id", id);
     // console.log("dataInfo", dataInfo);
-    if (!dataInfo?.length) throw { msg: ERROR };
     const nameOld = dataInfo[0].name;
     const { redis: listPromiseDelRedis, logging: listPromiseLogging } =
       dataInfo.reduce(
@@ -225,6 +275,111 @@ class VehicleModel extends DatabaseModel {
     // throw { msg: ERROR };
 
     await connPromise.commit();
+
+    return [];
+  }
+
+  async updateLock(
+    conn,
+    connPromise,
+    body,
+    params,
+    dataInfo,
+    { user_id, ip, os, gps }
+  ) {
+    const { device_id, is_lock, des } = body;
+    const { id } = params;
+    console.log("dataInfo", dataInfo);
+
+    if (!dataInfo?.length) throw { msg: ERROR };
+
+    await connPromise.beginTransaction();
+
+    await this.update(
+      conn,
+      tableDeviceVehicle,
+      { is_lock },
+      "",
+      [device_id, id],
+      "vehicle_id",
+      true,
+      "device_id = ? AND vehicle_id = ?"
+    );
+    // console.log("dataInfo", dataInfo);
+
+    const { redis: listPromiseDelRedis, logging: listPromiseLogging } =
+      dataInfo.reduce(
+        (result, { imei, device_id }) => {
+          // console.log("imei", imei);
+
+          result.redis.push(this.getInfoDevice(conn, imei));
+          result.logging.push(
+            deviceLoggingModel.lockVehicle(
+              conn,
+              des ? [des] : [],
+              is_lock == 0 ? "Mở khoá" : "Khoá",
+              {
+                user_id,
+                device_id,
+                ip,
+                os,
+                gps,
+              }
+            )
+          );
+
+          return result;
+        },
+        { redis: [], logging: [] }
+      );
+
+    const listDataGetRedis = await Promise.all(listPromiseDelRedis);
+    await Promise.all(listPromiseLogging);
+
+    let isRollback = false;
+
+    for (let i = 0; i < listDataGetRedis.length; i++) {
+      const result = listDataGetRedis[i];
+      // console.log("result", result);
+
+      if (!result?.length) {
+        isRollback = true;
+      }
+    }
+
+    if (isRollback) throw { msg: ERROR };
+    // throw { msg: ERROR };
+
+    await connPromise.commit();
+
+    const { imei, name } = dataInfo[0];
+
+    const joinTable = `${tableDevice} d INNER JOIN ${tableUsersDevices} ud ON d.id = ud.device_id`;
+
+    const dataUsers = await this.select(
+      conn,
+      joinTable,
+      "ud.user_id",
+      "d.imei = ? AND d.is_deleted = ? AND ud.is_main = ? AND ud.is_deleted = ?",
+      [imei, 0, 1, 0],
+      "d.id",
+      "ASC",
+      0,
+      99
+    );
+
+    const process = fork(`./src/process/notify.process.js`);
+
+    process.send({
+      data: {
+        dataUsers,
+        keyword: is_lock == 1 ? "1_1_13" : "1_1_14",
+        vehicleName: name,
+        sv: SV_NOTIFY,
+      },
+    });
+
+    // return dataUsers;
 
     return [];
   }
@@ -311,7 +466,7 @@ class VehicleModel extends DatabaseModel {
       true,
       "vehicle_id = ? AND device_id = ?"
     );
-    console.log("dataInfo", dataInfo);
+    // console.log("dataInfo", dataInfo);
 
     const {
       redis: listPromiseDelRedis,
@@ -632,7 +787,7 @@ class VehicleModel extends DatabaseModel {
       ...infoUser,
       device_id,
       action: "Xoá",
-      des: `Xoá phương tiện ${vehicle_name}`,
+      des: JSON.stringify([`Xoá phương tiện ${vehicle_name}`]),
       createdAt: Date.now(),
     };
 
@@ -809,7 +964,9 @@ class VehicleModel extends DatabaseModel {
       ...infoUser,
       device_id: device_id_old,
       action: "Sửa",
-      des: `Bảo hành phương tiện ${vehicle_name}: ${infoDeviceOld.imei} ===> ${infoDeviceNew.imei}`,
+      des: JSON.stringify(
+        `Bảo hành phương tiện ${vehicle_name}: ${infoDeviceOld.imei} ===> ${infoDeviceNew.imei}`
+      ),
       createdAt: Date.now(),
     };
 
@@ -921,7 +1078,7 @@ class VehicleModel extends DatabaseModel {
       tableUsersDevices,
       "user_id,device_id,is_main,is_deleted,is_moved,created_at",
       [[reciver, listDeviceId[0], 1, 0, 0, Date.now()]],
-      `is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved),created_at=VALUES(created_at)`
+      `is_main=VALUES(is_main),is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved),created_at=VALUES(created_at)`
     );
 
     await this.getInfoDevice(conn, imei);
@@ -930,7 +1087,9 @@ class VehicleModel extends DatabaseModel {
       ...infoUser,
       device_id: listDeviceId[0],
       action: "Chuyển",
-      des: `Chuyển phương tiện ${vehicle_name}: ${nameUserMove}(${userIdMove}) ===> ${reciver}(${nameReciver})`,
+      des: JSON.stringify(
+        `Chuyển phương tiện ${vehicle_name}: ${nameUserMove}(${userIdMove}) ===> ${reciver}(${nameReciver})`
+      ),
       createdAt: Date.now(),
     };
 

@@ -127,7 +127,8 @@ class ValidateModel extends DatabaseModel {
     listCustomer,
     param = "recivers",
     msg = STRUCTURE_ORDERS_FAIL,
-    parentId
+    parentId,
+    isMain
   ) {
     const errors = [];
 
@@ -168,7 +169,10 @@ class ValidateModel extends DatabaseModel {
     const dataInfoParent = await Promise.all(arrayPromiseParent);
 
     const checkStructureRecivers = dataInfoParent.some((item, i) => {
-      if (parentId) {
+      if (
+        parentId &&
+        ((Number(parentId) === 1 && isMain == 1) || Number(parentId) > 1)
+      ) {
         return Number(item[0].id) !== Number(listCustomer[i]);
       } else if (i > 0) {
         return Number(item[0].id) !== Number(listCustomer[i]);

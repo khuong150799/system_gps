@@ -4,15 +4,7 @@ const { ERROR, NOT_EXITS } = require("../constants/msg.constant");
 const { DB_NAME } = configureEnvironment();
 
 class DatabaseModel {
-  async select_(
-    db,
-    tableName,
-    fields = "*",
-    where = "",
-    conditions = [],
-    offset = 0,
-    limit = 10
-  ) {
+  async select_(db, tableName, fields = "*", where = "", conditions = []) {
     return await new Promise((resolve, reject) => {
       const query = `SELECT ${fields} FROM ${tableName} WHERE ${where}`;
       db.query(query, conditions, (err, dataRes) => {
@@ -42,9 +34,9 @@ class DatabaseModel {
   ) {
     return await new Promise((resolve, reject) => {
       const query = `SELECT ${fields} FROM ${tableName} WHERE ${where} ORDER BY ${orderByField} ${orderBySort} LIMIT ${offset},${limit}`;
+      // console.log(query);
+      // console.log(conditions);
       db.query(query, conditions, (err, dataRes) => {
-        // console.log(query);
-        // console.log(conditions);
         if (err) {
           console.log(err);
           return reject({ msg: ERROR });

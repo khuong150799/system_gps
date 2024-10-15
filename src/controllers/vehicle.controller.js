@@ -9,10 +9,32 @@ class VehicleController {
     UPDATE(res, [data]);
   });
 
+  remote = catchAsync(async (req, res) => {
+    const { body, userId, isMain, parentId } = req;
+    const infoUser = { user_id: userId, ip: null, os: null, gps: null };
+    const chosseUserId = isMain == 1 ? userId : parentId;
+    const data = await vehicleService.remote(body, chosseUserId, infoUser);
+    UPDATE(res, [data]);
+  });
+
   updateName = catchAsync(async (req, res) => {
     const { body, params, userId } = req;
     const infoUser = { user_id: userId, ip: null, os: null, gps: null };
     const data = await vehicleService.updateName(body, params, infoUser);
+    UPDATE(res, [data]);
+  });
+
+  updateLock = catchAsync(async (req, res) => {
+    const { body, params, userId } = req;
+    const infoUser = { user_id: userId, ip: null, os: null, gps: null };
+    const data = await vehicleService.updateLock(body, params, infoUser);
+    UPDATE(res, [data]);
+  });
+  //systemUpdateLock
+  systemUpdateLock = catchAsync(async (req, res) => {
+    const { body, params } = req;
+    const infoUser = { user_id: 1, ip: null, os: null, gps: null };
+    const data = await vehicleService.updateLock(body, params, infoUser);
     UPDATE(res, [data]);
   });
 

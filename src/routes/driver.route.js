@@ -45,7 +45,7 @@ module.exports = (app) => {
     ],
     isAuth,
     checkPermission,
-    driverController.wirteCard
+    driverController.writeCard
   );
   router.post(
     "/register",

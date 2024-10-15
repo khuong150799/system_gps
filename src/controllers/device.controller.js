@@ -11,10 +11,12 @@ const deviceService = require("../services/device.service");
 
 class DeviceController {
   getAllRows = catchAsync(async (req, res) => {
-    const { query, customerId } = req;
+    const { query, customerId, isMain, parentId, userId } = req;
+    const chosseUserId = isMain == 1 ? userId : parentId;
     const { data, totalPage, totalRecord } = await deviceService.getallrows(
       query,
-      customerId
+      customerId,
+      chosseUserId
     );
 
     GET(res, data, totalPage, totalRecord);

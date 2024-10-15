@@ -106,7 +106,7 @@ class DriverService {
     }
   }
 
-  async wirteCard(body, userId) {
+  async writeCard(body, userId) {
     try {
       const { conn } = await db.getConnection();
       try {
@@ -118,7 +118,7 @@ class DriverService {
           [device_id],
           WRITE_CARD_NOT_PERMISSION
         );
-        const data = await driverModel.wirteCard(conn, body);
+        const data = await driverModel.writeCard(conn, body);
         return data;
       } catch (error) {
         throw error;

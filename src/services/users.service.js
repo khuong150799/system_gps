@@ -517,7 +517,7 @@ class UsersService {
           id
         );
 
-        await usersModel.deleteById(conn, params);
+        await usersModel.deleteById(conn, connPromise, params);
         return [];
       } catch (error) {
         await connPromise.rollback();
@@ -756,6 +756,7 @@ class UsersService {
 
         const data = await usersModel.login(
           conn,
+          body,
           id,
           parentId,
           role,
@@ -797,11 +798,11 @@ class UsersService {
   }
 
   //logout
-  async logout(clientId) {
+  async logout(clientId, userId) {
     try {
       const { conn } = await db.getConnection();
       try {
-        const data = await usersModel.logout(conn, clientId);
+        const data = await usersModel.logout(conn, clientId, userId);
 
         return data;
       } catch (error) {

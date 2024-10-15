@@ -32,9 +32,9 @@ class DriverController {
     GET(res, data);
   });
 
-  wirteCard = catchAsync(async (req, res) => {
+  writeCard = catchAsync(async (req, res) => {
     const { userId, body } = req;
-    const { message, data, options } = await driverService.wirteCard(
+    const { message, data, options } = await driverService.writeCard(
       body,
       userId
     );

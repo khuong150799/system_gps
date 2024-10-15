@@ -20,6 +20,43 @@ module.exports = (app) => {
   );
 
   router.patch(
+    "/update-lock/:id",
+    [
+      param("id", VALIDATE_DATA).isNumeric(),
+      body("device_id", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA),
+      body("is_lock", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA),
+    ],
+    isAuth,
+    // checkPermission,
+    vehicleController.updateLock
+  );
+
+  router.patch(
+    "/system-update-lock/:id",
+    [
+      param("id", VALIDATE_DATA).isNumeric(),
+      body("device_id", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA),
+      body("is_lock", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA),
+
+      body("des", NOT_EMPTY).notEmpty().isString().withMessage(VALIDATE_DATA),
+    ],
+
+    vehicleController.systemUpdateLock
+  );
+
+  router.patch(
     "/update-package/:id",
     [
       param("id", VALIDATE_DATA).isNumeric(),
@@ -172,6 +209,30 @@ module.exports = (app) => {
     isAuth,
     checkPermission,
     vehicleController.move
+  );
+
+  router.post(
+    "/remote",
+    [
+      body("device_id", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+      body("state", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+      body("level", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+    ],
+    isAuth,
+    // checkPermission,
+    vehicleController.remote
   );
 
   app.use("/api/v1/vehicle", router);

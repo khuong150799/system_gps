@@ -186,7 +186,7 @@ class DriverModel extends DatabaseModel {
     return res_;
   }
 
-  async wirteCard(conn, body) {
+  async writeCard(conn, body) {
     const { license_number, name, device_id } = body;
     const infoDevice = await this.select(conn, tableDevice, "imei", "id = ?", [
       device_id,

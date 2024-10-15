@@ -43,13 +43,14 @@ class OrdersController {
   });
 
   registerTree = catchAsync(async (req, res) => {
-    const { userId, customerId, parentId, body } = req;
+    const { isMain, userId, customerId, parentId, body } = req;
 
     const data = await ordersService.registerTree(
       body,
       userId,
       customerId,
-      parentId
+      parentId,
+      isMain
     );
     CREATED(res, data);
   });

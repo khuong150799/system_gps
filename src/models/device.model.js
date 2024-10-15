@@ -289,21 +289,21 @@ class DeviceModel extends DatabaseModel {
       conditions = [customer, ...conditions, 0, 0];
 
       select += ` ,o.code orders_code,v.name as vehicle_name, v.is_checked,dv.is_transmission_gps,dv.is_transmission_image,
-        vt.name as vehicle_type_name,dv.quantity_channel,sp.name as service_package_name,MAX(COALESCE(c1.company,c1.name)) as customer_name,c1.id as customer_id,v.id as vehicle_id`;
+        vt.name as vehicle_type_name,dv.is_lock,dv.quantity_channel,sp.name as service_package_name,MAX(COALESCE(c1.company,c1.name)) as customer_name,c1.id as customer_id,v.id as vehicle_id`;
     } else if (type == 2) {
       joinTable += ` LEFT JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id AND dv.is_deleted = ?
         LEFT JOIN ${tableVehicle} v ON dv.vehicle_id = v.id`;
 
       conditions = [0, ...conditions];
     } else {
-      joinTable += ` LEFT JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id 
+      joinTable += ` LEFT JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id AND dv.is_deleted = ?
       LEFT JOIN ${tableVehicle} v ON dv.vehicle_id = v.id AND v.is_deleted = ?
       LEFT JOIN ${tableOrdersDevice} od ON ud.device_id = od.device_id AND od.is_deleted = ?
       LEFT JOIN ${tableOrders} o ON od.orders_id = o.id AND o.is_deleted = ?
       LEFT JOIN ${tableCustomers} c1 ON o.reciver = c1.id AND o.creator_customer_id = ?`;
       select += ` ,o.code orders_code,d.created_at,d.updated_at,
         ds.title as device_status_name,MAX(COALESCE(c1.company,c1.name)) as customer_name,c1.id as customer_id,v.id as vehicle_id,v.name as vehicle_name`;
-      conditions = [0, 0, 0, customer, ...conditions];
+      conditions = [0, 0, 0, 0, customer, ...conditions];
     }
 
     const [res_, count] = await Promise.all([
@@ -345,7 +345,7 @@ class DeviceModel extends DatabaseModel {
     LEFT JOIN ${tableCustomers} c ON uc2.customer_id = c.id`;
 
     const select = `
-      d.id as device_id,d.dev_id,d.serial,d.imei,dv.expired_on,dv.activation_date,dv.warranty_expired_on,dv.is_use_gps,dv.quantity_channel,dv.quantity_channel_lock,dv.is_transmission_gps,dv.is_transmission_image,
+      d.id as device_id,d.dev_id,d.serial,d.imei,dv.expired_on,dv.activation_date,dv.warranty_expired_on,dv.is_use_gps,dv.quantity_channel,dv.quantity_channel_lock,dv.is_lock,dv.is_transmission_gps,dv.is_transmission_image,
       v.display_name,v.name as vehicle_name,v.id as vehicle_id,v.vehicle_type_id,vt.name as vehicle_type_name,dv.service_package_id,vt.vehicle_icon_id,vt.max_speed,v.weight,v.warning_speed,m.id as model_id,
       m.name as model_name,m.model_type_id,ds.id as device_status_id,ds.title as device_status_name,COALESCE(c0.company,
       c0.name) as customer_name,COALESCE(c.company, c.name) as agency_name,c.phone as agency_phone,vi.name as vehicle_icon_name,
