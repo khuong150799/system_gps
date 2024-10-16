@@ -169,7 +169,7 @@ class VehicleModel extends DatabaseModel {
       tableDeviceVehicle,
       { service_package_id },
       "",
-      [id, device_id],
+      [device_id, id],
       "service_package_id",
       true,
       "device_id = ? AND vehicle_id = ?"
