@@ -90,7 +90,7 @@ class VehicleModel extends DatabaseModel {
       `d.id`
     );
 
-    console.log("data", imei, data);
+    // console.log("data", imei, data);
 
     if (data.length) {
       await Promise.all(

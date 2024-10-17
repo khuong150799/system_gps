@@ -1013,7 +1013,7 @@ class DeviceModel extends DatabaseModel {
       this.select(conn, tableDeviceStatus, "id,title", "1 = ?", 1),
     ]);
     await this.update(conn, tableDevice, device, "id", id);
-    await vehicleModel.getInfoDevice(conn, null, id);
+    await vehicleModel.getInfoDevice(conn, imei);
     await deviceLoggingModel.update(conn, {
       dataModel,
       dataStatus,
@@ -1023,7 +1023,7 @@ class DeviceModel extends DatabaseModel {
       device_id: id,
     });
 
-    await hdelOneKey(REDIS_KEY_LIST_DEVICE, imei.toString());
+    // await hdelOneKey(REDIS_KEY_LIST_DEVICE, imei.toString());
     await connPromise.commit();
     device.id = id;
     return device;
