@@ -33,6 +33,7 @@ class ServerCameraService {
         if (url) {
           try {
             const arrUrl = url.split(":");
+            const domain = `${arrUrl[0]}:${arrUrl[1]}`;
             if (SV_NOTIFY) {
               const process = fork(`./src/process/notify.process.js`);
 
@@ -40,13 +41,12 @@ class ServerCameraService {
                 data: {
                   dataUsers: [{ user_id: 1 }],
                   keyword: "6_1_1",
-                  replaces: { sv_cam: arrUrl[1], error_code: error.code },
+                  replaces: { sv_cam: domain, error_code: error.code },
                   sv: SV_NOTIFY,
                 },
               });
             }
 
-            const domain = `${arrUrl[0]}:${arrUrl[1]}`;
             // console.log("domain", domain);
             const { data } = await serverCameraModel.getallrows(db.db, {
               limit: 1,
