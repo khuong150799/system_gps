@@ -3,6 +3,9 @@ const { BusinessLogicError } = require("../core/error.response");
 const validateModel = require("../models/validate.model");
 const serverCameraModel = require("../models/serverCamera.model");
 const { tableServerCamera } = require("../constants/tableName.constant");
+const configureEnvironment = require("../config/dotenv.config");
+const { SV_NOTIFY } = configureEnvironment();
+const { fork } = require("child_process");
 
 class ServerCameraService {
   //getallrow
@@ -18,7 +21,61 @@ class ServerCameraService {
         conn.release();
       }
     } catch (error) {
-      console.log(error);
+      // console.log("error", error?.code);
+      if (
+        error?.code === "ENOTFOUND" ||
+        error?.code === "ECONNREFUSED" ||
+        error?.code === "ECONNABORTED"
+      ) {
+        const url = error?.config?.url;
+        // console.log("url", url);
+
+        if (url) {
+          try {
+            const arrUrl = url.split(":");
+            if (SV_NOTIFY) {
+              const process = fork(`./src/process/notify.process.js`);
+
+              process.send({
+                data: {
+                  dataUsers: [{ user_id: 1 }],
+                  keyword: "6_1_1",
+                  replaces: { sv_cam: arrUrl[1], error_code: error.code },
+                  sv: SV_NOTIFY,
+                },
+              });
+            }
+
+            const domain = `${arrUrl[0]}:${arrUrl[1]}`;
+            // console.log("domain", domain);
+            const { data } = await serverCameraModel.getallrows(db.db, {
+              limit: 1,
+              keyword: domain,
+              publish: 1,
+            });
+            // console.log("data", data);
+
+            if (data?.length) {
+              await serverCameraModel.updatePublish(
+                db.db,
+                { publish: 0 },
+                { id: data[0]?.id }
+              );
+              const dataSvcam = await this.getallrows({
+                limit: 9999,
+                type: 1,
+              });
+
+              return dataSvcam;
+            }
+          } catch (error) {
+            console.log("error", error);
+
+            throw new BusinessLogicError(error.msg);
+          }
+        }
+      }
+      console.log(1111, error);
 
       throw new BusinessLogicError(error.msg);
     }

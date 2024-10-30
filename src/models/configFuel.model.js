@@ -1,6 +1,9 @@
 const DatabaseModel = require("./database.model");
 
-const { tableConfigFuel } = require("../constants/tableName.constant");
+const {
+  tableConfigFuel,
+  tableDevice,
+} = require("../constants/tableName.constant");
 const { hSet } = require("./redis.model");
 const { REDIS_KEY_CALIB_FUEL } = require("../constants/redis.constant");
 const { ERROR } = require("../constants/msg.constant");
@@ -12,43 +15,45 @@ class ConfigFuelModel extends DatabaseModel {
   }
 
   //   //getallrow
-  //   async getallrows(conn, query, role) {
-  //     const offset = query.offset || 0;
-  //     const limit = query.limit || 10;
-  //     const isDeleted = query.is_deleted || 0;
-  //     let where = `sort <= ? AND is_deleted = ?`;
-  //     const conditions = [role, isDeleted];
+  async getallrows(conn, query, role) {
+    const where = "cf.is_deleted = 0 AND d.is_deleted = 0 AND 1 = ?";
 
-  //     if (query.keyword) {
-  //       where += ` AND name LIKE ?`;
-  //       conditions.push(`%${query.keyword}%`);
-  //     }
+    const joinTable = `${tableConfigFuel} cf INNER JOIN ${tableDevice} d ON cf.device_id = d.id`;
 
-  //     if (query.publish) {
-  //       where += ` AND publish = ?`;
-  //       conditions.push(query.publish);
-  //     }
+    const select =
+      "cf.id as device_fuel_id,cf.calib,cf.fuel_bottle_type_id,cf.total_volume,d.imei";
+    const res_ = await this.select(
+      conn,
+      joinTable,
+      select,
+      where,
+      1,
+      "device_fuel_id",
+      "ASC",
+      0,
+      9999
+    );
+    if (res_?.length) {
+      const listPromise = res_.map(
+        ({ imei, device_fuel_id, calib, fuel_bottle_type_id, total_volume }) =>
+          hSet(
+            REDIS_KEY_CALIB_FUEL,
+            imei.toString(),
+            JSON.stringify({
+              device_fuel_id,
+              calib: JSON.parse(calib),
+              fuel_bottle_type_id,
+              total_volume,
+            })
+          )
+      );
 
-  //     const select = "id,name,des,publish,sort,created_at,updated_at";
-  //     const [res_, count] = await Promise.all([
-  //       this.select(
-  //         conn,
-  //         tableRole,
-  //         select,
-  //         where,
-  //         conditions,
-  //         "sort",
-  //         "ASC",
-  //         offset,
-  //         limit
-  //       ),
-  //       this.count(conn, tableRole, "*", where, conditions),
-  //     ]);
+      await Promise.all(listPromise);
+    }
+    console.log(JSON.stringify(res_, null, 2));
 
-  //     const totalPage = Math.ceil(count?.[0]?.total / limit);
-
-  //     return { data: res_, totalPage, totalRecord: count?.[0]?.total };
-  //   }
+    return { data: res_ };
+  }
 
   //getbyid
   async getById(conn, query) {

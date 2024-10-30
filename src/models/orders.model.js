@@ -415,7 +415,7 @@ class OrdersModel extends DatabaseModel {
           1,
           0,
           !isBeginTransaction ? 1 : i === dataInfo.length - 1 ? 0 : 1,
-          Date.now() + 1,
+          Date.now() + i,
         ]),
       ];
       return result;

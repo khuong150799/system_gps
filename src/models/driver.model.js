@@ -139,7 +139,7 @@ class DriverModel extends DatabaseModel {
       conn,
       joinTable,
       select,
-      `${whereDriver} GROUP BY cdr.customer_id`,
+      `${whereDriver} GROUP BY dr.license_number`,
       conditions,
       "cdr.id",
       "DESC",

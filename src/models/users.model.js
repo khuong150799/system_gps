@@ -80,7 +80,7 @@ class UsersModel extends DatabaseModel {
     const limit = query.limit || 10;
     const isDeleted = query.is_deleted || 0;
 
-    const { keyword, level_id, role_id } = query;
+    const { keyword, level_id, role_id, parent_id, is_main } = query;
     let where = `${tableUsers}.is_deleted = ?`;
     const conditions = [isDeleted];
 
@@ -97,6 +97,11 @@ class UsersModel extends DatabaseModel {
     if (role_id) {
       where += ` AND ${tableUsersRole}.role_id = ?`;
       conditions.push(role_id);
+    }
+
+    if (parent_id && is_main) {
+      where += ` AND (${tableUsers}.parent_id = ? AND ${tableUsers}.is_main = ? OR ${tableUsers}.id = ?)`;
+      conditions.push(parent_id, is_main, parent_id);
     }
 
     const joinTable = `${tableUsers} INNER JOIN ${tableUsersCustomers} ON ${tableUsers}.id = ${tableUsersCustomers}.user_id 

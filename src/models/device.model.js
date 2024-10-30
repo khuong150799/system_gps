@@ -448,6 +448,7 @@ class DeviceModel extends DatabaseModel {
       imei,
       model_type_id,
       is_use_gps,
+      phoneNumber,
     } = body;
 
     const infoPackage = await this.select(
@@ -475,6 +476,7 @@ class DeviceModel extends DatabaseModel {
     const res_ = await this.insert(conn, tableCustomers, {
       code,
       name,
+      phone: phoneNumber || null,
       level_id: 6,
       publish: 1,
       is_deleted: 0,
@@ -589,7 +591,7 @@ class DeviceModel extends DatabaseModel {
       this.checkTableExit(conn, tableReportRegion),
     ]);
 
-    console.log("listTable", listTable);
+    // console.log("listTable", listTable);
 
     const listTableCreate = listTable.map((item, i) => {
       if (item && item.includes(initialNameOfTableGps))
@@ -609,7 +611,7 @@ class DeviceModel extends DatabaseModel {
     }
 
     const inforDevice = await vehicleModel.getInfoDevice(conn, imei);
-    console.log("inforDevice", inforDevice);
+    // console.log("inforDevice", inforDevice);
 
     if (!inforDevice?.length) throw { msg: ERROR };
 

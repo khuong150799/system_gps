@@ -65,6 +65,16 @@ module.exports = (app) => {
     checkPermission,
     deviceController.reference
   );
+  router.get(
+    "/reference-notify/:id",
+    [param("id", VALIDATE_DATA).isNumeric()],
+    (req, res, next) => {
+      req.parentId = null;
+      next();
+    },
+
+    deviceController.reference
+  );
   router.post(
     "/activation-outside",
     [

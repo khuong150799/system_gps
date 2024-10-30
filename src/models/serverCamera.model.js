@@ -17,18 +17,26 @@ class ServerCameraModel extends DatabaseModel {
     const offset = query.offset || 0;
     const limit = query.limit || 10;
     const isDeleted = query.is_deleted || 0;
-    const type = query.type;
+
+    const { type, keyword, publish } = query;
     let where = `is_deleted = ?`;
     const conditions = [isDeleted];
+    // let where = `1 = ?`;
+    // const conditions = [1];
 
-    if (query.keyword) {
+    if (keyword) {
       where += ` AND (host LIKE ? OR ip LIKE ?)`;
-      conditions.push(`%${query.keyword}%`, `%${query.keyword}%`);
+      conditions.push(`%${keyword}%`, `%${keyword}%`);
     }
 
-    if (query.publish) {
+    if (publish) {
       where += ` AND publish = ?`;
-      conditions.push(query.publish);
+      conditions.push(publish);
+    }
+
+    if (type) {
+      where += ` AND publish = ?`;
+      conditions.push(1);
     }
 
     const select = "id,ip,host,port,publish,created_at,updated_at";
@@ -48,10 +56,13 @@ class ServerCameraModel extends DatabaseModel {
     ]);
 
     const totalPage = Math.ceil(count?.[0]?.total / limit);
+    // console.log("res_", res_);
 
     let dataRes = res_;
 
     if (type && res_?.length) {
+      // console.log(6543);
+
       const dataToken = await Promise.all(
         res_.map((item) =>
           login({
@@ -61,8 +72,6 @@ class ServerCameraModel extends DatabaseModel {
           })
         )
       );
-
-      // console.log("dataToken", dataToken);
 
       dataRes = res_.map((item, i) => {
         const { jsession } = dataToken[i];

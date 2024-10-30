@@ -24,11 +24,12 @@ const axiosCMS1NoAuth = axios.create({
 
 const axiosCMS = axios.create({
   timeout: 20000,
-  httpsAgent: agent,
+  // httpsAgent: agent,
 });
 
 const axiosNoConfig = axios.create({
-  httpsAgent: agent,
+  timeout: 20000,
+  // httpsAgent: agent,
 });
 
 const handleRequestCMS = async (config) => {

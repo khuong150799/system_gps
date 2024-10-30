@@ -87,10 +87,13 @@ class VehicleModel extends DatabaseModel {
       select,
       where,
       condition,
-      `d.id`
+      `d.id`,
+      "ASC",
+      0,
+      99999
     );
 
-    // console.log("data", imei, data);
+    // console.log("data", data);
 
     if (data.length) {
       await Promise.all(
@@ -374,7 +377,9 @@ class VehicleModel extends DatabaseModel {
         data: {
           dataUsers,
           keyword: is_lock == 1 ? "1_1_13" : "1_1_14",
-          vehicleName: name,
+          replaces: {
+            vehicle_name: name,
+          },
           sv: SV_NOTIFY,
         },
       });
@@ -421,11 +426,15 @@ class VehicleModel extends DatabaseModel {
       "device_id = ? AND vehicle_id = ?"
     );
 
+    // console.log("dataInfo", dataInfo);
+
     const listPromiseGetReidis = dataInfo.map(({ imei }) =>
       this.getInfoDevice(conn, imei)
     );
 
     const listDataGetRedis = await Promise.all(listPromiseGetReidis);
+
+    // console.log("listDataGetRedis", listDataGetRedis);
 
     let isRollback = false;
 

@@ -48,8 +48,8 @@ module.exports = (app) => {
       body("ios_link", NOT_EMPTY)
         .notEmpty()
         .isString()
-        .withMessage(VALIDATE_DATA)
-        .escape(),
+        .withMessage(VALIDATE_DATA),
+      // .escape()
       body("ios_is_forced", NOT_EMPTY)
         .notEmpty()
         .isNumeric()
@@ -58,8 +58,8 @@ module.exports = (app) => {
       body("ios_message", NOT_EMPTY)
         .notEmpty()
         .isString()
-        .withMessage(VALIDATE_DATA)
-        .escape(),
+        .withMessage(VALIDATE_DATA),
+      // .escape()
       body("android_version", NOT_EMPTY)
         .notEmpty()
         .isString()
@@ -68,8 +68,8 @@ module.exports = (app) => {
       body("android_link", NOT_EMPTY)
         .notEmpty()
         .isString()
-        .withMessage(VALIDATE_DATA)
-        .escape(),
+        .withMessage(VALIDATE_DATA),
+      // .escape()
       body("android_is_forced", NOT_EMPTY)
         .notEmpty()
         .isNumeric()
@@ -78,8 +78,8 @@ module.exports = (app) => {
       body("android_message", NOT_EMPTY)
         .notEmpty()
         .isString()
-        .withMessage(VALIDATE_DATA)
-        .escape(),
+        .withMessage(VALIDATE_DATA),
+      // .escape()
       body("publish", NOT_EMPTY)
         .notEmpty()
         .isNumeric()
@@ -113,8 +113,8 @@ module.exports = (app) => {
       body("ios_link", NOT_EMPTY)
         .notEmpty()
         .isString()
-        .withMessage(VALIDATE_DATA)
-        .escape(),
+        .withMessage(VALIDATE_DATA),
+      // .escape()
       body("ios_is_forced", NOT_EMPTY)
         .notEmpty()
         .isNumeric()
@@ -123,8 +123,8 @@ module.exports = (app) => {
       body("ios_message", NOT_EMPTY)
         .notEmpty()
         .isString()
-        .withMessage(VALIDATE_DATA)
-        .escape(),
+        .withMessage(VALIDATE_DATA),
+      // .escape()
       body("android_version", NOT_EMPTY)
         .notEmpty()
         .isString()
@@ -133,8 +133,8 @@ module.exports = (app) => {
       body("android_link", NOT_EMPTY)
         .notEmpty()
         .isString()
-        .withMessage(VALIDATE_DATA)
-        .escape(),
+        .withMessage(VALIDATE_DATA),
+      // .escape()
       body("android_is_forced", NOT_EMPTY)
         .notEmpty()
         .isNumeric()
@@ -143,8 +143,8 @@ module.exports = (app) => {
       body("android_message", NOT_EMPTY)
         .notEmpty()
         .isString()
-        .withMessage(VALIDATE_DATA)
-        .escape(),
+        .withMessage(VALIDATE_DATA),
+      // .escape()
       body("publish", NOT_EMPTY)
         .notEmpty()
         .isNumeric()

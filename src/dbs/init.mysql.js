@@ -3,6 +3,11 @@ const dbConfig = require("../config/db.config");
 const constants = require("../constants/msg.constant");
 
 const pool = mysql.createPool(dbConfig);
+const vehicleModel = require("../models/vehicle.model");
+// const configFuelModel = require("../models/configFuel.model");
+// const driverModel = require("../models/driver.model");
+// const { hSet } = require("../models/redis.model");
+// const { REDIS_KEY_LIST_DRIVER } = require("../constants/redis.constant");
 
 class Datatbase {
   async getConnection() {
@@ -45,6 +50,30 @@ class Datatbase {
         //   conn.release();
         // }
 
+        // await vehicleModel.getInfoDevice(conn, "08F4A28F9T");
+
+        // await configFuelModel.getallrows(conn);
+
+        // const { data } = await driverModel.getallrows(
+        //   conn,
+        //   { offset: 0, limit: 99999 },
+        //   0,
+        //   10556
+        // );
+        // console.log("data?.length", data?.length);
+
+        // if (data?.length) {
+        //   const listPromise = data.map(
+        //     ({ license_number, name, phone, address, gender }) =>
+        //       hSet(
+        //         REDIS_KEY_LIST_DRIVER,
+        //         license_number.toString(),
+        //         JSON.stringify({ name, phone, address, gender })
+        //       )
+        //   );
+        //   await Promise.all(listPromise);
+        //   console.log("ok");
+        // }
         conn.release();
       }
     });

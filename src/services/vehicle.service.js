@@ -190,8 +190,8 @@ class vehicleService {
           conn,
           joinTable,
           "d.imei",
-          "v.id = ?",
-          id,
+          "v.id = ? AND v.is_deleted = ? AND dv.is_deleted = ?",
+          [id, 0, 0],
           "d.id"
         );
         const data = await vehicleModel.updateById(
