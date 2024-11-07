@@ -185,8 +185,7 @@ class CustomersController {
   });
 
   changePass = catchAsync(async (req, res) => {
-    const body = req.body;
-    const userId = req.userId;
+    const { body, userId } = req;
     const data = await usersSrevice.changePass(body, userId);
     UPDATE(res, data);
   });

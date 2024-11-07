@@ -21,7 +21,13 @@ class TokenFirebaseModel extends DatabaseModel {
     });
     // console.log("data", data);
 
-    const res_ = await this.insert(conn, tableTokenFirebase, data);
+    const res_ = await this.insertDuplicate(
+      conn,
+      tableTokenFirebase,
+      "user_id,client_id,token,created_at",
+      [[user_id, client_id, token, Date.now()]],
+      "user_id=VALUES(user_id),client_id=VALUES(client_id),created_at=VALUES(created_at)"
+    );
     // console.log("res_", res_);
 
     data.id = res_;

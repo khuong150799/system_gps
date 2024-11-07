@@ -1,25 +1,14 @@
 const { validationResult } = require("express-validator");
-const { BusinessLogicError } = require("../core/error.response");
-const constants = require("../constants/msg.constant");
-// const statusCodes = require("../core/statusCodes");
+const { SendMissingDataError } = require("../core/error.response");
 
 const catchAsync = (fn) => async (req, res, next) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return next(new BusinessLogicError(constants.ERROR, errors.array()));
+      return next(new SendMissingDataError(undefined, errors.array()));
     }
     return await Promise.resolve(fn(req, res, next));
   } catch (err) {
-    // return next(
-    //   new BusinessLogicError(
-    //     err?.msg ||
-    //       ((err?.status === 401 || err?.status === 403) && err?.message) ||
-    //       constants.SERVER_ERROR,
-    //     err?.errors || [],
-    //     err?.status || statusCodes.INTERNAL_SERVER_ERROR
-    //   )
-    // );
     return next(err);
   }
 };

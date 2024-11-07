@@ -77,27 +77,26 @@ class FirmwareModel extends DatabaseModel {
   }
 
   //Register
-  async register(conn, body, files) {
+  async register(conn, body, pathFirmware, pathFileNote) {
     const {
       name,
       model_id,
       version_hardware,
       version_software,
-      path_version,
       checksum,
       note,
       publish,
     } = body;
 
-    const pathFirmware = files?.["firmware"]?.[0]?.path;
-    const pathFileNote = files?.["file_note"]?.[0]?.path;
+    // const pathFirmware = files?.["firmware"]?.[0]?.path;
+    // const pathFileNote = files?.["file_note"]?.[0]?.path;
 
     const firmware = new FirmwareSchema({
       name,
       model_id,
       version_hardware,
       version_software,
-      path_version: path_version || pathFirmware || null,
+      path_version: pathFirmware || null,
       checksum,
       note: note || null,
       path_note: pathFileNote || null,
@@ -113,68 +112,50 @@ class FirmwareModel extends DatabaseModel {
   }
 
   //update
-  async updateById(conn, connPromise, body, params, files) {
+  async updateById(
+    conn,
+    connPromise,
+    body,
+    params,
+    pathFirmware,
+    pathFileNote
+  ) {
     const {
       name,
       model_id,
       version_hardware,
       version_software,
+      firmware: path_firmware,
+      file_note,
       checksum,
       note,
       publish,
     } = body;
     const { id } = params;
 
-    const pathFirmware = files?.["firmware"]?.[0]?.path;
-    const pathFileNote = files?.["file_note"]?.[0]?.path;
+    // const pathFirmware = files?.["firmware"]?.[0]?.path;
+    // const pathFileNote = files?.["file_note"]?.[0]?.path;
 
     const firmware = new FirmwareSchema({
       name,
       model_id,
       version_hardware,
       version_software,
-      path_version: pathFirmware || null,
+      path_version: pathFirmware || path_firmware || null,
       checksum,
       note: note || null,
-      path_note: pathFileNote || null,
+      path_note: pathFileNote || file_note || null,
       publish,
       is_deleted: 0,
       updated_at: Date.now(),
     });
-    if (!pathFirmware) {
-      delete firmware.path_version;
-    }
-    if (!pathFileNote) {
-      delete firmware.path_note;
-    }
+
     delete firmware.created_at;
     delete firmware.is_deleted;
 
     await connPromise.beginTransaction();
 
     await this.update(conn, tableFirmware, firmware, "id", id);
-
-    // if (pathFirmware || pathFileNote) {
-    //   const dataOld = await this.select(
-    //     conn,
-    //     tableFirmware,
-    //     "path_version,path_note",
-    //     "id = ? AND is_deleted = ?",
-    //     [id, 0]
-    //   );
-    //   console.log(JSON.stringify(dataOld, null, 2));
-
-    //   if (dataOld.length && pathFirmware) {
-    //     if (existsSync(dataOld[0]?.path_version)) {
-    //       unlinkSync(dataOld[0]?.path_version);
-    //     }
-    //   }
-    //   if (dataOld.length && pathFileNote) {
-    //     if (existsSync(dataOld[0]?.path_note)) {
-    //       unlinkSync(dataOld[0]?.path_note);
-    //     }
-    //   }
-    // }
 
     await connPromise.commit();
 
@@ -186,14 +167,6 @@ class FirmwareModel extends DatabaseModel {
   async deleteById(conn, params) {
     const { id } = params;
     await this.update(conn, tableFirmware, { is_deleted: 1 }, "id", id);
-    return [];
-  }
-
-  //updatePublish
-  async updatePublish(conn, body, params) {
-    const { id } = params;
-    const { publish } = body;
-    await this.update(conn, tableFirmware, { publish }, "id", id);
     return [];
   }
 }

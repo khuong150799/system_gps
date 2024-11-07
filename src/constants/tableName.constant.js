@@ -47,4 +47,8 @@ module.exports = {
   tableDeviceExtend: "tbl_device_extend",
   tableCustomersDriver: "tbl_customers_driver",
   tableTokenFirebase: "tbl_token_firebase",
+  tableRenewalCode: "tbl_renewal_code",
+  tableRenewalCodeDevice: "tbl_renewal_code_device",
+  tableFrmware: "tbl_firmware",
+  tableTypeCode: "tbl_type_code",
 };

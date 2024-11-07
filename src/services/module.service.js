@@ -3,11 +3,17 @@ const { BusinessLogicError } = require("../core/error.response");
 const moduleModel = require("../models/module.model");
 
 class ModuleService {
-  async getTree(query, level) {
+  async getTree(query, level, userId) {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
-        const data = await moduleModel.getTree(conn, connPromise, query, level);
+        const data = await moduleModel.getTree(
+          conn,
+          connPromise,
+          query,
+          level,
+          userId
+        );
         return data;
       } catch (error) {
         throw error;
@@ -15,6 +21,8 @@ class ModuleService {
         conn.release();
       }
     } catch (error) {
+      console.log(error);
+
       throw new BusinessLogicError(error.msg);
     }
   }

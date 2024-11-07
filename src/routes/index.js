@@ -30,4 +30,6 @@ module.exports = (app) => {
   require("./fuelBottleType.route")(app);
   require("./configFuel.route")(app);
   require("./configTemperature.route")(app);
+  require("./renewalCode.route")(app);
+  require("./typeCode.route")(app);
 };

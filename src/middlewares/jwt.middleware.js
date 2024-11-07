@@ -28,7 +28,11 @@ const isAuth = async function (req, res, next) {
     }
   } catch (error) {
     // console.log(error);
-    return next(new Api401Error(error.message));
+    if (error.message === "jwt expired") {
+      return next(new Api401Error(error.message));
+    } else {
+      return next(new Api403Error());
+    }
   }
 };
 

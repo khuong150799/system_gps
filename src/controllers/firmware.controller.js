@@ -21,16 +21,26 @@ class FirmwareController {
 
   register = catchAsync(async (req, res) => {
     const body = req.body;
-    const files = req.files;
-    const data = await firmwareService.register(body, files);
+    // const files = req.files;
+    const fileFirmware = req?.files?.["firmware"];
+    const fileNote = req?.files?.["file_note"];
+    // const data = await firmwareService.register(body, files);
+    const data = await firmwareService.register(body, fileFirmware, fileNote);
     CREATED(res, [data]);
   });
 
   updateById = catchAsync(async (req, res) => {
     const body = req.body;
     const params = req.params;
-    const files = req.files;
-    const data = await firmwareService.updateById(body, params, files);
+    // const files = req.files;
+    const fileFirmware = req?.files?.["firmware"];
+    const fileNote = req?.files?.["file_note"];
+    const data = await firmwareService.updateById(
+      body,
+      params,
+      fileFirmware,
+      fileNote
+    );
     UPDATE(res, [data]);
   });
 
@@ -38,13 +48,6 @@ class FirmwareController {
     const params = req.params;
     const data = await firmwareService.deleteById(params);
     DELETE(res, data);
-  });
-
-  updatePublish = catchAsync(async (req, res) => {
-    const body = req.body;
-    const params = req.params;
-    const data = await firmwareService.updatePublish(body, params);
-    UPDATE(res, data);
   });
 }
 

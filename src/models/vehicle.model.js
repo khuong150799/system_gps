@@ -24,6 +24,8 @@ const {
   tableUsersCustomers,
   tableCustomers,
   tableUsers,
+  tableRenewalCode,
+  tableRenewalCodeDevice,
 } = require("../constants/tableName.constant");
 const { date } = require("../ultils/getTime");
 const { makeCode } = require("../ultils/makeCode");
@@ -93,7 +95,7 @@ class VehicleModel extends DatabaseModel {
       99999
     );
 
-    // console.log("data", data);
+    // console.log("data", imei, data);
 
     if (data.length) {
       await Promise.all(
@@ -459,6 +461,7 @@ class VehicleModel extends DatabaseModel {
     body,
     params,
     dataInfo,
+    codeId,
     { user_id, ip, os, gps }
   ) {
     const { extend_date, device_id } = body;
@@ -482,6 +485,8 @@ class VehicleModel extends DatabaseModel {
       redis: listPromiseDelRedis,
       logging: listPromiseAddDb,
       extend: listPromiseExtend,
+      renewalCode: listPromiseRenewalCode,
+      renewalCodeDevice: listPromiseRenewalCodeDevice,
     } = dataInfo.reduce(
       (result, { imei, expired_on: current_date }) => {
         // console.log("result", result);
@@ -511,19 +516,47 @@ class VehicleModel extends DatabaseModel {
         );
 
         result.extend.push(this.insert(conn, tableDeviceExtend, dataExtend));
+        result.renewalCode.push(
+          this.update(conn, tableRenewalCode, { is_used: 1 }, "id", codeId)
+        );
+        result.renewalCodeDevice.push(
+          this.insert(
+            conn,
+            tableRenewalCodeDevice,
+            {
+              user_id,
+              renewal_code_id: codeId,
+              device_id,
+              vehicle_id: id,
+              created_at: Date.now(),
+            },
+            "id",
+            codeId
+          )
+        );
 
         return result;
       },
-      { redis: [], logging: [], extend: [] }
+      {
+        redis: [],
+        logging: [],
+        extend: [],
+        renewalCode: [],
+        renewalCodeDevice: [],
+      }
     );
 
-    console.log({ listPromiseDelRedis, listPromiseAddDb, listPromiseExtend });
-
-    const listDataGetRedis = await Promise.all(listPromiseDelRedis);
+    // console.log({ listPromiseDelRedis, listPromiseAddDb, listPromiseExtend });
 
     await Promise.all(listPromiseAddDb);
 
     await Promise.all(listPromiseExtend);
+
+    await Promise.all(listPromiseRenewalCode);
+
+    await Promise.all(listPromiseRenewalCodeDevice);
+
+    const listDataGetRedis = await Promise.all(listPromiseDelRedis);
 
     let isRollback = false;
 

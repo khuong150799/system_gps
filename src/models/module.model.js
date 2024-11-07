@@ -10,17 +10,25 @@ class ModuleModel extends DatabaseModel {
   constructor() {
     super();
   }
-  async getTree(conn, connPromise, query, level) {
+  async getTree(conn, connPromise, query, level, userId) {
     const isDeleted = query.is_deleted || 0;
 
-    const joinTable = `${tableModule} INNER JOIN ${tableLevelModule} ON ${tableModule}.id = ${tableLevelModule}.module_id 
-    INNER JOIN ${tableLevel} ON ${tableLevelModule}.level_id = ${tableLevel}.id`;
-    const where = `${tableModule}.parent_id = ? AND ${tableModule}.publish = ? AND ${tableModule}.is_deleted = ? AND ${tableLevel}.sort <= ? AND ${tableModule}.publish = ? AND ${tableLevel}.is_deleted = ? AND ${tableLevelModule}.is_deleted = ?`;
+    const joinTable = `${tableModule} m INNER JOIN ${tableLevelModule} lm ON m.id = lm.module_id 
+    INNER JOIN ${tableLevel} l ON lm.level_id = l.id`;
+    let where = `m.parent_id = ? AND m.publish = ? AND m.is_deleted = ? AND l.sort <= ? AND m.publish = ? AND l.is_deleted = ? AND lm.is_deleted = ?`;
     const conditions = [0, 1, isDeleted, level, 1, isDeleted, isDeleted];
-    const whereDequy = `AND ${tableModule}.publish = ? AND ${tableModule}.is_deleted = ? AND ${tableLevel}.sort <= ? AND ${tableModule}.publish = ? AND ${tableLevel}.is_deleted = ? AND ${tableLevelModule}.is_deleted = ?`;
+    const whereDequy = `AND m.publish = ? AND m.is_deleted = ? AND l.sort <= ? AND m.publish = ? AND l.is_deleted = ? AND lm.is_deleted = ?`;
     const conditionsDequy = [1, isDeleted, level, 1, isDeleted, isDeleted];
 
-    const select = `${tableModule}.id,${tableModule}.parent_id,${tableModule}.name,${tableModule}.link,${tableModule}.icon,${tableModule}.type`;
+    if (userId == -10) {
+      where = `m.id = ? AND ${where}`;
+      conditions.unshift(150);
+    } else {
+      where = `m.id <> ? AND ${where}`;
+      conditions.unshift(150);
+    }
+
+    const select = `m.id,m.parent_id,m.name,m.link,m.icon,m.type`;
 
     const res_ = await this.createTreeMenu(
       connPromise,
@@ -29,14 +37,14 @@ class ModuleModel extends DatabaseModel {
       select,
       where,
       conditions,
-      `${tableModule}.sort`,
+      `m.sort`,
       "ASC",
       0,
       10000,
       select,
       whereDequy,
       conditionsDequy,
-      `${tableModule}.sort`,
+      `m.sort`,
       "ASC"
     );
     return res_;

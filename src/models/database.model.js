@@ -351,7 +351,7 @@ class DatabaseModel {
             if (rows.length > 0) {
               dataRes[i]["child"] = rows;
               dataRes[i]["lv"] = level;
-              await dequy(rows, level + 1); // Gọi đệ quy với cấp mới tăng lên
+              await dequy(rows, level + 1);
             } else {
               dataRes[i]["child"] = [];
               dataRes[i]["lv"] = level;

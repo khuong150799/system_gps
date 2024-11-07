@@ -15,23 +15,18 @@ module.exports = (app) => {
       query("is_deleted").escape(),
       query("publish").escape(),
     ],
-    // isAuth,
-    // checkPermission,
+    isAuth,
+    checkPermission,
     settingController.getAllRows
   );
 
-  router.get(
-    "/list",
-    isAuth,
-    // checkPermission,
-    settingController.getList
-  );
+  router.get("/list", isAuth, checkPermission, settingController.getList);
 
   router.get(
     "/detail/:id",
     [param("id", VALIDATE_DATA).isNumeric()],
-    // isAuth,
-    // checkPermission,
+    isAuth,
+    checkPermission,
     settingController.getById
   );
 
@@ -55,8 +50,8 @@ module.exports = (app) => {
       body("publish", VALIDATE_DATA).isNumeric().escape(),
     ],
 
-    // isAuth,
-    // checkPermission,
+    isAuth,
+    checkPermission,
     settingController.register
   );
 
@@ -67,8 +62,8 @@ module.exports = (app) => {
       body("is_disabled", VALIDATE_DATA).isNumeric().escape(),
     ],
 
-    // isAuth,
-    // checkPermission,
+    isAuth,
+    checkPermission,
     settingController.registerUser
   );
   router.put(
@@ -85,16 +80,16 @@ module.exports = (app) => {
       body("sort", VALIDATE_DATA).isNumeric().escape(),
       body("publish", VALIDATE_DATA).isNumeric().escape(),
     ],
-    // isAuth,
-    // checkPermission,
+    isAuth,
+    checkPermission,
     settingController.updateById
   );
 
   router.delete(
     "/delete/:id",
     [param("id", VALIDATE_DATA).isNumeric()],
-    // isAuth,
-    // checkPermission,
+    isAuth,
+    checkPermission,
     settingController.deleteById
   );
   router.patch(
@@ -103,8 +98,8 @@ module.exports = (app) => {
       param("id", VALIDATE_DATA).isNumeric(),
       body("publish", VALIDATE_DATA).isNumeric(),
     ],
-    // isAuth,
-    // checkPermission,
+    isAuth,
+    checkPermission,
     settingController.updatePublish
   );
 
@@ -114,8 +109,8 @@ module.exports = (app) => {
       param("id", VALIDATE_DATA).isNumeric(),
       body("sort", VALIDATE_DATA).isNumeric(),
     ],
-    // isAuth,
-    // checkPermission,
+    isAuth,
+    checkPermission,
     settingController.updateSort
   );
 

@@ -5,11 +5,17 @@ const {
   PASS_OLD_FAILED,
   ACCOUNT_FAILED,
   NOT_ADD_DEVICE,
+  ACC_NOT_DEL,
+  PASS_FAILED,
 } = require("../constants/msg.constant");
 
 const bcrypt = require("bcrypt");
 
-const { BusinessLogicError } = require("../core/error.response");
+const {
+  BusinessLogicError,
+  Api401Error,
+  Api403Error,
+} = require("../core/error.response");
 const makeUsername = require("../ultils/makeUsername");
 
 const DatabaseModel = require("../models/database.model");
@@ -23,8 +29,6 @@ const {
   tableUsersCustomers,
   tableLevel,
   tableUserDevice,
-  tableOrders,
-  tableOrdersDevice,
 } = require("../constants/tableName.constant");
 
 const databaseModel = new DatabaseModel();
@@ -42,7 +46,7 @@ class UsersService {
         errors: [
           {
             value: compare,
-            msg: PASS_OLD_FAILED,
+            msg: param === "old_password" ? PASS_OLD_FAILED : PASS_FAILED,
             param,
           },
         ],
@@ -517,6 +521,19 @@ class UsersService {
           id
         );
 
+        const dataDevice = await databaseModel.select(
+          conn,
+          tableUserDevice,
+          "id",
+          "user_id = ? AND is_main = 1 AND is_deleted = 0",
+          id
+        );
+        if (dataDevice?.length)
+          throw {
+            msg: ERROR,
+            errors: [{ msg: ACC_NOT_DEL, value: id, params: "id" }],
+          };
+
         await usersModel.deleteById(conn, connPromise, params);
         return [];
       } catch (error) {
@@ -527,7 +544,7 @@ class UsersService {
       }
     } catch (error) {
       console.log(error);
-      throw new BusinessLogicError(error.msg);
+      throw new BusinessLogicError(error.msg, error?.errors);
     }
   }
 
@@ -791,9 +808,14 @@ class UsersService {
         conn.release();
       }
     } catch (error) {
-      console.log(error);
-
-      throw new BusinessLogicError(error.msg);
+      // console.log(error?.status);
+      if (error.message === "jwt expired") {
+        throw new Api401Error(error.message);
+      } else if (error?.status === 403) {
+        throw new Api403Error();
+      } else {
+        throw new BusinessLogicError(error.msg);
+      }
     }
   }
 
@@ -857,7 +879,11 @@ class UsersService {
         conn.release();
       }
     } catch (error) {
-      throw new BusinessLogicError(error.msg);
+      console.log(error);
+
+      const { msg, errors } = error;
+
+      throw new BusinessLogicError(msg, errors);
     }
   }
 }

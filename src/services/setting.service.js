@@ -91,6 +91,8 @@ class SettingService {
     try {
       const { conn } = await db.getConnection();
       try {
+        console.log("body", body);
+
         const data = await settingModel.registerUser(conn, body, userId);
         return data;
       } catch (error) {

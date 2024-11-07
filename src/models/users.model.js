@@ -40,7 +40,13 @@ const vehicleModel = require("./vehicle.model");
 const deviceLoggingModel = require("./deviceLogging.model");
 const writeLogModel = require("./writeLog.model");
 const { users } = require("../constants/module.constant");
-const { hSet, del: delRedis } = require("./redis.model");
+const {
+  hSet,
+  del: delRedis,
+  hGet,
+  hScan,
+  hdelOneKey,
+} = require("./redis.model");
 const { REDIS_KEY_TOKEN } = require("../constants/redis.constant");
 const ordersModel = require("./orders.model");
 const tokenFirebaseModel = require("./tokenFirebase.model");
@@ -48,6 +54,20 @@ const tokenFirebaseModel = require("./tokenFirebase.model");
 class UsersModel extends DatabaseModel {
   constructor() {
     super();
+  }
+
+  async delToken(userId) {
+    const {
+      data: { tuples },
+    } = await hScan(REDIS_KEY_TOKEN, 100000, 0, `${userId}/*`);
+
+    // console.log("dataRedis", { cursor, tuples });
+
+    if (tuples?.length) {
+      await Promise.all(
+        tuples.map(({ field }) => hdelOneKey(REDIS_KEY_TOKEN, field))
+      );
+    }
   }
 
   async getInfoParent(conn, parentId, customerId) {
@@ -981,6 +1001,8 @@ class UsersModel extends DatabaseModel {
       "`left` > ? AND is_deleted = ?"
     );
 
+    await this.delToken(id);
+
     await connPromise.commit();
     return [];
   }
@@ -1036,12 +1058,14 @@ class UsersModel extends DatabaseModel {
       id,
       "Tài khoản"
     );
+    await this.delToken(id);
+
     return [{ new_password: PASSWORD_DEFAULT }];
   }
 
   //change pass
   async changePass(conn, connPromise, body, userId, hashPass, infoUser) {
-    const { new_password } = body;
+    const { new_password, old_password } = body;
     await connPromise.beginTransaction();
     await this.update(
       conn,
@@ -1053,10 +1077,13 @@ class UsersModel extends DatabaseModel {
     const dataSaveLog = {
       ...infoUser,
       module: users,
-      des: `Thay đổi mật khẩu`,
+      des: `Thay đổi mật khẩu ${old_password} ===> ${new_password}`,
       createdAt: Date.now(),
     };
     await writeLogModel.post(conn, dataSaveLog);
+
+    await this.delToken(userId);
+
     await connPromise.commit();
     return [];
   }
@@ -1151,17 +1178,8 @@ class UsersModel extends DatabaseModel {
 
     // console.log(1234567);
 
-    await hSet(
-      REDIS_KEY_TOKEN,
-      clientId,
-      JSON.stringify({
-        user_id: id,
-        publish_key_token: keyToken,
-        publish_key_refresh_token: keyRefreshToken,
-      })
-    );
-
-    // await setRedis(
+    // await hSet(
+    //   REDIS_KEY_TOKEN,
     //   clientId,
     //   JSON.stringify({
     //     user_id: id,
@@ -1169,6 +1187,16 @@ class UsersModel extends DatabaseModel {
     //     publish_key_refresh_token: keyRefreshToken,
     //   })
     // );
+
+    await hSet(
+      REDIS_KEY_TOKEN,
+      `${id}/${clientId}`,
+      JSON.stringify({
+        publish_key_token: keyToken,
+        publish_key_refresh_token: keyRefreshToken,
+      })
+    );
+
     return [
       {
         token,
@@ -1237,11 +1265,20 @@ class UsersModel extends DatabaseModel {
     //   })
     // );
 
+    // await hSet(
+    //   REDIS_KEY_TOKEN,
+    //   clientId,
+    //   JSON.stringify({
+    //     user_id: userId,
+    //     publish_key_token: keyToken,
+    //     publish_key_refresh_token: keyRefreshToken,
+    //   })
+    // );
+
     await hSet(
       REDIS_KEY_TOKEN,
-      clientId,
+      `${userId}/${clientId}`,
       JSON.stringify({
-        user_id: userId,
         publish_key_token: keyToken,
         publish_key_refresh_token: keyRefreshToken,
       })
@@ -1261,7 +1298,7 @@ class UsersModel extends DatabaseModel {
       user_id: usersId,
     });
 
-    await delRedis(clientId);
+    await hdelOneKey(REDIS_KEY_TOKEN, `${usersId}/${clientId}`);
 
     return [];
   }
@@ -1270,12 +1307,18 @@ class UsersModel extends DatabaseModel {
     const { id } = params;
     const { is_actived } = body;
     await this.update(conn, tableUsers, { is_actived }, "id", id);
+    if (is_actived == 0) {
+      await this.delToken(id);
+    }
     return [];
   }
 
   async updateUsername(conn, body, userId) {
     const { username } = body;
     await this.update(conn, tableUsers, { username }, "id", userId);
+
+    await this.delToken(userId);
+
     return [];
   }
 }

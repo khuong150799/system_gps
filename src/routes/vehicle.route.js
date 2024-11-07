@@ -33,7 +33,7 @@ module.exports = (app) => {
         .withMessage(VALIDATE_DATA),
     ],
     isAuth,
-    // checkPermission,
+    checkPermission,
     vehicleController.updateLock
   );
 
@@ -88,6 +88,7 @@ module.exports = (app) => {
         .notEmpty()
         .isNumeric()
         .withMessage(VALIDATE_DATA),
+      body("code", NOT_EMPTY).notEmpty().isNumeric().withMessage(VALIDATE_DATA),
     ],
     isAuth,
     checkPermission,

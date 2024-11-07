@@ -35,19 +35,6 @@ const bodyParser = require("body-parser");
 app.use(bodyParser.json({ limit: "10kb" }));
 app.use(bodyParser.urlencoded({ limit: "10kb", extended: true }));
 
-//init permission
-// const { init } = require("./controllers/permission.controller");
-
-// async function initPermission() {
-//   try {
-//     const data = await init();
-//     console.log("data", data);
-//   } catch (error) {
-//     console.log("error", error);
-//   }
-// }
-// initPermission();
-
 //init db
 const { initDb } = require("./dbs/init.mysql");
 initDb();
@@ -70,9 +57,5 @@ const {
 app.use(is404Handler);
 app.use(logErrorMiddleware);
 app.use(returnError);
-
-//init cron job
-// const tasks = require("./tasks/issure.task");
-// tasks.checkOverload().start();
 
 module.exports = app;

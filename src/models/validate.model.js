@@ -14,6 +14,7 @@ const {
   VALIDATE_EMAIL,
   NOT_EXITS,
   VALIDATE_LICENSE,
+  ERR_RENEWAL_CODE,
 } = require("../constants/msg.constant");
 const {
   tableDevice,
@@ -84,10 +85,18 @@ class ValidateModel extends DatabaseModel {
     param,
     id = null,
     is_exist_throw_error = true,
-    select = "id"
+    select = "id",
+    useTheDeletedKey = true,
+    checkRenewalCode = false
   ) {
-    let where = `${field} = ? AND is_deleted = ?`;
-    const conditions = [condition, 0];
+    let where = `${field} = ?`;
+
+    const conditions = [condition];
+
+    if (useTheDeletedKey) {
+      where += " AND is_deleted = ?";
+      conditions.push(0);
+    }
 
     if (id) {
       where += ` AND id <> ?`;
@@ -107,6 +116,21 @@ class ValidateModel extends DatabaseModel {
           },
         ],
       };
+    } else if (dataCheck.length > 0 && checkRenewalCode) {
+      const { is_used } = dataCheck[0];
+
+      if (is_used == 1) {
+        throw {
+          msg: ERROR,
+          errors: [
+            {
+              value: condition,
+              msg: ERR_RENEWAL_CODE,
+              param,
+            },
+          ],
+        };
+      }
     } else if (dataCheck.length === 0 && !is_exist_throw_error) {
       throw {
         msg: ERROR,
@@ -122,6 +146,57 @@ class ValidateModel extends DatabaseModel {
 
     return dataCheck;
   }
+
+  async checkExitMultiValue(
+    conn,
+    table,
+    field,
+    condition,
+    msgError,
+    param,
+    id = null,
+    is_exist_throw_error = true,
+    select = "id"
+  ) {
+    let where = `${field} IN (?)`;
+    const conditions = [condition, 0];
+
+    if (id) {
+      where += ` AND id <> ?`;
+      conditions.push(id);
+    }
+
+    const dataCheck = await this.select(conn, table, select, where, conditions);
+
+    if (dataCheck.length > 0 && is_exist_throw_error) {
+      const listExist = dataCheck.map((item) => item[field]);
+      throw {
+        msg: ERROR,
+        errors: [
+          {
+            value: listExist,
+            msg: `${listExist.join(",")} ${ALREADY_EXITS}`,
+            param,
+          },
+        ],
+      };
+    }
+    // else if (dataCheck.length === 0 && !is_exist_throw_error) {
+    //   throw {
+    //     msg: ERROR,
+    //     errors: [
+    //       {
+    //         value: condition,
+    //         msg: `${msgError} ${NOT_EXITS}`,
+    //         param,
+    //       },
+    //     ],
+    //   };
+    // }
+
+    return dataCheck;
+  }
+
   async CheckCustomerTree(
     conn,
     listCustomer,
@@ -343,7 +418,7 @@ class ValidateModel extends DatabaseModel {
     child,
     fieldRes = "parent_id"
   ) {
-    // console.log(parentAcc, customerIdAcc, parentIdAcc, child);
+    console.log(parentAcc, customerIdAcc, parentIdAcc, child);
 
     const dataReturn = [];
     let result = false;
@@ -352,6 +427,8 @@ class ValidateModel extends DatabaseModel {
     const dequy = async (data) => {
       const parentId = data[0].parent_id;
       const id = data[0]?.id;
+
+      // console.log("parentId", parentId, parentAcc);
 
       if (id) {
         dataReturn.unshift(data[0]);

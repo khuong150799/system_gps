@@ -7,7 +7,9 @@ const { isAuth } = require("../middlewares/jwt.middleware");
 const {
   checkPermission,
 } = require("../middlewares/checkPermission.middleware");
-const os = require("os");
+
+const multer = require("multer");
+const upload = multer();
 
 module.exports = (app) => {
   router.get(
@@ -18,15 +20,7 @@ module.exports = (app) => {
       query("model_id").escape(),
       query("publish").escape(),
     ],
-    // (req, res) => {
-    //   var hostname = os.hostname();
-    //   console.log("Hostname is:- " + hostname);
-    //   var ip = req.ip || req.socket.remoteAddress;
 
-    //   console.log(".userInfo().username", os.userInfo().username);
-
-    //   res.send({ data: req.connection.remoteAddress });
-    // },
     isAuth,
     checkPermission,
     firmwareController.getAllRows
@@ -41,7 +35,11 @@ module.exports = (app) => {
   router.post(
     "/register",
 
-    uploadFirmware.fields([
+    // uploadFirmware.fields([
+    //   { name: "firmware", maxCount: 1 },
+    //   { name: "file_note", maxCount: 1 },
+    // ]),
+    upload.fields([
       { name: "firmware", maxCount: 1 },
       { name: "file_note", maxCount: 1 },
     ]),
@@ -79,7 +77,11 @@ module.exports = (app) => {
   );
   router.put(
     "/update/:id",
-    uploadFirmware.fields([
+    // uploadFirmware.fields([
+    //   { name: "firmware", maxCount: 1 },
+    //   { name: "file_note", maxCount: 1 },
+    // ]),
+    upload.fields([
       { name: "firmware", maxCount: 1 },
       { name: "file_note", maxCount: 1 },
     ]),
@@ -122,16 +124,6 @@ module.exports = (app) => {
     isAuth,
     checkPermission,
     firmwareController.deleteById
-  );
-  router.patch(
-    "/update-publish/:id",
-    [
-      param("id", VALIDATE_DATA).isNumeric(),
-      body("publish", VALIDATE_DATA).isNumeric(),
-    ],
-    isAuth,
-    checkPermission,
-    firmwareController.updatePublish
   );
 
   app.use("/api/v1/firmware", router);

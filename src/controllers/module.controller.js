@@ -4,9 +4,8 @@ const moduleService = require("../services/module.service");
 
 class ModuleController {
   getTree = catchAsync(async (req, res) => {
-    const query = req.query;
-    const level = req.level;
-    const data = await moduleService.getTree(query, level);
+    const { query, level, userId } = req;
+    const data = await moduleService.getTree(query, level, userId);
     GET(res, data);
   });
 

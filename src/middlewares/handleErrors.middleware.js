@@ -13,18 +13,18 @@ const logError = (err) => {
 
 const logErrorMiddleware = (err, req, res, next) => {
   logError(err);
-  if (err.status !== 401) {
-    // instanceDiscord.sendToFormatCode({
-    //   code: {
-    //     dataSend: req.method === "GET" ? req.query : req.body,
-    //     status: err.status,
-    //     message: err.message || "Internal server error",
-    //     errors: err.errors,
-    //   },
-    //   message: `${req.get("host")}${req.originalUrl}`,
-    //   title: `Method: ${req.method}`,
-    // });
-  }
+  // if (err.status !== 401) {
+  //   instanceDiscord.sendToFormatCode({
+  //     code: {
+  //       dataSend: req.method === "GET" ? req.query : req.body,
+  //       status: err.status,
+  //       message: err.message || "Internal server error",
+  //       errors: err.errors,
+  //     },
+  //     message: `${req.get("host")}${req.originalUrl}`,
+  //     title: `Method: ${req.method}`,
+  //   });
+  // }
 
   next(err);
 };

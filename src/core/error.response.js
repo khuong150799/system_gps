@@ -77,6 +77,17 @@ class Api404Error extends BaseError {
   }
 }
 
+class SendMissingDataError extends BaseError {
+  constructor(
+    message = ReasonPhrases.MISSING_DATA_ERROR,
+    errors = [],
+    status = StatusCodes.BAD_REQUEST,
+    isOperational = true
+  ) {
+    super(message, status, errors, isOperational);
+  }
+}
+
 module.exports = {
   Api400Error,
   Api401Error,
@@ -85,4 +96,5 @@ module.exports = {
   Api409Error,
   BusinessLogicError,
   BaseError,
+  SendMissingDataError,
 };

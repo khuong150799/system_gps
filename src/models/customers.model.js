@@ -34,8 +34,8 @@ class CustomersModel extends DatabaseSchema {
     const select = `u.username,u.id as user_id,u.is_actived,c.id ,c.name,c.company,c.email,c.phone,c.address,
       c.tax_code,c.website,lv.name as level_name,c.created_at,c.updated_at`;
 
-    let where_ = `u.left > ? AND u.right < ? AND u.is_main = 1 AND c.is_deleted = ?`;
-    const conditions_ = [left, right, is_deleted];
+    let where_ = `u.left > ? AND u.right < ? AND u.is_main = 1 AND c.is_deleted = ? AND u.is_deleted = ?`;
+    const conditions_ = [left, right, is_deleted, is_deleted];
 
     if (keyword) {
       where_ += ` AND (c.name LIKE ? OR c.company LIKE ? OR c.email LIKE ? OR c.phone LIKE ? OR c.address LIKE ? OR c.tax_code LIKE ?)`;

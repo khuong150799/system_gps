@@ -9,12 +9,7 @@ const {
 } = require("../core/error.response");
 // const { get: getRedis, set: setRedis } = require("../models/redis.model_");
 const { promisify } = require("util");
-const {
-  hGet,
-  get: getRedis,
-  set: setRedis,
-  hdelOneKey,
-} = require("../models/redis.model");
+const { hGet, get: getRedis, set: setRedis } = require("../models/redis.model");
 const { REDIS_KEY_TOKEN } = require("../constants/redis.constant");
 const {
   ACCESS_TOKEN_TIME_LIFE,
@@ -50,42 +45,58 @@ class JWTService {
     }
   }
   async checkToken(token, privateKey, isAccess = true) {
-    const info = parseJwt(token);
-    if (!info?.clientId) {
-      throw new Api403Error();
-    }
-    const { userId, clientId } = info;
     try {
+      const info = parseJwt(token);
+      if (!info?.clientId) {
+        throw new Api403Error();
+      }
       let keyStore = {};
 
-      const dataStore = await hGet(REDIS_KEY_TOKEN, `${userId}/${clientId}`);
+      const dataStore = await hGet(REDIS_KEY_TOKEN, info.clientId);
       if (dataStore.result && dataStore.data) {
         keyStore = JSON.parse(dataStore.data);
       }
-      // console.log("keyStore", `${userId}/${clientId}`);
 
-      if (!Object.keys(keyStore).length) throw new Api403Error();
+      // const dataStore = await getRedis(info.clientId);
+      // // console.log("dataStore", dataStore);
+      // if (dataStore.result && dataStore.data) {
+      //   keyStore = JSON.parse(dataStore.data);
+      // }
 
-      const { publish_key_token, publish_key_refresh_token } = keyStore;
-
-      if (!publish_key_token || !publish_key_refresh_token)
+      // else {
+      //   const dataStore = await keyTokenService.getData(info.clientId);
+      //   keyStore = dataStore[0] || {};
+      // }
+      if (Object.keys(keyStore).length) {
+        const { publish_key_token, publish_key_refresh_token } = keyStore;
+        const secret = isAccess
+          ? `${privateKey}${publish_key_token}`
+          : `${privateKey}${publish_key_refresh_token}`;
+        const data = await verifyAsync(token, secret);
+        if (dataStore.result && !dataStore.data) {
+          await setRedis(
+            info.clientId,
+            JSON.stringify({
+              user_id: info.user_id,
+              publish_key_token,
+              publish_key_refresh_token,
+            })
+          );
+        }
+        return {
+          data,
+          keyRefreshToken: publish_key_refresh_token,
+        };
+      } else {
         throw new Api403Error();
-
-      const secret = isAccess
-        ? `${privateKey}${publish_key_token}`
-        : `${privateKey}${publish_key_refresh_token}`;
-      const data = await verifyAsync(token, secret);
-
-      return {
-        data,
-        keyRefreshToken: publish_key_refresh_token,
-      };
-    } catch (error) {
-      if (!isAccess && error.message === "jwt expired") {
-        await hdelOneKey(REDIS_KEY_TOKEN, `${userId}/${clientId}`);
       }
-      console.log("error", error.message);
-      throw error;
+    } catch (error) {
+      console.log(error);
+      if (error.message === "jwt expired") {
+        throw new Api401Error();
+      } else {
+        throw new Api403Error();
+      }
     }
   }
 }

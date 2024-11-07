@@ -9,6 +9,7 @@ const {
   tableUserDevice,
   tableOrders,
   tableOrdersDevice,
+  tableRenewalCode,
 } = require("../constants/tableName.constant");
 const DatabaseModel = require("../models/database.model");
 const validateModel = require("../models/validate.model");
@@ -91,7 +92,7 @@ class vehicleService {
           "d.id"
         );
 
-        console.log("dataInfo", dataInfo);
+        // console.log("dataInfo", dataInfo);
         if (!dataInfo?.length) throw { msg: VEHICLE_NOT_PERMISSION };
 
         const imei = dataInfo[0]?.imei;
@@ -220,9 +221,25 @@ class vehicleService {
       const { conn, connPromise } = await db.getConnection();
       try {
         const { id } = params;
-        const { device_id } = body;
+        const { device_id, code } = body;
 
         // console.log(id, device_id);
+
+        const dataCode = await validateModel.checkExitValue(
+          conn,
+          tableRenewalCode,
+          "code",
+          code,
+          "Mã gia hạn",
+          "code",
+          null,
+          false,
+          "id,is_used",
+          false,
+          true
+        );
+
+        const { id: codeId } = dataCode[0];
 
         const joinTable = `${tableVehicle} v INNER JOIN ${tableDeviceVehicle} dv ON v.id = dv.vehicle_id
         INNER JOIN ${tableDevice} d ON dv.device_id = d.id`;
@@ -241,6 +258,7 @@ class vehicleService {
           body,
           params,
           dataInfo,
+          codeId,
           infoUser
         );
         return data;
@@ -443,7 +461,7 @@ class vehicleService {
         const { id: vehicle_id } = params;
         const { device_id_old, device_id_new } = body;
 
-        console.log(device_id_old, device_id_new);
+        // console.log(device_id_old, device_id_new);
 
         const dataCheckSameUser = await dataBaseModel.select(
           conn,
@@ -452,7 +470,7 @@ class vehicleService {
           `device_id IN (?) AND is_deleted = 0`,
           [[device_id_old, device_id_new]]
         );
-        console.log("dataCheckSameUser", dataCheckSameUser);
+        // console.log("dataCheckSameUser", dataCheckSameUser);
 
         if (dataCheckSameUser?.length <= 1)
           throw { msg: `Thiết bị ${NOT_OWN}` };
@@ -481,8 +499,8 @@ class vehicleService {
         )
           throw { msg: `Thiết bị ${NOT_OWN}` };
 
-        const jointableUsersDevicesWithDeviceVehicle = `${tableDevice} d LEFT JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id`;
-        const whereJointableUsersDevicesWithDeviceVehicle = `d.id IN (?)`;
+        const jointableUsersDevicesWithDeviceVehicle = `${tableDevice} d LEFT JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id AND dv.is_deleted = 0`;
+        const whereJointableUsersDevicesWithDeviceVehicle = `d.id IN (?) AND d.is_deleted = 0`;
         const conditionJointableUsersDevicesWithDeviceVehicle = [
           [device_id_old, device_id_new],
         ];
@@ -500,12 +518,12 @@ class vehicleService {
           0,
           9999
         );
-        console.log("infoDevice", infoDevice);
+        // console.log("infoDevice", infoDevice);
 
         if (!infoDevice?.length || infoDevice?.length <= 1)
           throw { msg: `Thiết bị ${NOT_OWN}` };
 
-        let minExpiredOn = 0;
+        // let minExpiredOn = 0;
         const {
           infoVehicleInsert,
           deviceActived,
@@ -531,24 +549,24 @@ class vehicleService {
             } else {
               result.infoDeviceNew = { imei: item.imei };
             }
-            if (i == 0) {
-              minExpiredOn = item.expired_on;
-              result.infoVehicleInsert = {
-                expired_on: item.expired_on,
-                activation_date: item.activation_date,
-                warranty_expired_on: item.warranty_expired_on,
-              };
-            }
-            if (i > 0) {
-              if (!minExpiredOn?.expired_on || minExpiredOn > item.expired_on) {
-                minExpiredOn = item.expired_on;
-                result.infoVehicleInsert = {
-                  expired_on: item.expired_on,
-                  activation_date: item.activation_date,
-                  warranty_expired_on: item.warranty_expired_on,
-                };
-              }
-            }
+            // if (i == 0) {
+            //   minExpiredOn = item.expired_on;
+            //   result.infoVehicleInsert = {
+            //     expired_on: item.expired_on,
+            //     activation_date: item.activation_date,
+            //     warranty_expired_on: item.warranty_expired_on,
+            //   };
+            // }
+            // if (i > 0) {
+            //   if (!minExpiredOn?.expired_on || minExpiredOn > item.expired_on) {
+            //     minExpiredOn = item.expired_on;
+            //     result.infoVehicleInsert = {
+            //       expired_on: item.expired_on,
+            //       activation_date: item.activation_date,
+            //       warranty_expired_on: item.warranty_expired_on,
+            //     };
+            //   }
+            // }
 
             if (item.is_deleted == 0) {
               result.deviceActived += 1;
@@ -559,7 +577,7 @@ class vehicleService {
                 device_id: device_id_new,
                 vehicle_id,
                 ...result.infoVehicle,
-                ...result.infoVehicleInsert,
+                // ...result.infoVehicleInsert,
                 is_deleted: 0,
                 created_at: Date.now(),
               };
@@ -576,12 +594,12 @@ class vehicleService {
           }
         );
 
-        console.log({
-          infoVehicleInsert,
-          deviceActived,
-          infoDeviceNew,
-          infoDeviceOld,
-        });
+        // console.log({
+        //   infoVehicleInsert,
+        //   deviceActived,
+        //   infoDeviceNew,
+        //   infoDeviceOld,
+        // });
 
         if (deviceActived > 1)
           throw { msg: `Thiết bị mới không thể sử dụng để đổi bảo hành` };

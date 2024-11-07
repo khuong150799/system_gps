@@ -7,7 +7,7 @@ const constants = {
   ACCESS_TOKEN_SECRET_KEY,
   REFRESH_TOKEN_SECRET_KEY,
   PASSWORD_DEFAULT,
-  ACCESS_TOKEN_TIME_LIFE: 120000000,
+  ACCESS_TOKEN_TIME_LIFE: 1200,
   REFRESH_TOKEN_TIME_LIFE: "60d",
 
   ADD_DATA_SUCCESS: "Thêm thành công",
@@ -74,10 +74,13 @@ const constants = {
   REMOTE_TURN_ON_DEVICE_ERROR: "Vô hiệu tắt máy phương tiện thất bại",
   TOO_MANY_FILE: "Tối đa 5 image",
   IMAGE_OVER_SIZE: "quá 2MB",
+  FIRMWARE_OVER_SIZE: "quá 3MB",
   IMAGE_TYPE_FAIL: "không đúng định dạng",
   CALIB_FAIL_PARAM: "Thông số calib không hợp lệ",
   CALIB_FAIL_QUANTITY: "Calib ít nhất 2 lần",
   ACC_CHILD_NOT_ACTIVE: "Tài khoản con không thể kích hoạt",
+  ACC_NOT_DEL: "Tài khoản có phương tiện không thể xoá",
+  ERR_RENEWAL_CODE: "Mã gia hạn đã được sử dụng",
 };
 
 module.exports = constants;

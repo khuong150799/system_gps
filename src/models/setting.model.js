@@ -17,25 +17,27 @@ class SettingModel extends DatabaseModel {
     const offset = query.offset || 0;
     const limit = query.limit || 10;
     const isDeleted = query.is_deleted || 0;
-    let where = `is_deleted = ?`;
-    const conditions = [isDeleted];
+    let where = `s.is_deleted = ? AND sc.is_deleted = ?`;
+    const conditions = [isDeleted, isDeleted];
 
     if (query.keyword) {
-      where += ` AND title LIKE ?`;
-      conditions.push(`%${query.keyword}%`);
+      where += ` AND (s.title LIKE ? OR sc.title LIKE ?)`;
+      conditions.push(`%${query.keyword}%`, `%${query.keyword}%`);
     }
 
     if (query.publish) {
-      where += ` AND publish = ?`;
+      where += ` AND s.publish = ?`;
       conditions.push(query.publish);
     }
 
+    const joinTable = `${tableSetting} s INNER JOIN ${tableSettingCate} sc ON s.setting_cate_id = sc.id`;
+
     const select =
-      "id,title, sort, on_default, is_disabled, publish,created_at,updated_at";
+      "s.id,s.title, sc.title as cate_title, s.keyword, s.sort, s.on_default, s.is_disabled, s.publish,s.created_at,s.updated_at";
     const [res_, count] = await Promise.all([
       this.select(
         conn,
-        tableSetting,
+        joinTable,
         select,
         where,
         conditions,
@@ -44,7 +46,7 @@ class SettingModel extends DatabaseModel {
         offset,
         limit
       ),
-      this.count(conn, tableSetting, "*", where, conditions),
+      this.count(conn, joinTable, "*", where, conditions),
     ]);
 
     const totalPage = Math.ceil(count?.[0]?.total / limit);
@@ -59,9 +61,9 @@ class SettingModel extends DatabaseModel {
     const joinTable = `${tableSettingCate} sc INNER JOIN ${tableSetting} s ON sc.id = s.setting_cate_id 
       LEFT JOIN ${tableUsersSetting} us ON s.id = us.setting_id AND us.user_id = ?`;
 
-    const conditions = [0, 0, 0, 0, userId];
+    const conditions = [userId, 0, 1, 0, 1];
     const select =
-      "sc.title,JSON_ARRAYAGG(JSON_OBJECT('id', s.id,'title', s.title,'is_disabled',us.is_disabled)) AS setting";
+      "sc.title,JSON_ARRAYAGG(JSON_OBJECT('id', s.id,'title', s.title,'is_disabled',us.is_disabled, 'on_default',s.on_default)) AS setting";
     const data = await this.select(
       conn,
       joinTable,
@@ -83,7 +85,7 @@ class SettingModel extends DatabaseModel {
     const isDeleted = query.is_deleted || 0;
     const where = `is_deleted = ? AND id = ?`;
     const conditions = [isDeleted, id];
-    const selectData = `id,title, sort, on_default, is_disabled, publish`;
+    const selectData = `id,title, keyword, sort, on_default, is_disabled, publish`;
 
     const res_ = await this.select(
       conn,
@@ -127,8 +129,8 @@ class SettingModel extends DatabaseModel {
 
   //Register
   async registerUser(conn, body, userId) {
-    const { setting_id, id_disabled } = body;
-    const usersSetting = [[userId, setting_id, id_disabled, Date.now()]];
+    const { setting_id, is_disabled } = body;
+    const usersSetting = [[userId, setting_id, is_disabled, Date.now()]];
     await this.insertDuplicate(
       conn,
       tableUsersSetting,

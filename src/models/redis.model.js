@@ -9,6 +9,7 @@ class RedisModel {
     this.set = this.set.bind(this);
     this.setWithExpired = this.setWithExpired.bind(this);
     this.hSet = this.hSet.bind(this);
+    this.hScan = this.hScan.bind(this);
     this.setnx = this.setnx.bind(this);
     this.expire = this.expire.bind(this);
     this.ttl = this.ttl.bind(this);
@@ -63,6 +64,22 @@ class RedisModel {
       return { result: true, data: [] };
     } catch (error) {
       console.log(error);
+      return { result: false, error };
+    }
+  }
+
+  async hScan(key, count, offset = 0, match = "*") {
+    try {
+      const { instanceConnect: client } = this.redis;
+      const data = await client.hScan(key, offset, {
+        MATCH: match,
+        COUNT: count,
+      });
+
+      return { result: true, data };
+    } catch (error) {
+      console.log(error);
+
       return { result: false, error };
     }
   }
