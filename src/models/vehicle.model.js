@@ -61,7 +61,7 @@ class VehicleModel extends DatabaseModel {
     LEFT JOIN ${tableCustomers} c ON uc2.customer_id = c.id`;
 
     const select = `
-      d.id as device_id,d.imei,dv.expired_on,dv.activation_date,dv.warranty_expired_on,dv.is_use_gps,dv.quantity_channel,dv.quantity_channel_lock,dv.is_lock,dv.is_transmission_gps,dv.is_transmission_image,
+      d.id as device_id,d.imei,dv.expired_on,dv.activation_date,d.warranty_expired_on,dv.is_use_gps,dv.quantity_channel,dv.quantity_channel_lock,dv.is_lock,dv.is_transmission_gps,dv.is_transmission_image,
       v.display_name,v.name as vehicle_name,v.id as vehicle_id,v.vehicle_type_id,vt.name as vehicle_type_name,vt.vehicle_icon_id,vt.max_speed,
       m.name as model_name,m.model_type_id,ds.title as device_status_name,COALESCE(c0.company,
       c0.name) as customer_name,COALESCE(c.company, c.name) as agency_name,c.phone as agency_phone,vi.name as vehicle_icon_name,
@@ -663,15 +663,24 @@ class VehicleModel extends DatabaseModel {
 
     await connPromise.beginTransaction();
 
+    // await this.update(
+    //   conn,
+    //   tableDeviceVehicle,
+    //   { warranty_expired_on },
+    //   "",
+    //   [id, device_id],
+    //   "expired_on",
+    //   true,
+    //   "vehicle_id = ? AND device_id = ?"
+    // );
+
     await this.update(
       conn,
-      tableDeviceVehicle,
+      tableDevice,
       { warranty_expired_on },
-      "",
-      [id, device_id],
-      "expired_on",
-      true,
-      "vehicle_id = ? AND device_id = ?"
+      "id",
+      [device_id],
+      "warranty_expired_on"
     );
     // console.log("dataInfo", dataInfo);
 
@@ -853,7 +862,7 @@ class VehicleModel extends DatabaseModel {
       vehicle_id,
       expired_on,
       activation_date,
-      warranty_expired_on,
+      // warranty_expired_on,
       service_package_id,
       type,
       is_use_gps,
@@ -866,6 +875,7 @@ class VehicleModel extends DatabaseModel {
     },
     infoDeviceNew,
     infoDeviceOld,
+    { activation_date: activationDate, warranty_expired_on },
     listOrdersId,
     infoUser
   ) {
@@ -886,18 +896,22 @@ class VehicleModel extends DatabaseModel {
       true,
       "id = ?"
     );
+    console.log({ activationDate, warranty_expired_on });
 
     await this.update(
       conn,
       tableDevice,
-      { device_status_id: 3 },
+      {
+        device_status_id: 3,
+        activation_date: activationDate,
+        warranty_expired_on,
+      },
       "",
       [device_id_new],
       "device_id",
       true,
       "id = ?"
     );
-
     await this.update(
       conn,
       tableUsersDevices,
@@ -905,10 +919,9 @@ class VehicleModel extends DatabaseModel {
       "",
       [user_device_id, device_id_old],
       "device_id",
-      true,
+      false,
       `id > ? AND device_id = ?`
     );
-
     await this.update(
       conn,
       tableUsersDevices,
@@ -919,7 +932,6 @@ class VehicleModel extends DatabaseModel {
       true,
       "id = ?"
     );
-
     await this.update(
       conn,
       tableDeviceVehicle,
@@ -930,7 +942,6 @@ class VehicleModel extends DatabaseModel {
       true,
       "device_id = ? AND vehicle_id = ?"
     );
-
     if (inforOrder?.length) {
       const { od_id } = inforOrder[0];
       if (listOrdersId?.length) {
@@ -946,7 +957,6 @@ class VehicleModel extends DatabaseModel {
           `id IN (?)`
         );
       }
-
       await this.update(
         conn,
         tableOrdersDevice,
@@ -958,16 +968,14 @@ class VehicleModel extends DatabaseModel {
         `id >= ? AND device_id = ?`
       );
     }
-
     const field =
-      "device_id,vehicle_id,expired_on,activation_date,warranty_expired_on,service_package_id,type,is_use_gps,quantity_channel,quantity_channel_lock,is_transmission_gps,is_transmission_image,is_deleted,created_at";
+      "device_id,vehicle_id,expired_on,activation_date,service_package_id,type,is_use_gps,quantity_channel,quantity_channel_lock,is_transmission_gps,is_transmission_image,is_deleted,created_at";
     const dataInsert = [
       [
         device_id,
         vehicle_id,
         expired_on,
         activation_date,
-        warranty_expired_on,
         service_package_id,
         type,
         is_use_gps,
@@ -980,7 +988,7 @@ class VehicleModel extends DatabaseModel {
       ],
     ];
     const dataDuplicate = `expired_on=VALUES(expired_on),activation_date=VALUES(activation_date),
-      warranty_expired_on=VALUES(warranty_expired_on),service_package_id=VALUES(service_package_id),
+      service_package_id=VALUES(service_package_id),
       type=VALUES(type),is_use_gps=VALUES(is_use_gps),quantity_channel=VALUES(quantity_channel),
       quantity_channel_lock=VALUES(quantity_channel_lock),is_transmission_gps=VALUES(is_transmission_gps),
       is_transmission_image=VALUES(is_transmission_image),is_deleted=VALUES(is_deleted),created_at=VALUES(created_at)`;
@@ -991,7 +999,6 @@ class VehicleModel extends DatabaseModel {
       dataInsert,
       dataDuplicate
     );
-
     // console.log("infoDeviceNew.imei", infoDeviceNew.imei);
 
     const [{ result: resultOld }, resultNew] = await Promise.all([

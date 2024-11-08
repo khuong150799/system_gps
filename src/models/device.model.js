@@ -135,7 +135,7 @@ class DeviceModel extends DatabaseModel {
     let errors = {};
     const where = `(d.imei = ? OR d.dev_id = ?) AND d.is_deleted = ? AND ud.is_moved = ?`;
     const conditions = [imei, imei, 0, 0];
-    const select = `d.id,d.imei,d.device_status_id,ud.user_id,m.model_type_id as type`;
+    const select = `d.id,d.imei,d.device_status_id,d.activation_date,d.warranty_expired_on,d.expired_on,ud.user_id,m.model_type_id as type`;
     const joinTable = `${tableDevice} d INNER JOIN ${tableUsersDevices} ud ON d.id = ud.device_id 
       INNER JOIN ${tableModel} m ON d.model_id = m.id`;
 
@@ -170,7 +170,7 @@ class DeviceModel extends DatabaseModel {
     const conditions = [imei, imei, 0, 0];
     const joinTable = `${tableDevice} d INNER JOIN ${tableUsersDevices} ud ON d.id = ud.device_id 
       INNER JOIN ${tableModel} m ON d.model_id = m.id`;
-    const select = `d.id,d.imei,d.device_status_id,ud.user_id,m.model_type_id as type`;
+    const select = `d.id,d.imei,d.device_status_id,d.activation_date,d.warranty_expired_on,d.expired_on,ud.user_id,m.model_type_id as type`;
 
     const [res, infoUser] = await Promise.all([
       this.select(conn, joinTable, select, where, conditions, `d.id`),
@@ -244,7 +244,7 @@ class DeviceModel extends DatabaseModel {
     }
 
     if (start_warranty_expired_on && end_warranty_expired_on) {
-      where += ` AND dv.warranty_expired_on BETWEEN ? AND ?`;
+      where += ` AND d.warranty_expired_on BETWEEN ? AND ?`;
       conditions.push(start_warranty_expired_on, end_warranty_expired_on);
     }
 
@@ -273,7 +273,7 @@ class DeviceModel extends DatabaseModel {
     `;
 
     let select = `d.id,d.dev_id,d.imei,d.serial,m.name as model_name, 
-     dv.expired_on,dv.warranty_expired_on,dv.activation_date,fw.version_hardware,
+     dv.expired_on,d.warranty_expired_on,dv.activation_date,fw.version_hardware,
      fw.version_software,COALESCE(fw.updated_at,fw.created_at) as time_update_version,ca.host`;
 
     if (type == 1) {
@@ -345,7 +345,7 @@ class DeviceModel extends DatabaseModel {
     LEFT JOIN ${tableCustomers} c ON uc2.customer_id = c.id`;
 
     const select = `
-      d.id as device_id,d.dev_id,d.serial,d.imei,dv.expired_on,dv.activation_date,dv.warranty_expired_on,dv.is_use_gps,dv.quantity_channel,dv.quantity_channel_lock,dv.is_lock,dv.is_transmission_gps,dv.is_transmission_image,
+      d.id as device_id,d.dev_id,d.serial,d.imei,dv.expired_on,dv.activation_date,d.warranty_expired_on,dv.is_use_gps,dv.quantity_channel,dv.quantity_channel_lock,dv.is_lock,dv.is_transmission_gps,dv.is_transmission_image,
       v.display_name,v.name as vehicle_name,v.id as vehicle_id,v.vehicle_type_id,vt.name as vehicle_type_name,dv.service_package_id,vt.vehicle_icon_id,vt.max_speed,v.weight,v.warning_speed,m.id as model_id,
       m.name as model_name,m.model_type_id,ds.id as device_status_id,ds.title as device_status_name,COALESCE(c0.company,
       c0.name) as customer_name,COALESCE(c.company, c.name) as agency_name,c.phone as agency_phone,vi.name as vehicle_icon_name,
@@ -445,6 +445,8 @@ class DeviceModel extends DatabaseModel {
       is_transmission_image,
       note,
       activation_date,
+      warranty_expired_on,
+      expired_on,
       imei,
       model_type_id,
       is_use_gps,
@@ -526,9 +528,9 @@ class DeviceModel extends DatabaseModel {
       device_id,
       vehicle_id: vehicleId,
       service_package_id,
-      expired_on: date_.getTime(),
+      expired_on: expired_on || date_.getTime(),
       activation_date: activation_date || createdAt,
-      warranty_expired_on: date.getTime(),
+      // warranty_expired_on: date.getTime(),
       quantity_channel,
       quantity_channel_lock: 0,
       type: model_type_id,
@@ -549,7 +551,12 @@ class DeviceModel extends DatabaseModel {
     await this.update(
       conn,
       tableDevice,
-      { device_status_id: 3 },
+      {
+        device_status_id: 3,
+        warranty_expired_on: warranty_expired_on || date.getTime(),
+        activation_date: activation_date || createdAt,
+        expired_on: expired_on || date_.getTime(),
+      },
       "id",
       device_id
     );
@@ -661,15 +668,14 @@ class DeviceModel extends DatabaseModel {
       is_transmission_gps,
       is_transmission_image,
       note,
-      activation_date,
       imei,
       model_type_id,
       is_use_gps,
-      // imei_link,
-      // expired_on,
-      // warranty_expired_on,
+      activation_date,
+      expired_on,
+      warranty_expired_on,
     } = body;
-    console.log({ imei });
+    // console.log({ imei });
 
     const infoPackage = await this.select(
       conn,
@@ -720,10 +726,10 @@ class DeviceModel extends DatabaseModel {
       device_id,
       vehicle_id: vehicleId,
       service_package_id,
-      expired_on: date_.getTime(),
+      expired_on: expired_on || date_.getTime(),
       // expired_on,
       activation_date: activation_date || createdAt,
-      warranty_expired_on: date.getTime(),
+      // warranty_expired_on: date.getTime(),
       // warranty_expired_on,
       quantity_channel,
       quantity_channel_lock: 0,
@@ -743,7 +749,12 @@ class DeviceModel extends DatabaseModel {
     await this.update(
       conn,
       tableDevice,
-      { device_status_id: 3 },
+      {
+        device_status_id: 3,
+        warranty_expired_on: warranty_expired_on || date.getTime(),
+        activation_date: activation_date || createdAt,
+        expired_on: expired_on || date_.getTime(),
+      },
       "id",
       device_id
     );
@@ -802,7 +813,7 @@ class DeviceModel extends DatabaseModel {
 
     const inforDevice = await vehicleModel.getInfoDevice(conn, imei);
 
-    console.log("inforDevice", inforDevice);
+    // console.log("inforDevice", inforDevice);
     // console.log("inforDevice?.length", inforDevice?.length);
 
     if (!inforDevice?.length) throw { msg: ERROR };
@@ -997,8 +1008,8 @@ class DeviceModel extends DatabaseModel {
     // console.log(id)
     // delete device.package_service_id;
     // delete device.expired_on;
-    // delete device.activation_date;
-    // delete device.warranty_expired_on;
+    delete device.activation_date;
+    delete device.warranty_expired_on;
     // delete device.vehicle_type_id;
     delete device.is_deleted;
     delete device.created_at;
@@ -1014,6 +1025,7 @@ class DeviceModel extends DatabaseModel {
       this.select(conn, tableModel, "id,name", "1 = ?", 1),
       this.select(conn, tableDeviceStatus, "id,title", "1 = ?", 1),
     ]);
+
     await this.update(conn, tableDevice, device, "id", id);
     await vehicleModel.getInfoDevice(conn, imei);
     await deviceLoggingModel.update(conn, {

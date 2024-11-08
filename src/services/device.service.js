@@ -262,9 +262,15 @@ class DeviceService {
           id,
           type: model_type_id,
           imei: imeiDb,
+          activation_date,
+          warranty_expired_on,
+          expired_on,
         } = dataInfoDevice;
         const dataBody = {
           ...body,
+          activation_date,
+          warranty_expired_on,
+          expired_on,
           parent_id: user_id,
           device_id: id,
           model_type_id,
@@ -315,7 +321,14 @@ class DeviceService {
           parentId
         );
 
-        const { id, type: model_type_id, imei: imeiDb } = dataInfoDevice;
+        const {
+          id,
+          type: model_type_id,
+          imei: imeiDb,
+          activation_date,
+          warranty_expired_on,
+          expired_on,
+        } = dataInfoDevice;
 
         const { is_actived, is_deleted, is_main } =
           await validateModel.checkUserInfo(conn, userId);
@@ -336,6 +349,9 @@ class DeviceService {
 
         const dataBody = {
           ...body,
+          activation_date,
+          warranty_expired_on,
+          expired_on,
           device_id: id,
           model_type_id,
           imei: imeiDb,

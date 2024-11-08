@@ -5,7 +5,7 @@ class DeviceVehicleSchema {
     service_package_id,
     expired_on,
     activation_date,
-    warranty_expired_on,
+    // warranty_expired_on,
     quantity_channel,
     quantity_channel_lock,
     type,
@@ -21,7 +21,7 @@ class DeviceVehicleSchema {
     this.service_package_id = service_package_id;
     this.expired_on = expired_on;
     this.activation_date = activation_date;
-    this.warranty_expired_on = warranty_expired_on;
+    // this.warranty_expired_on = warranty_expired_on;
     this.quantity_channel = quantity_channel;
     this.quantity_channel_lock = quantity_channel_lock;
     this.type = type;

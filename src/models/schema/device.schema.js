@@ -7,8 +7,8 @@ class DeviceSchema {
     device_status_id,
     // package_service_id,
     // expired_on,
-    // activation_date,
-    // warranty_expired_on,
+    activation_date,
+    warranty_expired_on,
     // vehicle_type_id,
     sv_cam_id,
     note,
@@ -23,8 +23,8 @@ class DeviceSchema {
     this.device_status_id = device_status_id;
     // this.package_service_id = package_service_id;
     // this.expired_on = expired_on;
-    // this.activation_date = activation_date;
-    // this.warranty_expired_on = warranty_expired_on;
+    this.activation_date = activation_date;
+    this.warranty_expired_on = warranty_expired_on;
     // this.vehicle_type_id = vehicle_type_id;
     this.sv_cam_id = sv_cam_id;
     this.note = note;

@@ -324,17 +324,27 @@ class vehicleService {
         const { id } = params;
         const { device_id } = body;
 
-        const joinTable = `${tableVehicle} v INNER JOIN ${tableDeviceVehicle} dv ON v.id = dv.vehicle_id
-        INNER JOIN ${tableDevice} d ON dv.device_id = d.id`;
+        // const joinTable = `${tableVehicle} v INNER JOIN ${tableDeviceVehicle} dv ON v.id = dv.vehicle_id
+        // INNER JOIN ${tableDevice} d ON dv.device_id = d.id`;
+
+        // const dataInfo = await dataBaseModel.select(
+        //   conn,
+        //   joinTable,
+        //   "d.imei,dv.warranty_expired_on",
+        //   "v.id = ? AND d.id = ?",
+        //   [id, device_id],
+        //   "d.id"
+        // );
 
         const dataInfo = await dataBaseModel.select(
           conn,
-          joinTable,
-          "d.imei,dv.warranty_expired_on",
-          "v.id = ? AND d.id = ?",
+          `${tableDevice} d`,
+          "d.imei,d.warranty_expired_on",
+          "d.id = ?",
           [id, device_id],
           "d.id"
         );
+
         const data = await vehicleModel.updateWarrantyExpiredOn(
           conn,
           connPromise,
@@ -467,142 +477,105 @@ class vehicleService {
           conn,
           tableUserDevice,
           "user_id,is_moved,device_id",
-          `device_id IN (?) AND is_deleted = 0`,
+          `device_id IN (?) AND is_deleted = 0 AND is_moved = 0`,
           [[device_id_old, device_id_new]]
         );
         // console.log("dataCheckSameUser", dataCheckSameUser);
 
-        if (dataCheckSameUser?.length <= 1)
-          throw { msg: `Thiết bị ${NOT_OWN}` };
-
-        let owner = false;
-
-        for (let i = 0; i < dataCheckSameUser.length; i++) {
-          const item = dataCheckSameUser[i];
-          // console.log(
-          //   "owner && item.is_moved == 0 && item.user_id == owner",
-          //   owner && item.is_moved == 0 && item.user_id == owner
-          // );
-
-          if (owner && item.is_moved == 0 && item.user_id == owner) {
-            owner = true;
-            break;
-          }
-          if (item.is_moved == 0) {
-            owner = item.user_id;
-          }
-        }
-
         if (
-          typeof owner !== "boolean" ||
-          (typeof owner === "boolean" && !owner)
+          dataCheckSameUser?.length <= 1 ||
+          dataCheckSameUser[0]?.user_id != dataCheckSameUser[1]?.user_id
         )
           throw { msg: `Thiết bị ${NOT_OWN}` };
 
-        const jointableUsersDevicesWithDeviceVehicle = `${tableDevice} d LEFT JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id AND dv.is_deleted = 0`;
-        const whereJointableUsersDevicesWithDeviceVehicle = `d.id IN (?) AND d.is_deleted = 0`;
-        const conditionJointableUsersDevicesWithDeviceVehicle = [
-          [device_id_old, device_id_new],
-        ];
-        const selectJointableUsersDevicesWithDeviceVehicle = `d.imei,dv.id as dv_id,dv.vehicle_id,dv.service_package_id,dv.expired_on,dv.activation_date,dv.warranty_expired_on,dv.is_use_gps,dv.type,
-    dv.quantity_channel,dv.quantity_channel_lock,dv.is_transmission_gps,dv.is_transmission_image,dv.is_deleted`;
+        const jointableUsersDevicesWithDeviceVehicle = `${tableDevice} d INNER JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id`;
+        const whereJointableUsersDevicesWithDeviceVehicle = `d.id = ? AND d.is_deleted = 0 AND dv.is_deleted = 0`;
 
-        const infoDevice = await dataBaseModel.select(
-          conn,
-          jointableUsersDevicesWithDeviceVehicle,
-          selectJointableUsersDevicesWithDeviceVehicle,
-          whereJointableUsersDevicesWithDeviceVehicle,
-          conditionJointableUsersDevicesWithDeviceVehicle,
-          "dv.id",
-          "ASC",
-          0,
-          9999
-        );
-        // console.log("infoDevice", infoDevice);
+        const selectJointableUsersDevicesWithDeviceVehicle = `d.id,d.imei,dv.id as dv_id,dv.vehicle_id,dv.service_package_id,dv.expired_on,
+        dv.activation_date,dv.is_use_gps,dv.type,dv.quantity_channel,dv.quantity_channel_lock,dv.is_transmission_gps,dv.is_transmission_image,dv.is_deleted`;
 
-        if (!infoDevice?.length || infoDevice?.length <= 1)
+        const [infoDeviceOld, infoDeviceNew] = await Promise.all([
+          dataBaseModel.select(
+            conn,
+            jointableUsersDevicesWithDeviceVehicle,
+            selectJointableUsersDevicesWithDeviceVehicle,
+            whereJointableUsersDevicesWithDeviceVehicle,
+            device_id_old,
+            "dv.id",
+            "ASC",
+            0,
+            1
+          ),
+          dataBaseModel.select(
+            conn,
+            `${tableDevice} d`,
+            "id,imei,activation_date,warranty_expired_on",
+            "id = ?",
+            device_id_new,
+            "id",
+            "ASC",
+            0,
+            1
+          ),
+        ]);
+
+        if (!infoDeviceNew?.length || !infoDeviceOld?.length)
           throw { msg: `Thiết bị ${NOT_OWN}` };
 
-        // let minExpiredOn = 0;
         const {
-          infoVehicleInsert,
-          deviceActived,
-          infoDeviceNew,
-          infoDeviceOld,
-        } = infoDevice.reduce(
-          (result, item, i, arr) => {
-            if (item.vehicle_id == vehicle_id) {
-              result.infoVehicle = {
-                expired_on: item.expired_on,
-                activation_date: item.activation_date,
-                warranty_expired_on: item.warranty_expired_on,
-                service_package_id: item.service_package_id,
-                type: item.type,
-                is_use_gps: item.is_use_gps,
-                quantity_channel: item.quantity_channel,
-                quantity_channel_lock: item.quantity_channel_lock,
-                is_transmission_gps: item.is_transmission_gps,
-                is_transmission_image: item.is_transmission_image,
-              };
+          expired_on,
+          activation_date,
+          service_package_id,
+          type,
+          is_use_gps,
+          quantity_channel,
+          quantity_channel_lock,
+          is_transmission_gps,
+          is_transmission_image,
+        } = infoDeviceOld[0];
 
-              result.infoDeviceOld = { imei: item.imei };
-            } else {
-              result.infoDeviceNew = { imei: item.imei };
-            }
-            // if (i == 0) {
-            //   minExpiredOn = item.expired_on;
-            //   result.infoVehicleInsert = {
-            //     expired_on: item.expired_on,
-            //     activation_date: item.activation_date,
-            //     warranty_expired_on: item.warranty_expired_on,
-            //   };
-            // }
-            // if (i > 0) {
-            //   if (!minExpiredOn?.expired_on || minExpiredOn > item.expired_on) {
-            //     minExpiredOn = item.expired_on;
-            //     result.infoVehicleInsert = {
-            //       expired_on: item.expired_on,
-            //       activation_date: item.activation_date,
-            //       warranty_expired_on: item.warranty_expired_on,
-            //     };
-            //   }
-            // }
+        const infoVehicleInsert = {
+          device_id: device_id_new,
+          vehicle_id,
+          expired_on,
+          activation_date,
+          service_package_id,
+          type,
+          is_use_gps,
+          quantity_channel,
+          quantity_channel_lock,
+          is_transmission_gps,
+          is_transmission_image,
+          is_deleted: 0,
+          created_at: Date.now(),
+        };
 
-            if (item.is_deleted == 0) {
-              result.deviceActived += 1;
-            }
+        const {
+          activation_date: activation_date_device,
+          warranty_expired_on: warranty_expired_on_device,
+        } = infoDeviceNew[0];
 
-            if (i == arr.length - 1) {
-              result.infoVehicleInsert = {
-                device_id: device_id_new,
-                vehicle_id,
-                ...result.infoVehicle,
-                // ...result.infoVehicleInsert,
-                is_deleted: 0,
-                created_at: Date.now(),
-              };
-            }
+        let dataUpdateDevice = {
+          activation_date: null,
+          warranty_expired_on: null,
+        };
+        if (!warranty_expired_on_device) {
+          const createdAt = Date.now();
+          const date = new Date(createdAt);
+          date.setFullYear(date.getFullYear() + 1);
 
-            return result;
-          },
-          {
-            infoVehicleInsert: {},
-            infoVehicle: {},
-            deviceActived: 0,
-            infoDeviceOld: {},
-            infoDeviceNew: {},
-          }
-        );
+          dataUpdateDevice = {
+            activation_date: createdAt,
+            warranty_expired_on: date.getTime(),
+          };
+        } else {
+          dataUpdateDevice = {
+            activation_date: activation_date_device,
+            warranty_expired_on: warranty_expired_on_device,
+          };
+        }
 
-        // console.log({
-        //   infoVehicleInsert,
-        //   deviceActived,
-        //   infoDeviceNew,
-        //   infoDeviceOld,
-        // });
-
-        if (deviceActived > 1)
-          throw { msg: `Thiết bị mới không thể sử dụng để đổi bảo hành` };
+        console.log({ infoDeviceOld, infoDeviceNew });
 
         const joinTableVehicle = `${tableVehicle} v INNER JOIN ${tableDeviceVehicle} dv ON v.id = dv.vehicle_id
           INNER JOIN ${tableUserDevice} ud ON dv.device_id = ud.device_id`;
@@ -657,6 +630,7 @@ class vehicleService {
 
           // console.log("listOrdersId", listOrdersId);
         }
+        // console.log("idUd", idUd);
 
         const data = await vehicleModel.guarantee(
           conn,
@@ -666,8 +640,9 @@ class vehicleService {
           idUd,
           inforOrder,
           infoVehicleInsert,
-          infoDeviceNew,
-          infoDeviceOld,
+          infoDeviceNew[0],
+          infoDeviceOld[0],
+          dataUpdateDevice,
           listOrdersId,
           infoUser
         );

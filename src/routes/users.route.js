@@ -212,7 +212,7 @@ module.exports = (app) => {
   );
 
   router.get(
-    "/login-customer",
+    "/login-customer/:username",
     [
       param("username", NOT_EMPTY)
         .notEmpty()
@@ -220,6 +220,7 @@ module.exports = (app) => {
         .withMessage(VALIDATE_DATA)
         .escape(),
     ],
+    isAuth,
     usersController.loginCustomer
   );
 

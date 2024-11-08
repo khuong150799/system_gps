@@ -1089,9 +1089,10 @@ class UsersModel extends DatabaseModel {
   }
 
   //loginCustomer
-  async loginCustomer(id, parentId, role, level, customer_id) {
+  async loginCustomer(id, parentId, role, level, customer_id, isMain) {
     const clientId = uuidv4();
     const keyToken = md5(Date.now());
+    const keyRefreshToken = md5(Date.now() + 1);
 
     const token = await makeAccessToken(
       {
@@ -1101,18 +1102,20 @@ class UsersModel extends DatabaseModel {
         role,
         level,
         customerId: customer_id,
+        isMain,
       },
       keyToken
     );
 
     await hSet(
       REDIS_KEY_TOKEN,
-      clientId,
+      `${id}/${clientId}`,
       JSON.stringify({
-        user_id: id,
         publish_key_token: keyToken,
+        publish_key_refresh_token: keyRefreshToken,
       })
     );
+    // console.log("token", token);
 
     return [
       {
@@ -1122,6 +1125,7 @@ class UsersModel extends DatabaseModel {
         role,
         level,
         customerId: customer_id,
+        isMain,
       },
     ];
   }

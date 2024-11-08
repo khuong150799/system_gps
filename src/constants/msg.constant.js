@@ -53,6 +53,7 @@ const constants = {
   VALIDATE_LICENSE: "Số bằng lái không hợp lệ",
   // VALIDATE_NEWS_SIZE: "Dung lượng news phải nhỏ hơn 20MB",
   SERVER_ERROR: "Máy chủ xảy ra lỗi",
+  LOGIN_FAIL: "Tài khoản không được phép đăng nhập",
   LOGIN_SUCCESS: "Đăng nhập thành công",
   LOGOUT_SUCCESS: "Đăng xuất thành công",
   REFRESH_TOKEN_SUCCESS: "Lấy token thành công",

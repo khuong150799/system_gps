@@ -191,8 +191,8 @@ class CustomersController {
   });
 
   loginCustomer = catchAsync(async (req, res) => {
-    const { params } = req;
-    const data = await usersSrevice.loginCustomer(params);
+    const { params, left, right } = req;
+    const data = await usersSrevice.loginCustomer(params, left, right);
     OK(res, data);
   });
   login = catchAsync(async (req, res) => {

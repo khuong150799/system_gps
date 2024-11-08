@@ -7,6 +7,7 @@ const {
   NOT_ADD_DEVICE,
   ACC_NOT_DEL,
   PASS_FAILED,
+  LOGIN_FAIL,
 } = require("../constants/msg.constant");
 
 const bcrypt = require("bcrypt");
@@ -629,7 +630,7 @@ class UsersService {
   }
 
   //loginCustomer
-  async loginCustomer(params) {
+  async loginCustomer(params, leftAcc, rightAcc) {
     try {
       const { conn } = await db.getConnection();
       try {
@@ -645,7 +646,7 @@ class UsersService {
           INNER JOIN ${tableCustomers} c ON uc.customer_id = c.id 
           INNER JOIN ${tableLevel} l ON c.level_id = l.id`;
 
-        const select = `u.id,u.parent_id,u.password,u.is_actived,u.is_deleted,
+        const select = `u.id,u.parent_id,u.left,u.right,u.is_main,u.is_actived,u.is_deleted,
             r.sort as role,c.id as customer_id,l.sort as level`;
         const dataUser = await databaseModel.select(
           conn,
@@ -680,7 +681,25 @@ class UsersService {
           role,
           level,
           customer_id,
+          left,
+          right,
+          is_main,
         } = dataUser[0];
+
+        if (
+          Number(leftAcc) <= Number(left) ||
+          Number(rightAcc) <= Number(right)
+        )
+          throw {
+            msg: ERROR,
+            errors: [
+              {
+                value: username,
+                msg: LOGIN_FAIL,
+                param: "username",
+              },
+            ],
+          };
 
         await validateModel.checkStatusUser(is_actived, is_deleted);
 
@@ -689,7 +708,8 @@ class UsersService {
           parentId,
           role,
           level,
-          customer_id
+          customer_id,
+          is_main
         );
         return data;
       } catch (error) {

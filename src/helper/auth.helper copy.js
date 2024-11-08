@@ -47,6 +47,8 @@ class JWTService {
   async checkToken(token, privateKey, isAccess = true) {
     try {
       const info = parseJwt(token);
+      console.log("info", info);
+
       if (!info?.clientId) {
         throw new Api403Error();
       }

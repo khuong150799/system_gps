@@ -51,6 +51,8 @@ class JWTService {
   }
   async checkToken(token, privateKey, isAccess = true) {
     const info = parseJwt(token);
+    // console.log(";info", info);
+
     if (!info?.clientId) {
       throw new Api403Error();
     }
@@ -62,7 +64,7 @@ class JWTService {
       if (dataStore.result && dataStore.data) {
         keyStore = JSON.parse(dataStore.data);
       }
-      // console.log("keyStore", `${userId}/${clientId}`);
+      // console.log("keyStore", keyStore);
 
       if (!Object.keys(keyStore).length) throw new Api403Error();
 
