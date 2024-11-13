@@ -99,7 +99,7 @@ module.exports = (app) => {
     "/update-expired",
     [body("djson", NOT_EMPTY).notEmpty().isString().withMessage(VALIDATE_DATA)],
     isAuth,
-    // checkPermission,
+    checkPermission,
     vehicleController.updateExpiredOn
   );
 
@@ -118,7 +118,7 @@ module.exports = (app) => {
       body("code", NOT_EMPTY).notEmpty().isString().withMessage(VALIDATE_DATA),
     ],
     isAuth,
-    // checkPermission,
+    checkPermission,
     vehicleController.recallExtend
   );
 
