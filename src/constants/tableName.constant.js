@@ -51,4 +51,5 @@ module.exports = {
   tableRenewalCodeDevice: "tbl_renewal_code_device",
   tableFrmware: "tbl_firmware",
   tableTypeCode: "tbl_type_code",
+  tableKeyTime: "tbl_key_time",
 };

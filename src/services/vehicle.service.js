@@ -1,5 +1,8 @@
 const db = require("../dbs/init.mysql");
-const { BusinessLogicError } = require("../core/error.response");
+const {
+  BusinessLogicError,
+  SendMissingDataError,
+} = require("../core/error.response");
 const vehicleModel = require("../models/vehicle.model");
 const {
   tableVehicle,
@@ -10,6 +13,8 @@ const {
   tableOrders,
   tableOrdersDevice,
   tableRenewalCode,
+  tableKeyTime,
+  tableRenewalCodeDevice,
 } = require("../constants/tableName.constant");
 const DatabaseModel = require("../models/database.model");
 const validateModel = require("../models/validate.model");
@@ -17,7 +22,12 @@ const {
   NOT_OWN,
   NOT_EXITS,
   VEHICLE_NOT_PERMISSION,
+  LOCK_PERMISSION_ACC,
 } = require("../constants/msg.constant");
+const { hGet, hSet } = require("../models/redis.model");
+const {
+  REDIS_KEY_LOCK_ACC_WITH_EXTEND,
+} = require("../constants/redis.constant");
 
 const dataBaseModel = new DatabaseModel();
 
@@ -216,30 +226,253 @@ class vehicleService {
     }
   }
 
-  async updateExpiredOn(body, params, infoUser) {
+  // async updateExpiredOn(body, params, infoUser) {
+  //   try {
+  //     const { conn, connPromise } = await db.getConnection();
+  //     try {
+  //       const { id } = params;
+  //       const { device_id, code } = body;
+
+  //       // console.log(id, device_id);
+
+  //       const dataCode = await validateModel.checkExitValue(
+  //         conn,
+  //         tableRenewalCode,
+  //         "code",
+  //         code,
+  //         "Mã gia hạn",
+  //         "code",
+  //         null,
+  //         false,
+  //         "id,is_used",
+  //         false,
+  //         true
+  //       );
+
+  //       const { id: codeId } = dataCode[0];
+
+  //       const joinTable = `${tableVehicle} v INNER JOIN ${tableDeviceVehicle} dv ON v.id = dv.vehicle_id
+  //       INNER JOIN ${tableDevice} d ON dv.device_id = d.id`;
+
+  //       const dataInfo = await dataBaseModel.select(
+  //         conn,
+  //         joinTable,
+  //         "d.imei,dv.expired_on",
+  //         "v.id = ? AND d.id = ?",
+  //         [id, device_id],
+  //         "d.id"
+  //       );
+  //       const data = await vehicleModel.updateExpiredOn(
+  //         conn,
+  //         connPromise,
+  //         body,
+  //         params,
+  //         dataInfo,
+  //         codeId,
+  //         infoUser
+  //       );
+  //       return data;
+  //     } catch (error) {
+  //       await connPromise.rollback();
+  //       throw error;
+  //     } finally {
+  //       conn.release();
+  //     }
+  //   } catch (error) {
+  //     console.log(error);
+  //     const { msg, errors } = error;
+  //     throw new BusinessLogicError(msg, errors);
+  //   }
+  // }
+
+  async updateExpiredOn(body, infoUser) {
+    // console.log("body", body);
+
+    const { user_id } = infoUser;
+    try {
+      const { conn, connPromise } = await db.getConnection();
+      const { data: dataRedis } = await hGet(
+        REDIS_KEY_LOCK_ACC_WITH_EXTEND,
+        user_id.toString()
+      );
+
+      let idx = 0;
+
+      if (dataRedis) {
+        const dataParse = JSON.parse(dataRedis);
+        const { index, time } = dataParse;
+        if (index >= 3) throw new SendMissingDataError(LOCK_PERMISSION_ACC);
+        if (Date.now() - Number(time) <= 60 * 1000) {
+          idx = index;
+        }
+      }
+      try {
+        // const { vehicle_id, device_id, code, key_time } = body;
+
+        const { djson } = body;
+
+        // console.log("djson", djson);
+
+        const dataParse = JSON.parse(djson || "[]");
+
+        // console.log("dataParse", dataParse);
+        // console.log("dataParse?.length", !dataParse?.length);
+        if (!dataParse?.length) throw new SendMissingDataError();
+
+        let checkDataError = false;
+        const listCode = [];
+
+        let dataFormat = {};
+
+        const listVehicleId = [];
+
+        const listDeviceId = [];
+
+        for (let i = 0; i < dataParse.length; i++) {
+          const { vehicle_id, device_id, code, value_time } = dataParse[i];
+          // console.log("dataParse[i]", dataParse[i]);
+
+          if (!vehicle_id || !device_id || !code || !value_time) {
+            checkDataError = true;
+            break;
+          }
+
+          // console.log('code.split(";")', code.split(";"));
+
+          listCode.push(...code.split(";"));
+          listVehicleId.push(vehicle_id);
+          listDeviceId.push(device_id);
+          dataFormat[device_id] = { vehicle_id, device_id, code, value_time };
+        }
+        // console.log("checkDataError", checkDataError);
+
+        if (checkDataError) throw new SendMissingDataError();
+
+        // console.log("listCode", listCode);
+
+        const dataCheck = await validateModel.checkExitMultiValue(
+          conn,
+          tableRenewalCode,
+          "code",
+          [listCode],
+          "Mã gia hạn",
+          "code",
+          null,
+          false,
+          "id,code,is_used",
+          true
+        );
+
+        const dataCodeFormat = dataCheck.reduce((result, { id, code }) => {
+          result[code] = id;
+          return result;
+        }, {});
+
+        const joinTable = `${tableVehicle} v INNER JOIN ${tableDeviceVehicle} dv ON v.id = dv.vehicle_id
+        INNER JOIN ${tableDevice} d ON dv.device_id = d.id`;
+
+        const dataInfo = await dataBaseModel.select(
+          conn,
+          joinTable,
+          "d.id,d.imei,dv.expired_on",
+          "v.id IN (?) AND dv.device_id IN (?) AND v.is_deleted = 0 AND d.is_deleted = 0 AND dv.is_deleted = 0",
+          [listVehicleId, listDeviceId],
+          "d.id",
+          "ASC",
+          0,
+          9999999
+        );
+
+        const dataKeyTime = await dataBaseModel.select(
+          conn,
+          tableKeyTime,
+          "id,value",
+          "1 = ?",
+          1,
+          "id",
+          "ASC",
+          0,
+          9999
+        );
+
+        const dataKeyTimeFormat = dataKeyTime.reduce(
+          (result, { id, value }) => {
+            result[value] = id;
+            return result;
+          },
+          {}
+        );
+
+        const data = await vehicleModel.updateExpiredOn(
+          conn,
+          connPromise,
+          dataInfo,
+          dataFormat,
+          listCode,
+          dataCodeFormat,
+          dataKeyTimeFormat,
+          infoUser
+        );
+        return data;
+      } catch (error) {
+        console.log("error", error);
+
+        await connPromise.rollback();
+        const { isLockAcc } = error;
+        // console.log("isLockAcc", isLockAcc);
+
+        if (isLockAcc) {
+          try {
+            await hSet(
+              REDIS_KEY_LOCK_ACC_WITH_EXTEND,
+              user_id.toString(),
+              JSON.stringify({ index: idx + 1, time: Date.now() })
+            );
+
+            if (idx + 1 >= 3)
+              throw new SendMissingDataError(LOCK_PERMISSION_ACC);
+          } catch (error) {
+            throw error;
+          }
+        }
+        throw error;
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      const { msg, errors, message } = error;
+      // console.log({ msg, errors });
+
+      if (!msg) throw new SendMissingDataError(message);
+      throw new BusinessLogicError(msg, errors);
+    }
+  }
+
+  async recallExtend(body, infoUser) {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
-        const { id } = params;
-        const { device_id, code } = body;
+        const { vehicle_id: id, device_id, code } = body;
 
         // console.log(id, device_id);
-
+        const joinTableRenewalCode = `${tableRenewalCode} rn LEFT JOIN ${tableRenewalCodeDevice} rnd ON rn.id = rnd.renewal_code_id 
+           LEFT JOIN ${tableKeyTime} kt ON rnd.key_time_id = kt.id`;
         const dataCode = await validateModel.checkExitValue(
           conn,
-          tableRenewalCode,
+          joinTableRenewalCode,
           "code",
           code,
           "Mã gia hạn",
           "code",
           null,
           false,
-          "id,is_used",
+          "rn.id,rn.is_used,kt.value",
           false,
+          true,
           true
         );
 
-        const { id: codeId } = dataCode[0];
+        const { id: codeId, value: valueTime } = dataCode[0];
 
         const joinTable = `${tableVehicle} v INNER JOIN ${tableDeviceVehicle} dv ON v.id = dv.vehicle_id
         INNER JOIN ${tableDevice} d ON dv.device_id = d.id`;
@@ -252,13 +485,12 @@ class vehicleService {
           [id, device_id],
           "d.id"
         );
-        const data = await vehicleModel.updateExpiredOn(
+        const data = await vehicleModel.recallExtend(
           conn,
           connPromise,
           body,
-          params,
           dataInfo,
-          codeId,
+          { codeId, valueTime },
           infoUser
         );
         return data;
@@ -367,7 +599,7 @@ class vehicleService {
     }
   }
 
-  async delete(query, params, userId, customerId, infoUser) {
+  async deleteById(query, params, userId, customerId, infoUser) {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
@@ -438,7 +670,7 @@ class vehicleService {
           console.log("listOrdersId", listOrdersId);
         }
 
-        const data = await vehicleModel.delete(
+        const data = await vehicleModel.deleteById(
           conn,
           connPromise,
           params,

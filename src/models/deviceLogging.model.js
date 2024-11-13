@@ -161,6 +161,23 @@ class DeviceLoggingModel extends DatabaseModel {
     await this.insert(conn, tableDeviceLogging, logs);
   }
 
+  async extendMutiVehicle(conn, logs) {
+    await this.insertMulti(
+      conn,
+      tableDeviceLogging,
+      `user_id,
+      device_id,
+      ip,
+      os,
+      des,
+      action,
+      gps,
+      is_deleted,
+      created_at`,
+      logs
+    );
+  }
+
   async lockVehicle(
     conn,
     des,

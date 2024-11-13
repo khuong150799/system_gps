@@ -3,6 +3,7 @@ const {
   LOGOUT_SUCCESS,
   MOVE_SUCCESS,
 } = require("../constants/msg.constant");
+const { Api400Error } = require("../core/error.response");
 const {
   GET,
   CREATED,
@@ -14,6 +15,14 @@ const catchAsync = require("../helper/catchAsync.helper");
 const usersSrevice = require("../services/users.service");
 
 class CustomersController {
+  getLockExtend = catchAsync(async (req, res) => {
+    const { userId } = req;
+    if (userId != -10) throw new Api400Error();
+    const { data, totalPage, totalRecord } = await usersSrevice.getLockExtend();
+
+    GET(res, data, totalPage, totalRecord);
+  });
+
   getAllRows = catchAsync(async (req, res) => {
     const query = req.query;
     const { data, totalPage, totalRecaord } = await usersSrevice.getallrows(
@@ -226,6 +235,13 @@ class CustomersController {
 
     const data = await usersSrevice.updateUsername(body, chooseUserId);
     UPDATE(res, data);
+  });
+
+  unlockExtend = catchAsync(async (req, res) => {
+    const { params, userId } = req;
+    if (userId != -10) throw new Api400Error();
+    await usersSrevice.unlockExtend(params);
+    DELETE(res);
   });
 }
 

@@ -75,24 +75,51 @@ module.exports = (app) => {
     vehicleController.updatePackage
   );
 
-  router.patch(
-    "/update-expired/:id",
-    [
-      param("id", VALIDATE_DATA).isNumeric(),
+  // router.patch(
+  //   "/update-expired/:id",
+  //   [
+  //     param("id", VALIDATE_DATA).isNumeric(),
 
+  //     body("device_id", NOT_EMPTY)
+  //       .notEmpty()
+  //       .isNumeric()
+  //       .withMessage(VALIDATE_DATA),
+  //     body("extend_date", NOT_EMPTY)
+  //       .notEmpty()
+  //       .isNumeric()
+  //       .withMessage(VALIDATE_DATA),
+  //     body("code", NOT_EMPTY).notEmpty().isNumeric().withMessage(VALIDATE_DATA),
+  //   ],
+  //   isAuth,
+  //   checkPermission,
+  //   vehicleController.updateExpiredOn
+  // );
+
+  router.patch(
+    "/update-expired",
+    [body("djson", NOT_EMPTY).notEmpty().isString().withMessage(VALIDATE_DATA)],
+    isAuth,
+    // checkPermission,
+    vehicleController.updateExpiredOn
+  );
+
+  router.patch(
+    "/recall-extend",
+    [
+      body("vehicle_id", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA),
       body("device_id", NOT_EMPTY)
         .notEmpty()
         .isNumeric()
         .withMessage(VALIDATE_DATA),
-      body("extend_date", NOT_EMPTY)
-        .notEmpty()
-        .isNumeric()
-        .withMessage(VALIDATE_DATA),
-      body("code", NOT_EMPTY).notEmpty().isNumeric().withMessage(VALIDATE_DATA),
+
+      body("code", NOT_EMPTY).notEmpty().isString().withMessage(VALIDATE_DATA),
     ],
     isAuth,
-    checkPermission,
-    vehicleController.updateExpiredOn
+    // checkPermission,
+    vehicleController.recallExtend
   );
 
   router.patch(
@@ -168,7 +195,7 @@ module.exports = (app) => {
     ],
     isAuth,
     checkPermission,
-    vehicleController.delete
+    vehicleController.deleteById
   );
 
   router.put(

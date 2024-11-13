@@ -15,6 +15,7 @@ const {
   NOT_EXITS,
   VALIDATE_LICENSE,
   ERR_RENEWAL_CODE,
+  NOT_USED_RENEWAL_CODE,
 } = require("../constants/msg.constant");
 const {
   tableDevice,
@@ -87,7 +88,8 @@ class ValidateModel extends DatabaseModel {
     is_exist_throw_error = true,
     select = "id",
     useTheDeletedKey = true,
-    checkRenewalCode = false
+    checkRenewalCode = false,
+    recall = false
   ) {
     let where = `${field} = ?`;
 
@@ -119,13 +121,24 @@ class ValidateModel extends DatabaseModel {
     } else if (dataCheck.length > 0 && checkRenewalCode) {
       const { is_used } = dataCheck[0];
 
-      if (is_used == 1) {
+      if (!recall && is_used == 1) {
         throw {
           msg: ERROR,
           errors: [
             {
               value: condition,
               msg: ERR_RENEWAL_CODE,
+              param,
+            },
+          ],
+        };
+      } else if (recall && is_used == 0) {
+        throw {
+          msg: ERROR,
+          errors: [
+            {
+              value: condition,
+              msg: NOT_USED_RENEWAL_CODE,
               param,
             },
           ],
@@ -151,15 +164,21 @@ class ValidateModel extends DatabaseModel {
     conn,
     table,
     field,
-    condition,
+    condition = [],
     msgError,
     param,
     id = null,
     is_exist_throw_error = true,
-    select = "id"
+    select = "id",
+    isCheckCode = false,
+    modifier = ""
   ) {
     let where = `${field} IN (?)`;
-    const conditions = [condition, 0];
+    const conditions = condition;
+
+    if (modifier) {
+      where += `AND ${modifier}`;
+    }
 
     if (id) {
       where += ` AND id <> ?`;
@@ -168,7 +187,7 @@ class ValidateModel extends DatabaseModel {
 
     const dataCheck = await this.select(conn, table, select, where, conditions);
 
-    if (dataCheck.length > 0 && is_exist_throw_error) {
+    if (!isCheckCode && dataCheck.length > 0 && is_exist_throw_error) {
       const listExist = dataCheck.map((item) => item[field]);
       throw {
         msg: ERROR,
@@ -180,19 +199,68 @@ class ValidateModel extends DatabaseModel {
           },
         ],
       };
+    } else if (isCheckCode) {
+      if (!dataCheck?.length)
+        throw {
+          msg: ERROR,
+          errors: [
+            {
+              value: conditions[0],
+              msg: `${msgError} ${NOT_EXITS}`,
+              param,
+            },
+          ],
+          isLockAcc: true,
+        };
+      const codeIsUsed = [];
+      const listCodeDb = [];
+
+      for (let i = 0; i < dataCheck.length; i++) {
+        const { code, is_used } = dataCheck[i];
+
+        if (is_used == 1) {
+          codeIsUsed.push(code);
+        } else {
+          listCodeDb.push(code);
+        }
+      }
+      // console.log("codeIsUsed", codeIsUsed);
+
+      if (codeIsUsed.length)
+        throw {
+          msg: ERROR,
+          errors: [
+            {
+              value: codeIsUsed.join(","),
+              msg: `${msgError} ${codeIsUsed.join(",")} đã được sử dụng`,
+              param,
+            },
+          ],
+          isLockAcc: true,
+        };
+
+      const codeNotExist = [];
+
+      for (let i = 0; i < conditions[0].length; i++) {
+        const code = conditions[0][i];
+        if (!listCodeDb.includes(code)) {
+          codeNotExist.push(code);
+        }
+      }
+
+      if (codeNotExist.length)
+        throw {
+          msg: ERROR,
+          errors: [
+            {
+              value: codeNotExist.join(","),
+              msg: `${msgError} ${codeNotExist.join(",")} ${NOT_EXITS}`,
+              param,
+            },
+          ],
+          isLockAcc: true,
+        };
     }
-    // else if (dataCheck.length === 0 && !is_exist_throw_error) {
-    //   throw {
-    //     msg: ERROR,
-    //     errors: [
-    //       {
-    //         value: condition,
-    //         msg: `${msgError} ${NOT_EXITS}`,
-    //         param,
-    //       },
-    //     ],
-    //   };
-    // }
 
     return dataCheck;
   }

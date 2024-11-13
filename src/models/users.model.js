@@ -46,10 +46,15 @@ const {
   hGet,
   hScan,
   hdelOneKey,
+  hGetAll,
 } = require("./redis.model");
-const { REDIS_KEY_TOKEN } = require("../constants/redis.constant");
+const {
+  REDIS_KEY_TOKEN,
+  REDIS_KEY_LOCK_ACC_WITH_EXTEND,
+} = require("../constants/redis.constant");
 const ordersModel = require("./orders.model");
 const tokenFirebaseModel = require("./tokenFirebase.model");
+const { BusinessLogicError } = require("../core/error.response");
 
 class UsersModel extends DatabaseModel {
   constructor() {
@@ -92,6 +97,47 @@ class UsersModel extends DatabaseModel {
     );
 
     return dataParent;
+  }
+
+  async getLockExtend(conn) {
+    const { result, data } = await hGetAll(REDIS_KEY_LOCK_ACC_WITH_EXTEND);
+    // console.log("result", result);
+
+    if (!result) return { data: [], totalPage: 0, totalRecord: 0 };
+    const listUserId = [];
+    for (const key in data) {
+      if (Object.prototype.hasOwnProperty.call(data, key)) {
+        listUserId.push(key);
+      }
+    }
+    // console.log("listUserId", listUserId);
+    if (!listUserId.length) return { data: [], totalPage: 0, totalRecord: 0 };
+    const dataRes = await this.select(
+      conn,
+      tableUsers,
+      "id,username",
+      "id IN (?)",
+      [listUserId],
+      "id",
+      "ASC",
+      0,
+      9999
+    );
+
+    // console.log("dataRes", dataRes);
+
+    return { data: dataRes, totalPage: 0, totalRecord: 0 };
+  }
+
+  async unlockExtend(params) {
+    const { id } = params;
+
+    const { result } = await hdelOneKey(
+      REDIS_KEY_LOCK_ACC_WITH_EXTEND,
+      id.toString()
+    );
+    if (!result) throw new BusinessLogicError();
+    return [];
   }
 
   //getallrow

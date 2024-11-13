@@ -9,4 +9,5 @@ module.exports = {
   REDIS_KEY_SV_CAM: "svCam",
   REDIS_KEY_CALIB_FUEL: "calibFuel",
   REDIS_KEY_SENSOR_TEPM: "sensorTemp",
+  REDIS_KEY_LOCK_ACC_WITH_EXTEND: "lockAccWithExtend",
 };

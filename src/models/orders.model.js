@@ -172,12 +172,12 @@ class OrdersModel extends DatabaseModel {
           [userIdReciver, item, 1, 0, 0, Date.now()],
         ];
 
-        const dateeUpdate = {
+        const dataUpdate = {
           conditionField: ["is_moved", "device_id"],
           conditionValue: [0, item],
           updateValue: 1,
         };
-        result.usersDevicesUpdate = [...result.usersDevicesUpdate, dateeUpdate];
+        result.usersDevicesUpdate = [...result.usersDevicesUpdate, dataUpdate];
 
         return result;
       },

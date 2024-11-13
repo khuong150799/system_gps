@@ -82,6 +82,8 @@ const constants = {
   ACC_CHILD_NOT_ACTIVE: "Tài khoản con không thể kích hoạt",
   ACC_NOT_DEL: "Tài khoản có phương tiện không thể xoá",
   ERR_RENEWAL_CODE: "Mã gia hạn đã được sử dụng",
+  NOT_USED_RENEWAL_CODE: "Mã gia hạn chưa được sử dụng",
+  LOCK_PERMISSION_ACC: "Tài khoản đã bị khoá quyền",
 };
 
 module.exports = constants;

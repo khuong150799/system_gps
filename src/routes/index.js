@@ -32,4 +32,5 @@ module.exports = (app) => {
   require("./configTemperature.route")(app);
   require("./renewalCode.route")(app);
   require("./typeCode.route")(app);
+  require("./keyTime.route")(app);
 };

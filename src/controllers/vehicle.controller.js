@@ -44,10 +44,24 @@ class VehicleController {
     UPDATE(res, [data]);
   });
 
+  // updateExpiredOn = catchAsync(async (req, res) => {
+  //   const { body, params, userId } = req;
+  //   const infoUser = { user_id: userId, ip: null, os: null, gps: null };
+  //   const data = await vehicleService.updateExpiredOn(body, params, infoUser);
+  //   UPDATE(res, [data]);
+  // });
+
   updateExpiredOn = catchAsync(async (req, res) => {
-    const { body, params, userId } = req;
+    const { body, userId } = req;
     const infoUser = { user_id: userId, ip: null, os: null, gps: null };
-    const data = await vehicleService.updateExpiredOn(body, params, infoUser);
+    const data = await vehicleService.updateExpiredOn(body, infoUser);
+    UPDATE(res, [data]);
+  });
+
+  recallExtend = catchAsync(async (req, res) => {
+    const { body, userId } = req;
+    const infoUser = { user_id: userId, ip: null, os: null, gps: null };
+    const data = await vehicleService.recallExtend(body, infoUser);
     UPDATE(res, [data]);
   });
 
@@ -75,10 +89,10 @@ class VehicleController {
     UPDATE(res, [data]);
   });
 
-  delete = catchAsync(async (req, res) => {
+  deleteById = catchAsync(async (req, res) => {
     const { query, params, userId, customerId } = req;
     const infoUser = { user_id: userId, ip: null, os: null, gps: null };
-    const data = await vehicleService.delete(
+    const data = await vehicleService.deleteById(
       query,
       params,
       userId,

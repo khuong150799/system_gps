@@ -455,106 +455,271 @@ class VehicleModel extends DatabaseModel {
     return vehicle;
   }
 
+  // async updateExpiredOn(
+  //   conn,
+  //   connPromise,
+  //   body,
+  //   params,
+  //   dataInfo,
+  //   codeId,
+  //   { user_id, ip, os, gps }
+  // ) {
+  //   const { extend_date, device_id } = body;
+  //   const { id } = params;
+
+  //   await connPromise.beginTransaction();
+
+  //   await this.update(
+  //     conn,
+  //     tableDeviceVehicle,
+  //     { expired_on: extend_date },
+  //     "",
+  //     [id, device_id],
+  //     "expired_on",
+  //     true,
+  //     "vehicle_id = ? AND device_id = ?"
+  //   );
+  //   // console.log("dataInfo", dataInfo);
+
+  //   const {
+  //     redis: listPromiseDelRedis,
+  //     logging: listPromiseAddDb,
+  //     extend: listPromiseExtend,
+  //     renewalCode: listPromiseRenewalCode,
+  //     renewalCodeDevice: listPromiseRenewalCodeDevice,
+  //   } = dataInfo.reduce(
+  //     (result, { imei, expired_on: current_date }) => {
+  //       // console.log("result", result);
+
+  //       const dataExtend = new DeviceExtendSchema({
+  //         device_id,
+  //         expired_on_old: current_date,
+  //         extend_date,
+  //         is_deleted: 0,
+  //         created_at: Date.now(),
+  //       });
+  //       dataExtend.updated_at;
+
+  //       const des = `Ngày hết hạn củ: ${date(
+  //         current_date
+  //       )} ===> Ngày hết hạn mới: ${date(extend_date)}`;
+
+  //       result.redis.push(this.getInfoDevice(conn, imei));
+  //       result.logging.push(
+  //         deviceLoggingModel.extendVehicle(conn, des, {
+  //           user_id,
+  //           device_id,
+  //           ip,
+  //           os,
+  //           gps,
+  //         })
+  //       );
+
+  //       result.extend.push(this.insert(conn, tableDeviceExtend, dataExtend));
+  //       result.renewalCode.push(
+  //         this.update(conn, tableRenewalCode, { is_used: 1 }, "id", codeId)
+  //       );
+  //       result.renewalCodeDevice.push(
+  //         this.insert(
+  //           conn,
+  //           tableRenewalCodeDevice,
+  //           {
+  //             user_id,
+  //             renewal_code_id: codeId,
+  //             device_id,
+  //             vehicle_id: id,
+  //             created_at: Date.now(),
+  //           },
+  //           "id",
+  //           codeId
+  //         )
+  //       );
+
+  //       return result;
+  //     },
+  //     {
+  //       redis: [],
+  //       logging: [],
+  //       extend: [],
+  //       renewalCode: [],
+  //       renewalCodeDevice: [],
+  //     }
+  //   );
+
+  //   // console.log({ listPromiseDelRedis, listPromiseAddDb, listPromiseExtend });
+
+  //   await Promise.all(listPromiseAddDb);
+
+  //   await Promise.all(listPromiseExtend);
+
+  //   await Promise.all(listPromiseRenewalCode);
+
+  //   await Promise.all(listPromiseRenewalCodeDevice);
+
+  //   const listDataGetRedis = await Promise.all(listPromiseDelRedis);
+
+  //   let isRollback = false;
+
+  //   for (let i = 0; i < listDataGetRedis.length; i++) {
+  //     const result = listDataGetRedis[i];
+
+  //     if (!result?.length) {
+  //       isRollback = true;
+  //     }
+  //   }
+
+  //   if (isRollback) throw { msg: ERROR };
+
+  //   await connPromise.commit();
+
+  //   return [];
+  // }
+
+  //updateActivationDate
+
   async updateExpiredOn(
     conn,
     connPromise,
-    body,
-    params,
     dataInfo,
-    codeId,
+    dataFormat,
+    listCode,
+    dataCodeFormat,
+    dataKeyTimeFormat,
     { user_id, ip, os, gps }
   ) {
-    const { extend_date, device_id } = body;
-    const { id } = params;
-
     await connPromise.beginTransaction();
 
-    await this.update(
-      conn,
-      tableDeviceVehicle,
-      { expired_on: extend_date },
-      "",
-      [id, device_id],
-      "expired_on",
-      true,
-      "vehicle_id = ? AND device_id = ?"
-    );
-    // console.log("dataInfo", dataInfo);
-
     const {
-      redis: listPromiseDelRedis,
-      logging: listPromiseAddDb,
-      extend: listPromiseExtend,
-      renewalCode: listPromiseRenewalCode,
-      renewalCodeDevice: listPromiseRenewalCodeDevice,
+      listPromiseDelRedis,
+      dataExtendVehicle,
+      dataInsertRenewalCodeDevice,
+      dataUpdateExpired,
+      dataUpdateLock,
+      dataUpdateExpiredDevice,
     } = dataInfo.reduce(
-      (result, { imei, expired_on: current_date }) => {
-        // console.log("result", result);
+      (result, { id, imei, expired_on: current_date }, i) => {
+        const { vehicle_id, device_id, code, value_time } = dataFormat[id];
 
-        const dataExtend = new DeviceExtendSchema({
-          device_id,
-          expired_on_old: current_date,
-          extend_date,
-          is_deleted: 0,
-          created_at: Date.now(),
-        });
-        dataExtend.updated_at;
+        result.listPromiseDelRedis.push(this.getInfoDevice(conn, imei));
+
+        const startExtendDate = new Date(
+          Math.max(Date.now(), Number(current_date))
+        );
+
+        const currentMonth = startExtendDate.getMonth();
+
+        const extendDate = startExtendDate.setMonth(
+          currentMonth + code.split(";").length * value_time
+        );
 
         const des = `Ngày hết hạn củ: ${date(
           current_date
-        )} ===> Ngày hết hạn mới: ${date(extend_date)}`;
+        )} ===> Ngày hết hạn mới: ${date(extendDate)}`;
+        result.dataExtendVehicle.push([
+          user_id,
+          id,
+          ip,
+          os,
+          des,
+          "Gia hạn",
+          gps,
+          0,
+          Date.now(),
+        ]);
 
-        result.redis.push(this.getInfoDevice(conn, imei));
-        result.logging.push(
-          deviceLoggingModel.extendVehicle(conn, des, {
-            user_id,
-            device_id,
-            ip,
-            os,
-            gps,
-          })
-        );
-
-        result.extend.push(this.insert(conn, tableDeviceExtend, dataExtend));
-        result.renewalCode.push(
-          this.update(conn, tableRenewalCode, { is_used: 1 }, "id", codeId)
-        );
-        result.renewalCodeDevice.push(
-          this.insert(
-            conn,
-            tableRenewalCodeDevice,
-            {
+        result.dataInsertRenewalCodeDevice.push(
+          ...code
+            .split(";")
+            .map((item) => [
               user_id,
-              renewal_code_id: codeId,
+              dataCodeFormat[item],
               device_id,
-              vehicle_id: id,
-              created_at: Date.now(),
-            },
-            "id",
-            codeId
-          )
+              vehicle_id,
+              dataKeyTimeFormat[value_time],
+              Date.now(),
+            ])
         );
+
+        result.dataUpdateExpired.push({
+          conditionField: ["vehicle_id", "device_id", "is_deleted"],
+          conditionValue: [vehicle_id, device_id, 0],
+          updateValue: extendDate,
+        });
+
+        result.dataUpdateLock.push({
+          conditionField: ["vehicle_id", "device_id", "is_deleted"],
+          conditionValue: [vehicle_id, device_id, 0],
+          updateValue: 0,
+        });
+
+        result.dataUpdateExpiredDevice.push({
+          conditionField: ["id", "is_deleted"],
+          conditionValue: [device_id, 0],
+          updateValue: extendDate,
+        });
 
         return result;
       },
       {
-        redis: [],
-        logging: [],
-        extend: [],
-        renewalCode: [],
-        renewalCodeDevice: [],
+        listPromiseDelRedis: [],
+        dataExtendVehicle: [],
+        dataInsertRenewalCodeDevice: [],
+        dataUpdateExpired: [],
+        dataUpdateLock: [],
+        dataUpdateExpiredDevice: [],
       }
     );
 
-    // console.log({ listPromiseDelRedis, listPromiseAddDb, listPromiseExtend });
+    await this.update(conn, tableRenewalCode, { is_used: 1 }, "code", listCode);
 
-    await Promise.all(listPromiseAddDb);
+    // console.log("dataInsertRenewalCodeDevice", dataInsertRenewalCodeDevice);
 
-    await Promise.all(listPromiseExtend);
+    await this.insertMulti(
+      conn,
+      tableRenewalCodeDevice,
+      `user_id,
+      renewal_code_id,
+      device_id,
+      vehicle_id,
+      key_time_id,
+      created_at`,
+      dataInsertRenewalCodeDevice
+    );
 
-    await Promise.all(listPromiseRenewalCode);
+    await deviceLoggingModel.extendMutiVehicle(conn, dataExtendVehicle);
 
-    await Promise.all(listPromiseRenewalCodeDevice);
+    const dataUpdate = [
+      {
+        field: "expired_on",
+        conditions: dataUpdateExpired,
+      },
+      {
+        field: "is_lock",
+        conditions: dataUpdateLock,
+      },
+    ];
+
+    await this.updatMultiRowsWithMultiConditions(
+      conn,
+      tableDeviceVehicle,
+      dataUpdate,
+      "",
+      "device_id"
+    );
+
+    const dataUpdateDevice = [
+      {
+        field: "expired_on",
+        conditions: dataUpdateExpiredDevice,
+      },
+    ];
+    await this.updatMultiRowsWithMultiConditions(
+      conn,
+      tableDevice,
+      dataUpdateDevice
+    );
+
+    // console.log("dataInfo", dataInfo);
 
     const listDataGetRedis = await Promise.all(listPromiseDelRedis);
 
@@ -568,14 +733,102 @@ class VehicleModel extends DatabaseModel {
       }
     }
 
-    if (isRollback) throw { msg: ERROR };
+    if (isRollback)
+      throw { msg: ERROR, errors: "Không thể cập nhật data trên realtime" };
 
     await connPromise.commit();
 
     return [];
   }
 
-  //updateActivationDate
+  async recallExtend(
+    conn,
+    connPromise,
+    body,
+    dataInfo,
+    dataRenewal,
+
+    { user_id, ip, os, gps }
+  ) {
+    const { vehicle_id: id, device_id } = body;
+
+    await connPromise.beginTransaction();
+
+    const { codeId, valueTime } = dataRenewal;
+
+    // console.log({ codeId, valueTime });
+
+    await this.update(conn, tableRenewalCode, { is_used: 0 }, "id", codeId);
+
+    await this.delete(
+      conn,
+      tableRenewalCodeDevice,
+      "renewal_code_id = ?",
+      codeId,
+      "",
+      false
+    );
+
+    const { expired_on, imei } = dataInfo[0];
+
+    const startExtendDate = new Date(expired_on);
+
+    const currentMonth = startExtendDate.getMonth();
+
+    const extendDate = startExtendDate.setMonth(currentMonth - valueTime);
+
+    await this.update(
+      conn,
+      tableDeviceVehicle,
+      `expired_on = ${extendDate}`,
+      "",
+      [id, device_id, 0],
+      "vehicle_id",
+      true,
+      "vehicle_id = ? AND device_id = ? AND is_deleted = ?"
+    );
+
+    await this.update(
+      conn,
+      tableDevice,
+      { expired_on: extendDate },
+      "id",
+      device_id
+    );
+
+    const des = `Ngày hết hạn củ: ${date(
+      expired_on
+    )} ===> Ngày hết hạn mới: ${date(extendDate)}`;
+
+    await deviceLoggingModel.extendMutiVehicle(conn, [
+      [user_id, device_id, ip, os, des, "Thu hồi gia hạn", gps, 0, Date.now()],
+    ]);
+
+    // console.log("dataInsertRenewalCodeDevice", dataInsertRenewalCodeDevice);
+
+    // console.log("dataInfo", dataInfo);
+    const listDataGetRedis = await Promise.all([
+      this.getInfoDevice(conn, imei),
+    ]);
+
+    let isRollback = false;
+
+    for (let i = 0; i < listDataGetRedis.length; i++) {
+      const result = listDataGetRedis[i];
+
+      if (!result?.length) {
+        isRollback = true;
+      }
+    }
+
+    if (isRollback)
+      throw { msg: ERROR, errors: "Không thể cập nhật data trên realtime" };
+
+    await connPromise.commit();
+
+    return [];
+  }
+
   async updateActivationDate(
     conn,
     connPromise,
@@ -595,9 +848,18 @@ class VehicleModel extends DatabaseModel {
       { activation_date },
       "",
       [id, device_id],
-      "expired_on",
+      "vehicle_id",
       true,
       "vehicle_id = ? AND device_id = ?"
+    );
+
+    await this.update(
+      conn,
+      tableDevice,
+      { activation_date },
+      "id",
+      [device_id],
+      "device_id"
     );
     // console.log("dataInfo", dataInfo);
 
@@ -626,11 +888,11 @@ class VehicleModel extends DatabaseModel {
         { redis: [], logging: [] }
       );
 
-    console.log({ listPromiseDelRedis, listPromiseAddDb });
-
-    const listDataGetRedis = await Promise.all(listPromiseDelRedis);
+    // console.log({ listPromiseDelRedis, listPromiseAddDb });
 
     await Promise.all(listPromiseAddDb);
+
+    const listDataGetRedis = await Promise.all(listPromiseDelRedis);
 
     let isRollback = false;
 
@@ -642,7 +904,8 @@ class VehicleModel extends DatabaseModel {
       }
     }
 
-    if (isRollback) throw { msg: ERROR };
+    if (isRollback)
+      throw { msg: ERROR, errors: "Không thể cập nhật data trên realtime" };
 
     await connPromise.commit();
 
@@ -680,7 +943,7 @@ class VehicleModel extends DatabaseModel {
       { warranty_expired_on },
       "id",
       [device_id],
-      "warranty_expired_on"
+      "device_id"
     );
     // console.log("dataInfo", dataInfo);
 
@@ -711,9 +974,9 @@ class VehicleModel extends DatabaseModel {
 
     // console.log({ listPromiseDelRedis, listPromiseAddDb, listPromiseExtend });
 
-    const listDataGetRedis = await Promise.all(listPromiseDelRedis);
-
     await Promise.all(listPromiseAddDb);
+
+    const listDataGetRedis = await Promise.all(listPromiseDelRedis);
 
     let isRollback = false;
 
@@ -732,7 +995,7 @@ class VehicleModel extends DatabaseModel {
     return [];
   }
 
-  async delete(
+  async deleteById(
     conn,
     connPromise,
     params,

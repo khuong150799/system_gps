@@ -23,6 +23,13 @@ module.exports = (app) => {
   );
 
   router.get(
+    "/lock-extend",
+    isAuth,
+    checkPermission,
+    usersController.getLockExtend
+  );
+
+  router.get(
     "/owner",
     [
       query("keyword", VALIDATE_DATA).isString().escape(),
@@ -185,6 +192,14 @@ module.exports = (app) => {
     checkPermission,
     usersController.deleteDevice
   );
+
+  router.delete(
+    "/unlock-extend/:id",
+    isAuth,
+    checkPermission,
+    usersController.unlockExtend
+  );
+
   router.patch(
     "/reset-pass/:id",
     [param("id", VALIDATE_DATA).isNumeric()],

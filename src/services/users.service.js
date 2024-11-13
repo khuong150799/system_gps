@@ -60,6 +60,22 @@ class UsersService {
   }
 
   //getallrow
+  async getLockExtend() {
+    try {
+      const { conn } = await db.getConnection();
+      try {
+        const data = await usersModel.getLockExtend(conn);
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      throw new BusinessLogicError(error.msg);
+    }
+  }
+
   async getallrows(query) {
     try {
       const { conn } = await db.getConnection();
@@ -898,6 +914,19 @@ class UsersService {
       } finally {
         conn.release();
       }
+    } catch (error) {
+      console.log(error);
+
+      const { msg, errors } = error;
+
+      throw new BusinessLogicError(msg, errors);
+    }
+  }
+
+  async unlockExtend(params) {
+    try {
+      await usersModel.unlockExtend(params);
+      return [];
     } catch (error) {
       console.log(error);
 
