@@ -68,6 +68,14 @@ module.exports = (app) => {
     usersController.getbyid
   );
 
+  router.get(
+    "/detail-not-auth/:id",
+    [param("id", VALIDATE_DATA).isNumeric()],
+    // isAuth,
+    // checkPermission,
+    usersController.getbyid
+  );
+
   router.get("/info", isAuth, checkPermission, usersController.getInfo);
   router.get(
     "/device-add",

@@ -84,7 +84,7 @@ class DeviceModel extends DatabaseModel {
       ...dataAddDeviceCms,
       url: `${host}:${port}`,
     });
-    console.log("resAddDevice", resAddDevice);
+    // console.log("resAddDevice", resAddDevice);
 
     if (resAddDevice != 0)
       throw {
@@ -119,10 +119,10 @@ class DeviceModel extends DatabaseModel {
 
     //   resCms = await cameraApi.addVehicleCMS2(dataAddVehicleCms);
     // }
-    console.log("resCms", resCms, {
-      ...dataAddVehicleCms,
-      url: `${host}:${port}`,
-    });
+    // console.log("resCms", resCms, {
+    //   ...dataAddVehicleCms,
+    //   url: `${host}:${port}`,
+    // });
 
     const { result: resultCms } = resCms;
     if (resultCms != 0)
@@ -369,17 +369,19 @@ class DeviceModel extends DatabaseModel {
   async reference(conn, params, parentId) {
     const { id } = params;
 
-    const joinTable = `${tableUsersDevices} ud INNER JOIN ${tableUsersCustomers} uc ON ud.user_id = uc.user_id 
+    const joinTable = `${tableDevice} d INNER JOIN ${tableUsersDevices} ud ON d.id = ud.device_id 
+      INNER JOIN ${tableUsersCustomers} uc ON ud.user_id = uc.user_id 
+      INNER JOIN ${tableUsers} u ON uc.user_id = u.id 
       INNER JOIN ${tableCustomers} c ON uc.customer_id = c.id 
       INNER JOIN ${tableLevel} l ON c.level_id = l.id`;
 
     const data = await this.select(
       conn,
       joinTable,
-      `ud.user_id,COALESCE(c.company,c.name) as customer_name,l.name as level_name`,
-      `ud.device_id = ? AND ud.is_deleted = ? AND ud.is_main = 1  GROUP BY ud.id`,
-      [id, 0],
-      `ud.is_moved DESC,ud.created_at`,
+      `u.id as user_id,c.id as customer_id,COALESCE(c.company,c.name) as customer_name,l.name as level_name`,
+      `d.id = ? AND ud.is_deleted = ? AND ud.is_main = ?`,
+      [id, 0, 1],
+      `u.left`,
       "ASC",
       0,
       10000

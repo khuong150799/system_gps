@@ -713,41 +713,63 @@ class UsersModel extends DatabaseModel {
       "id = ?",
       id
     );
+
+    const listOwnerDevice = await this.select(
+      conn,
+      tableUsersDevices,
+      "device_id",
+      "user_id = ? AND device_id IN (?) AND is_main = ? AND is_deleted = ? AND is_moved = ?",
+      [id, listDevice, 1, 0, 0],
+      "id",
+      "ASC",
+      0,
+      999999
+    );
+    let listOwnerDeviceId = [];
+    if (listOwnerDevice?.length) {
+      listOwnerDeviceId = listOwnerDevice.map(({ device_id }) => device_id);
+    }
+
     const { dataAssign, dataLogs } = listDevice.reduce(
       (result, item) => {
-        result.dataAssign = [
-          ...result.dataAssign,
-          [id, item, 0, 0, 1, Date.now()],
-        ];
-        result.dataLogs = [
-          ...result.dataLogs,
-          [
-            user_id,
-            ip,
-            os,
-            gps,
-            item,
-            "Gán",
-            JSON.stringify([`Gán cho tài khoản ${infoReciver[0].username}`]),
-            0,
-            Date.now(),
-          ],
-        ];
+        if (!listOwnerDeviceId.includes(item)) {
+          result.dataAssign = [
+            ...result.dataAssign,
+            [id, item, 0, 0, 1, Date.now()],
+          ];
+          result.dataLogs = [
+            ...result.dataLogs,
+            [
+              user_id,
+              ip,
+              os,
+              gps,
+              item,
+              "Gán",
+              JSON.stringify([`Gán cho tài khoản ${infoReciver[0].username}`]),
+              0,
+              Date.now(),
+            ],
+          ];
+        }
+
         return result;
       },
       { dataAssign: [], dataLogs: [] }
     );
 
     await connPromise.beginTransaction();
-    await this.insertDuplicate(
-      conn,
-      tableUsersDevices,
-      "user_id,device_id,is_main,is_deleted,is_moved,created_at",
-      dataAssign,
-      `is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved),updated_at=VALUES(created_at)`
-    );
-    await vehicleModel.removeListDeviceOfUsersRedis(conn, "", listDevice);
-    await deviceLoggingModel.postMulti(conn, dataLogs);
+    if (dataAssign?.length) {
+      await this.insertDuplicate(
+        conn,
+        tableUsersDevices,
+        "user_id,device_id,is_main,is_deleted,is_moved,created_at",
+        dataAssign,
+        `is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved),updated_at=VALUES(created_at)`
+      );
+      await vehicleModel.removeListDeviceOfUsersRedis(conn, "", listDevice);
+      await deviceLoggingModel.postMulti(conn, dataLogs);
+    }
     await connPromise.commit();
     return [];
   }

@@ -323,11 +323,11 @@ class ValidateModel extends DatabaseModel {
         return false;
       }
     });
-    console.log({
-      dataInfo: JSON.stringify(dataInfo, null, 2),
-      dataInfoParent: JSON.stringify(dataInfoParent, null, 2),
-      listCustomer: JSON.stringify(listCustomer, null, 2),
-    });
+    // console.log({
+    //   dataInfo: JSON.stringify(dataInfo, null, 2),
+    //   dataInfoParent: JSON.stringify(dataInfoParent, null, 2),
+    //   listCustomer: JSON.stringify(listCustomer, null, 2),
+    // });
 
     if (checkStructureRecivers) {
       errors.push({
@@ -486,7 +486,7 @@ class ValidateModel extends DatabaseModel {
     child,
     fieldRes = "parent_id"
   ) {
-    console.log(parentAcc, customerIdAcc, parentIdAcc, child);
+    // console.log(parentAcc, customerIdAcc, parentIdAcc, child);
 
     const dataReturn = [];
     let result = false;

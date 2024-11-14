@@ -105,6 +105,32 @@ module.exports = (app) => {
   );
 
   router.put(
+    "/edit-tree",
+    [
+      body("code", NOT_EMPTY)
+        .notEmpty()
+        .isString()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+      body("recivers", NOT_EMPTY)
+        .notEmpty()
+        .isString()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+      body("devices_id", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+      body("note").escape(),
+    ],
+
+    isAuth,
+    checkPermission,
+    ordersController.editTree
+  );
+
+  router.put(
     "/update/:id",
     [
       param("id", VALIDATE_DATA).isNumeric(),

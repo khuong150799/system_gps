@@ -297,7 +297,7 @@ class OrdersModel extends DatabaseModel {
     userId,
     isBeginTransaction = true
   ) {
-    const { code, devices_id, recivers, note } = body;
+    const { code, devices_id, recivers, note, isEditTructure } = body;
 
     // console.log(
     //   "code, devices_id, recivers, note",
@@ -314,6 +314,56 @@ class OrdersModel extends DatabaseModel {
       await connPromise.beginTransaction();
     }
     // console.log("listReciver", listReciver);
+
+    if (isEditTructure) {
+      const dataOrderOld = await this.select(
+        conn,
+        tableOrdersDevice,
+        "orders_id",
+        "device_id IN (?)",
+        listDevice,
+        "id",
+        "ASC",
+        0,
+        99
+      );
+
+      if (dataOrderOld?.length) {
+        const listOrdersId = dataOrderOld.map(({ orders_id }) => orders_id);
+
+        await this.update(
+          conn,
+          tableOrders,
+          `quantity = quantity - 1`,
+          "",
+          [listOrdersId],
+          "orders_id",
+          true,
+          `id IN (?)`
+        );
+
+        await this.update(
+          conn,
+          tableOrdersDevice,
+          { is_deleted: 1 },
+          "device_id",
+          listDevice[0]
+        );
+
+        const joinTable = `${tableUsersDevices} ud INNER JOIN ${tableUsersCustomers} uc ON ud.user_id = uc.user_id`;
+
+        await this.update(
+          conn,
+          `${joinTable}`,
+          `ud.is_deleted = 1`,
+          "",
+          [listDevice, 1, 0, listReciver[0]],
+          "device_id",
+          false,
+          `ud.device_id IN (?) AND ud.is_main = ? AND ud.is_deleted = ? AND uc.customer_id <> ?`
+        );
+      }
+    }
 
     const dataInsertOrders = listReciver.reduce((result, item, i) => {
       if (listReciver?.length == 1) {

@@ -55,6 +55,26 @@ class OrdersController {
     CREATED(res, data);
   });
 
+  //editTree
+  editTree = catchAsync(async (req, res) => {
+    const { isMain, userId, customerId, parentId, body } = req;
+
+    const { devices_id } = body;
+
+    await ordersService.registerTree(
+      {
+        ...body,
+        devices_id: JSON.stringify([devices_id]),
+        isEditTructure: true,
+      },
+      userId,
+      customerId,
+      parentId,
+      isMain
+    );
+    UPDATE(res);
+  });
+
   updateById = catchAsync(async (req, res) => {
     const customerId = req?.customerId;
     const body = req.body;

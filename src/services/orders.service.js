@@ -40,7 +40,8 @@ class OrdersService {
     customerId,
     id = null,
     parentId,
-    isMain
+    isMain,
+    isEditTructure = false
   ) {
     const errors = [];
 
@@ -79,14 +80,14 @@ class OrdersService {
         throw { msg: NOT_PERMISSION };
       }
     } else {
-      if (listDevice.length <= 0) {
+      if (!listDevice.length) {
         errors.push({ value: listDevice, msg: NOT_EMPTY, param: "devices_id" });
       }
 
       if (errors.length) throw { msg: ERROR, errors };
 
       whereDevice += ` AND ud.is_moved = ?`;
-      conditionsDevice.push(0);
+      conditionsDevice.push(isEditTructure ? 1 : 0);
     }
 
     const [dataCheckCode, dataDevice] = await Promise.all([
@@ -169,7 +170,7 @@ class OrdersService {
       }
     }
 
-    if (dataDevice.length <= 0) {
+    if (!dataDevice.length) {
       errors.push({
         value: listDevice,
         msg: `Tất cả thiết bị ${NOT_EXITS}`,
@@ -184,7 +185,7 @@ class OrdersService {
           if (Number(item) === Number(item1.id)) {
             isExit = true;
           }
-          if (i === 0 && item1.activation_date) {
+          if (i === 0 && item1.activation_date && !isEditTructure) {
             deviceActived.push(item1.imei);
           }
         });
@@ -493,7 +494,7 @@ class OrdersService {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
-        const { code, devices_id, recivers } = body;
+        const { code, devices_id, recivers, isEditTructure } = body;
 
         const listDevice = JSON.parse(devices_id);
         const listReciver = JSON.parse(recivers);
@@ -506,7 +507,8 @@ class OrdersService {
           customerId,
           null,
           parentId,
-          isMain
+          isMain,
+          isEditTructure
         );
 
         const dataInfo = await validateModel.CheckCustomerTree(

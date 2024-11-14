@@ -1361,7 +1361,7 @@ class VehicleModel extends DatabaseModel {
       const joinTableOrder = `${tableOrders} o INNER JOIN ${tableOrdersDevice} od ON o.id = od.orders_id`;
 
       const whereOrders = `(o.creator_customer_id IN (?) OR o.reciver IN (?)) AND od.device_id IN (?)`;
-      console.log("listDeviceId", listDeviceId);
+      // console.log("listDeviceId", listDeviceId);
 
       await this.update(
         conn,

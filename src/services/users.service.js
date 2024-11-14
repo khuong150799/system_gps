@@ -545,6 +545,9 @@ class UsersService {
           "user_id = ? AND is_main = 1 AND is_deleted = 0",
           id
         );
+
+        // console.log("dataDevice", dataDevice);
+
         if (dataDevice?.length)
           throw {
             msg: ERROR,
