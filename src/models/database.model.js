@@ -239,6 +239,9 @@ class DatabaseModel {
       const updateQuery = `UPDATE ${tableName} SET ${updateStatements.join(
         ", "
       )}`;
+
+      console.log("updateQuery", updateQuery);
+
       db.query(updateQuery, (err, dataRes) => {
         if (err) {
           console.log(err);

@@ -1,7 +1,5 @@
-const { eventFeature } = require("notify-services");
 const {
   ERROR,
-  VEHICLE_NOT_PERMISSION,
   REMOTE_TURN_OFF_DEVICE_ERROR,
   REMOTE_TURN_ON_DEVICE_ERROR,
 } = require("../constants/msg.constant");
@@ -600,8 +598,6 @@ class VehicleModel extends DatabaseModel {
       (result, { id, imei, expired_on: current_date }, i) => {
         const { vehicle_id, device_id, code, value_time } = dataFormat[id];
 
-        result.listPromiseDelRedis.push(this.getInfoDevice(conn, imei));
-
         const startExtendDate = new Date(
           Math.max(Date.now(), Number(current_date))
         );
@@ -657,6 +653,8 @@ class VehicleModel extends DatabaseModel {
           conditionValue: [device_id, 0],
           updateValue: extendDate,
         });
+
+        result.listPromiseDelRedis.push(() => this.getInfoDevice(conn, imei));
 
         return result;
       },
@@ -721,7 +719,9 @@ class VehicleModel extends DatabaseModel {
 
     // console.log("dataInfo", dataInfo);
 
-    const listDataGetRedis = await Promise.all(listPromiseDelRedis);
+    const listDataGetRedis = await Promise.all(
+      listPromiseDelRedis.map((fn) => fn())
+    );
 
     let isRollback = false;
 

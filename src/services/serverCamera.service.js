@@ -22,11 +22,7 @@ class ServerCameraService {
       }
     } catch (error) {
       // console.log("error", error?.code);
-      if (
-        error?.code === "ENOTFOUND" ||
-        error?.code === "ECONNREFUSED" ||
-        error?.code === "ECONNABORTED"
-      ) {
+      if (error?.code === "ENOTFOUND" || error?.code === "ECONNREFUSED") {
         const url = error?.config?.url;
         // console.log("url", url);
 
