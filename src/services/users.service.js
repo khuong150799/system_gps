@@ -651,11 +651,12 @@ class UsersService {
   }
 
   //loginCustomer
-  async loginCustomer(params, leftAcc, rightAcc) {
+  async loginCustomer(params, body, leftAcc, rightAcc) {
     try {
       const { conn } = await db.getConnection();
       try {
         const { username } = params;
+        const { api_key } = body;
 
         // await validateModel.checkRegexUsername(username);
 
