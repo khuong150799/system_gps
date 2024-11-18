@@ -8,6 +8,7 @@ const {
   ACC_NOT_DEL,
   PASS_FAILED,
   LOGIN_FAIL,
+  NOT_EXITS,
 } = require("../constants/msg.constant");
 
 const bcrypt = require("bcrypt");
@@ -30,6 +31,7 @@ const {
   tableUsersCustomers,
   tableLevel,
   tableUserDevice,
+  tableApiKey,
 } = require("../constants/tableName.constant");
 
 const databaseModel = new DatabaseModel();
@@ -659,6 +661,52 @@ class UsersService {
 
         // await validateModel.checkRegexPassword(password);
 
+        let where = "u.username = ? AND u.is_deleted = 0";
+        const condition = [username];
+        let left = 0;
+        let right = 999999999999;
+
+        if (api_key) {
+          const dataKey = await validateModel.checkExitValue(
+            conn,
+            tableApiKey,
+            "api_key",
+            api_key,
+            `API KEY ${NOT_EXITS}`,
+            "api_key",
+            null,
+            false,
+            "owner,conditions",
+            true
+          );
+
+          const { owner, conditions } = dataKey[0];
+
+          if (conditions) {
+            where += ` ${conditions}`;
+          } else if (owner) {
+            // const dataOwner = await databaseModel.select(conn,tableUsers,'left,right','id = ?',owner,)
+
+            const dataOwner = await validateModel.checkExitValue(
+              conn,
+              tableUsers,
+              "id",
+              owner,
+              `API KEY ${NOT_EXITS}`,
+              "api_key",
+              null,
+              false,
+              "left,right",
+              true
+            );
+
+            const { left: leftOwner, right: rightOwner } = dataOwner[0];
+
+            left = leftOwner;
+            right = rightOwner;
+          }
+        }
+
         const joinTable = `${tableUsers} u INNER JOIN ${tableUsersRole} ur ON u.id = ur.user_id 
           INNER JOIN ${tableRole} r ON ur.role_id = r.id 
           INNER JOIN ${tableUsersCustomers} uc ON u.id = uc.user_id 
@@ -671,8 +719,8 @@ class UsersService {
           conn,
           joinTable,
           select,
-          "u.username = ?",
-          [username],
+          where,
+          condition,
           "u.id",
           "ASC",
           0,
@@ -680,7 +728,11 @@ class UsersService {
         );
         // console.log("dataUser", dataUser);
 
-        if (dataUser?.length <= 0)
+        if (
+          !dataUser?.length ||
+          Number(left) >= Number(dataUser[0].left) ||
+          Number(right) <= Number(dataUser[0].right)
+        )
           throw {
             msg: ERROR,
             errors: [
@@ -700,14 +752,14 @@ class UsersService {
           role,
           level,
           customer_id,
-          left,
-          right,
+          left: leftCustomer,
+          right: rightCustomer,
           is_main,
         } = dataUser[0];
 
         if (
-          Number(leftAcc) <= Number(left) ||
-          Number(rightAcc) <= Number(right)
+          Number(leftAcc) <= Number(leftCustomer) ||
+          Number(rightAcc) <= Number(rightCustomer)
         )
           throw {
             msg: ERROR,
@@ -748,7 +800,53 @@ class UsersService {
     try {
       const { conn } = await db.getConnection();
       try {
-        const { username, password } = body;
+        const { username, password, api_key } = body;
+
+        let where = "u.username = ? AND u.is_deleted = 0";
+        const condition = [username];
+        let left = 0;
+        let right = 999999999999;
+
+        if (api_key) {
+          const dataKey = await validateModel.checkExitValue(
+            conn,
+            tableApiKey,
+            "api_key",
+            api_key,
+            `API KEY ${NOT_EXITS}`,
+            "api_key",
+            null,
+            false,
+            "owner,conditions",
+            true
+          );
+
+          const { owner, conditions } = dataKey[0];
+
+          if (conditions) {
+            where += ` ${conditions}`;
+          } else if (owner) {
+            // const dataOwner = await databaseModel.select(conn,tableUsers,'left,right','id = ?',owner,)
+
+            const dataOwner = await validateModel.checkExitValue(
+              conn,
+              tableUsers,
+              "id",
+              owner,
+              `API KEY ${NOT_EXITS}`,
+              "api_key",
+              null,
+              false,
+              "left,right",
+              true
+            );
+
+            const { left: leftOwner, right: rightOwner } = dataOwner[0];
+
+            left = leftOwner;
+            right = rightOwner;
+          }
+        }
 
         // await validateModel.checkRegexUsername(username);
 
@@ -760,14 +858,14 @@ class UsersService {
           INNER JOIN ${tableCustomers} c ON uc.customer_id = c.id 
           INNER JOIN ${tableLevel} l ON c.level_id = l.id`;
 
-        const select = `u.id,u.parent_id,u.password,u.is_actived,u.is_main,u.is_deleted,
+        const select = `u.id,u.parent_id,u.password,u.is_actived,u.is_main,u.is_deleted,u.left,u.right,
             r.sort as role,c.id as customer_id,l.sort as level`;
         const dataUser = await databaseModel.select(
           conn,
           joinTable,
           select,
-          "u.username = ? AND u.is_deleted = 0",
-          [username],
+          where,
+          condition,
           "u.id",
           "ASC",
           0,
@@ -775,7 +873,11 @@ class UsersService {
         );
         // console.log("dataUser", dataUser);
 
-        if (dataUser?.length <= 0)
+        if (
+          !dataUser?.length ||
+          Number(left) > Number(dataUser[0].left) ||
+          Number(right) < Number(dataUser[0].right)
+        )
           throw {
             msg: ERROR,
             errors: [

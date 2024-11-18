@@ -263,30 +263,30 @@ class DeviceModel extends DatabaseModel {
     }
 
     let joinTable = `${tableDevice} d INNER JOIN ${tableUsersDevices} ud ON d.id = ud.device_id
-    INNER JOIN ${tableUsers} u ON ud.user_id = u.id 
-    INNER JOIN ${tableUsersCustomers} uc ON u.id = uc.user_id 
-    INNER JOIN ${tableCustomers} c ON uc.customer_id = c.id 
-    INNER JOIN ${tableModel} m ON d.model_id = m.id 
-    INNER JOIN ${tableDeviceStatus} ds ON d.device_status_id = ds.id 
+    INNER JOIN ${tableUsers} u ON ud.user_id = u.id
+    INNER JOIN ${tableUsersCustomers} uc ON u.id = uc.user_id
+    INNER JOIN ${tableCustomers} c ON uc.customer_id = c.id
+    INNER JOIN ${tableModel} m ON d.model_id = m.id
+    INNER JOIN ${tableDeviceStatus} ds ON d.device_status_id = ds.id
     LEFT JOIN ${tableFirmware} fw ON m.id = fw.model_id
     LEFT JOIN ${tableServerCamera} ca ON d.sv_cam_id = ca.id
     `;
 
-    let select = `d.id,d.dev_id,d.imei,d.serial,m.name as model_name, 
+    let select = `d.id,d.dev_id,d.imei,d.serial,m.name as model_name,
      dv.expired_on,d.warranty_expired_on,dv.activation_date,fw.version_hardware,
      fw.version_software,COALESCE(fw.updated_at,fw.created_at) as time_update_version,ca.host`;
 
     if (type == 1) {
-      joinTable += ` INNER JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id 
+      joinTable += ` INNER JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id
         INNER JOIN ${tableVehicle} v ON dv.vehicle_id = v.id
-        INNER JOIN ${tableServicePackage} sp ON dv.service_package_id = sp.id 
+        INNER JOIN ${tableServicePackage} sp ON dv.service_package_id = sp.id
         INNER JOIN ${tableVehicleType} vt ON v.vehicle_type_id = vt.id
         LEFT JOIN ${tableOrdersDevice} od ON ud.device_id = od.device_id
-        LEFT JOIN ${tableOrders} o ON od.orders_id = o.id
+        LEFT JOIN ${tableOrders} o ON od.orders_id = o.id AND o.creator_customer_id = ?
         LEFT JOIN ${tableCustomers} c1 ON o.reciver = c1.id AND o.creator_customer_id = ?`;
       where += ` AND dv.is_deleted = ? AND v.is_deleted = ?`;
 
-      conditions = [customer, ...conditions, 0, 0];
+      conditions = [customer, customer, ...conditions, 0, 0];
 
       select += ` ,o.code orders_code,v.name as vehicle_name, v.is_checked,dv.is_transmission_gps,dv.is_transmission_image,
         vt.name as vehicle_type_name,dv.is_lock,dv.quantity_channel,sp.name as service_package_name,MAX(COALESCE(c1.company,c1.name)) as customer_name,c1.id as customer_id,v.id as vehicle_id`;
@@ -298,12 +298,16 @@ class DeviceModel extends DatabaseModel {
     } else {
       joinTable += ` LEFT JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id AND dv.is_deleted = ?
       LEFT JOIN ${tableVehicle} v ON dv.vehicle_id = v.id AND v.is_deleted = ?
-      LEFT JOIN ${tableOrdersDevice} od ON ud.device_id = od.device_id AND od.is_deleted = ?
-      LEFT JOIN ${tableOrders} o ON od.orders_id = o.id AND o.is_deleted = ?
-      LEFT JOIN ${tableCustomers} c1 ON o.reciver = c1.id AND o.creator_customer_id = ?`;
-      select += ` ,o.code orders_code,d.created_at,d.updated_at,
+      LEFT JOIN (
+      SELECT od.device_id, o.code as orders_code,o.reciver
+      FROM ${tableOrdersDevice} od
+      INNER JOIN ${tableOrders} o ON od.orders_id = o.id
+      WHERE od.is_deleted = ? AND o.creator_customer_id = ? AND o.is_deleted = ?
+      ) latest_order ON ud.device_id = latest_order.device_id
+      LEFT JOIN ${tableCustomers} c1 ON latest_order.orders_code IS NOT NULL AND latest_order.reciver = c1.id`;
+      select += ` ,latest_order.orders_code,d.created_at,d.updated_at,
         ds.title as device_status_name,MAX(COALESCE(c1.company,c1.name)) as customer_name,c1.id as customer_id,v.id as vehicle_id,v.name as vehicle_name`;
-      conditions = [0, 0, 0, 0, customer, ...conditions];
+      conditions = [0, 0, 0, customer, 0, ...conditions];
     }
 
     const [res_, count] = await Promise.all([
@@ -326,7 +330,132 @@ class DeviceModel extends DatabaseModel {
     return { data: res_, totalPage, totalRecord: count?.[0]?.total };
   }
 
-  //getbyid
+  // async getallrows(conn, query, customerId) {
+  //   const offset = query.offset || 0;
+  //   const limit = query.limit || 10;
+
+  //   const {
+  //     type, //1 : vehicle, 2:thiết bị chưa kích hoạt dành cho đơn hàng
+  //     is_deleted,
+  //     keyword,
+  //     customer_id,
+  //     model_id,
+  //     start_warranty_expired_on,
+  //     end_warranty_expired_on,
+  //     start_expired_on,
+  //     end_expired_on,
+  //     start_activation_date,
+  //     end_activation_date,
+  //     actived,
+  //   } = query;
+
+  //   const isDeleted = is_deleted || 0;
+  //   let where = `d.is_deleted = ? AND ud.is_deleted = ? AND c.id = ? AND ud.is_main = ?`;
+  //   const customer = customer_id || customerId;
+  //   let conditions = [isDeleted, 0, customer, 1];
+
+  //   if (keyword) {
+  //     where += ` AND (d.dev_id LIKE ? OR d.imei LIKE ? OR o.code LIKE ? OR c.name LIKE ?`;
+  //     conditions.push(
+  //       `%${keyword}%`,
+  //       `%${keyword}%`,
+  //       `%${keyword}%`,
+  //       `%${keyword}%`
+  //     );
+  //     if (type == 1 || !type) {
+  //       where += ` OR v.name LIKE ?)`;
+  //       conditions.push(`%${keyword}%`);
+  //     } else {
+  //       where += `)`;
+  //     }
+  //   }
+
+  //   if (model_id) {
+  //     where += ` AND d.model_id = ?`;
+  //     conditions.push(model_id);
+  //   }
+
+  //   if (start_warranty_expired_on && end_warranty_expired_on) {
+  //     where += ` AND d.warranty_expired_on BETWEEN ? AND ?`;
+  //     conditions.push(start_warranty_expired_on, end_warranty_expired_on);
+  //   }
+
+  //   if (start_activation_date && end_activation_date) {
+  //     where += ` AND dv.activation_date BETWEEN ? AND ?`;
+  //     conditions.push(start_activation_date, end_activation_date);
+  //   }
+
+  //   if (start_expired_on && end_expired_on) {
+  //     where += ` AND dv.expired_on BETWEEN ? AND ?`;
+  //     conditions.push(start_expired_on, end_expired_on);
+  //   }
+  //   if (type == 2 || actived == 0) {
+  //     where += ` AND dv.activation_date IS NULL AND ud.is_moved = ? AND d.device_status_id <> 2`;
+  //     conditions.push(0);
+  //   }
+
+  //   let joinTable = `${tableDevice} d INNER JOIN ${tableUsersDevices} ud ON d.id = ud.device_id
+  //   INNER JOIN ${tableUsers} u ON ud.user_id = u.id
+  //   INNER JOIN ${tableUsersCustomers} uc ON u.id = uc.user_id
+  //   INNER JOIN ${tableCustomers} c ON uc.customer_id = c.id
+  //   INNER JOIN ${tableModel} m ON d.model_id = m.id
+  //   INNER JOIN ${tableDeviceStatus} ds ON d.device_status_id = ds.id
+  //   LEFT JOIN ${tableFirmware} fw ON m.id = fw.model_id
+  //   LEFT JOIN ${tableServerCamera} ca ON d.sv_cam_id = ca.id
+  //   `;
+
+  //   let select = `d.id,d.dev_id,d.imei,d.serial,m.name as model_name,
+  //    dv.expired_on,d.warranty_expired_on,dv.activation_date,fw.version_hardware,
+  //    fw.version_software,COALESCE(fw.updated_at,fw.created_at) as time_update_version,ca.host`;
+
+  //   if (type == 1) {
+  //     joinTable += ` INNER JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id
+  //       INNER JOIN ${tableVehicle} v ON dv.vehicle_id = v.id
+  //       INNER JOIN ${tableServicePackage} sp ON dv.service_package_id = sp.id
+  //       INNER JOIN ${tableVehicleType} vt ON v.vehicle_type_id = vt.id
+  //       LEFT JOIN ${tableOrders} o ON c.id = o.creator_customer_id AND
+  //       LEFT JOIN ${tableCustomers} c1 ON o.reciver = c1.id AND o.creator_customer_id = ?`;
+  //     where += ` AND dv.is_deleted = ? AND v.is_deleted = ?`;
+
+  //     conditions = [customer, ...conditions, 0, 0];
+
+  //     select += ` ,o.code orders_code,v.name as vehicle_name, v.is_checked,dv.is_transmission_gps,dv.is_transmission_image,
+  //       vt.name as vehicle_type_name,dv.is_lock,dv.quantity_channel,sp.name as service_package_name,MAX(COALESCE(c1.company,c1.name)) as customer_name,c1.id as customer_id,v.id as vehicle_id`;
+  //   } else if (type == 2) {
+  //     joinTable += ` LEFT JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id AND dv.is_deleted = ?
+  //       LEFT JOIN ${tableVehicle} v ON dv.vehicle_id = v.id`;
+
+  //     conditions = [0, ...conditions];
+  //   } else {
+  //     joinTable += ` LEFT JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id AND dv.is_deleted = ?
+  //     LEFT JOIN ${tableVehicle} v ON dv.vehicle_id = v.id AND v.is_deleted = ?
+  //     LEFT JOIN ${tableOrders} o ON c.id = o.creator_customer_id
+  //     LEFT JOIN ${tableCustomers} c1 ON o.reciver = c1.id AND o.creator_customer_id = ?`;
+  //     select += ` ,o.code orders_code,d.created_at,d.updated_at,
+  //       ds.title as device_status_name,MAX(COALESCE(c1.company,c1.name)) as customer_name,c1.id as customer_id,v.id as vehicle_id,v.name as vehicle_name`;
+  //     conditions = [0, 0, 0, 0, customer, ...conditions];
+  //   }
+
+  //   const [res_, count] = await Promise.all([
+  //     this.select(
+  //       conn,
+  //       joinTable,
+  //       select,
+  //       `${where} GROUP BY d.id`,
+  //       conditions,
+  //       `dv.activation_date,d.id`,
+  //       "DESC",
+  //       offset,
+  //       limit
+  //     ),
+  //     this.count(conn, joinTable, "DISTINCT d.id", `${where}`, conditions),
+  //   ]);
+
+  //   const totalPage = Math.ceil(count?.[0]?.total / limit);
+
+  //   return { data: res_, totalPage, totalRecord: count?.[0]?.total };
+  // }
+
   async getById(conn, params, userId) {
     const { id } = params;
 

@@ -298,18 +298,32 @@ class ValidateModel extends DatabaseModel {
 
     const dataInfo = await Promise.all(arrayPromise);
 
-    const arrayPromiseParent = dataInfo.map((item) =>
-      this.select(
-        conn,
-        joinTable,
-        `c.id`,
-        `u.id = ?`,
-        item[0].parent_id,
-        `c.id`
-      )
-    );
+    if (!dataInfo?.length) {
+      errors.push({ value: listCustomer, msg, param });
+    }
 
-    const dataInfoParent = await Promise.all(arrayPromiseParent);
+    if (errors.length) throw { msg: ERROR, errors };
+
+    const arrayPromiseParent = [];
+    for (let i = 0; i < dataInfo.length; i++) {
+      const item = dataInfo[i];
+      if (item[0].parent_id) {
+        arrayPromiseParent.push(() =>
+          this.select(
+            conn,
+            joinTable,
+            `c.id`,
+            `u.id = ?`,
+            item[0].parent_id,
+            `c.id`
+          )
+        );
+      }
+    }
+
+    const dataInfoParent = await Promise.all(
+      arrayPromiseParent.map((fn) => fn)
+    );
 
     const checkStructureRecivers = dataInfoParent.some((item, i) => {
       if (

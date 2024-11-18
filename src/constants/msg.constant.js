@@ -36,7 +36,7 @@ const constants = {
   IS_ACTIVED: "đã kích hoạt trước đó",
   VALIDATE_ACCOUNT: "Tài khoản chỉ chứa kí tự thường và số",
   VALIDATE_PASS:
-    "Mật khẩu bao gồm ít nhất 1 kí tự in hoa, chữ, số và không chứa kí tự đặc biệt",
+    "Vui lòng nhập mật khẩu tối thiểu 8 ký tự, bao gồm ít nhất 1 chữ hoa, 1 chữ thường, 1 chữ số và không chứa ký tự đặc biệt.",
   CHANGE_PASS_SUCCESS: "Thay đổi mật khẩu thành công",
   NOT_EMPTY: "Dữ liệu bắt buộc",
   VALIDATE_DATA: "Dữ liệu không hợp lệ",

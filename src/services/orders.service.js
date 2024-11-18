@@ -86,8 +86,10 @@ class OrdersService {
 
       if (errors.length) throw { msg: ERROR, errors };
 
-      whereDevice += ` AND ud.is_moved = ?`;
-      conditionsDevice.push(isEditTructure ? 1 : 0);
+      if (!isEditTructure) {
+        whereDevice += ` AND ud.is_moved = ?`;
+        conditionsDevice.push(0);
+      }
     }
 
     const [dataCheckCode, dataDevice] = await Promise.all([
@@ -495,6 +497,7 @@ class OrdersService {
       const { conn, connPromise } = await db.getConnection();
       try {
         const { code, devices_id, recivers, isEditTructure } = body;
+        // console.log("body", body);
 
         const listDevice = JSON.parse(devices_id);
         const listReciver = JSON.parse(recivers);

@@ -52,4 +52,5 @@ module.exports = {
   tableFrmware: "tbl_firmware",
   tableTypeCode: "tbl_type_code",
   tableKeyTime: "tbl_key_time",
+  tableApiKey: "tbl_api_key",
 };
