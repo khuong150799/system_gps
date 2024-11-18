@@ -322,8 +322,9 @@ class ValidateModel extends DatabaseModel {
     }
 
     const dataInfoParent = await Promise.all(
-      arrayPromiseParent.map((fn) => fn)
+      arrayPromiseParent.map((fn) => fn())
     );
+    // console.log("dataInfoParent", dataInfoParent);
 
     const checkStructureRecivers = dataInfoParent.some((item, i) => {
       if (

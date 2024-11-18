@@ -240,7 +240,7 @@ class DatabaseModel {
         ", "
       )}`;
 
-      console.log("updateQuery", updateQuery);
+      // console.log("updateQuery", updateQuery);
 
       db.query(updateQuery, (err, dataRes) => {
         if (err) {
