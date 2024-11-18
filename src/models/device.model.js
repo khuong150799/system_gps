@@ -223,7 +223,7 @@ class DeviceModel extends DatabaseModel {
     let conditions = [isDeleted, 0, customer, 1];
 
     if (keyword) {
-      where += ` AND (d.dev_id LIKE ? OR d.imei LIKE ? OR o.code LIKE ? OR c.name LIKE ?`;
+      where += ` AND (d.dev_id LIKE ? OR d.imei LIKE ? OR c.name LIKE ?`;
       conditions.push(
         `%${keyword}%`,
         `%${keyword}%`,
@@ -281,14 +281,18 @@ class DeviceModel extends DatabaseModel {
         INNER JOIN ${tableVehicle} v ON dv.vehicle_id = v.id
         INNER JOIN ${tableServicePackage} sp ON dv.service_package_id = sp.id
         INNER JOIN ${tableVehicleType} vt ON v.vehicle_type_id = vt.id
-        LEFT JOIN ${tableOrdersDevice} od ON ud.device_id = od.device_id
-        LEFT JOIN ${tableOrders} o ON od.orders_id = o.id AND o.creator_customer_id = ?
-        LEFT JOIN ${tableCustomers} c1 ON o.reciver = c1.id AND o.creator_customer_id = ?`;
+        LEFT JOIN (
+        SELECT od.device_id, o.code as orders_code,o.reciver
+        FROM ${tableOrdersDevice} od
+        INNER JOIN ${tableOrders} o ON od.orders_id = o.id
+        WHERE od.is_deleted = ? AND o.creator_customer_id = ? AND o.is_deleted = ?
+        ) latest_order ON ud.device_id = latest_order.device_id
+        LEFT JOIN ${tableCustomers} c1 ON latest_order.orders_code IS NOT NULL AND latest_order.reciver = c1.id`;
       where += ` AND dv.is_deleted = ? AND v.is_deleted = ?`;
 
-      conditions = [customer, customer, ...conditions, 0, 0];
+      conditions = [0, customer, 0, ...conditions, 0, 0];
 
-      select += ` ,o.code orders_code,v.name as vehicle_name, v.is_checked,dv.is_transmission_gps,dv.is_transmission_image,
+      select += ` ,latest_order.orders_code,v.name as vehicle_name, v.is_checked,dv.is_transmission_gps,dv.is_transmission_image,
         vt.name as vehicle_type_name,dv.is_lock,dv.quantity_channel,sp.name as service_package_name,MAX(COALESCE(c1.company,c1.name)) as customer_name,c1.id as customer_id,v.id as vehicle_id`;
     } else if (type == 2) {
       joinTable += ` LEFT JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id AND dv.is_deleted = ?
@@ -317,7 +321,7 @@ class DeviceModel extends DatabaseModel {
         select,
         `${where} GROUP BY d.id`,
         conditions,
-        `dv.activation_date,d.id`,
+        type == 1 ? "dv.activation_date" : `d.id`,
         "DESC",
         offset,
         limit
