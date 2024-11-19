@@ -171,13 +171,17 @@ class ValidateModel extends DatabaseModel {
     is_exist_throw_error = true,
     select = "id",
     isCheckCode = false,
-    modifier = ""
+    modifier = "",
+    promo = false
   ) {
     let where = `${field} IN (?)`;
     const conditions = condition;
 
     if (modifier) {
       where += `AND ${modifier}`;
+    }
+    if (promo) {
+      where += `AND type = 2`;
     }
 
     if (id) {

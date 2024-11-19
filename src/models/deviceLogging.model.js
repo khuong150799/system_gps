@@ -146,14 +146,14 @@ class DeviceLoggingModel extends DatabaseModel {
     await this.insert(conn, tableDeviceLogging, logs);
   }
 
-  async extendVehicle(conn, des, { user_id, device_id, ip, os, gps }) {
+  async extendVehicle(conn, des, { user_id, device_id, ip, os, gps, action }) {
     const logs = new DeviceLoggingSchema({
       user_id,
       device_id,
       ip: ip || null,
       os: os || null,
       des: JSON.stringify([des]),
-      action: "Gia hạn",
+      action,
       gps,
       is_deleted: 0,
       created_at: Date.now(),

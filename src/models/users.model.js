@@ -107,7 +107,10 @@ class UsersModel extends DatabaseModel {
     const listUserId = [];
     for (const key in data) {
       if (Object.prototype.hasOwnProperty.call(data, key)) {
-        listUserId.push(key);
+        const { index } = JSON.parse(data[key]);
+        if (index >= 3) {
+          listUserId.push(key);
+        }
       }
     }
     // console.log("listUserId", listUserId);

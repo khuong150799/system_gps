@@ -39,8 +39,9 @@ class VehicleController {
   });
 
   updatePackage = catchAsync(async (req, res) => {
-    const { body, params } = req;
-    const data = await vehicleService.updatePackage(body, params);
+    const { body, params, userId } = req;
+    const infoUser = { user_id: userId, ip: null, os: null, gps: null };
+    const data = await vehicleService.updatePackage(body, params, infoUser);
     UPDATE(res, [data]);
   });
 
@@ -53,8 +54,33 @@ class VehicleController {
 
   updateExpiredOn = catchAsync(async (req, res) => {
     const { body, userId } = req;
-    const infoUser = { user_id: userId, ip: null, os: null, gps: null };
-    const data = await vehicleService.updateExpiredOn(body, infoUser);
+    const infoUser = {
+      user_id: userId,
+      ip: null,
+      os: null,
+      gps: null,
+      action: "Gia hạn",
+    };
+    const data = await vehicleService.updateExpiredOn(
+      { ...body, promo: false },
+      infoUser
+    );
+    UPDATE(res, [data]);
+  });
+
+  promo = catchAsync(async (req, res) => {
+    const { body, userId } = req;
+    const infoUser = {
+      user_id: userId,
+      ip: null,
+      os: null,
+      gps: null,
+      action: "Nhập mã kuyến mãi",
+    };
+    const data = await vehicleService.updateExpiredOn(
+      { ...body, promo: true },
+      infoUser
+    );
     UPDATE(res, [data]);
   });
 

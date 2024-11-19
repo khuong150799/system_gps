@@ -171,13 +171,20 @@ class vehicleService {
     }
   }
 
-  async updatePackage(body, params) {
+  async updatePackage(body, params, infoUser) {
     try {
-      const { conn } = await db.getConnection();
+      const { conn, connPromise } = await db.getConnection();
       try {
-        const data = await vehicleModel.updatePackage(conn, body, params);
+        const data = await vehicleModel.updatePackage(
+          conn,
+          connPromise,
+          body,
+          params,
+          infoUser
+        );
         return data;
       } catch (error) {
+        await connPromise.rollback();
         throw error;
       } finally {
         conn.release();
@@ -297,6 +304,7 @@ class vehicleService {
       );
 
       let idx = 0;
+      // console.log("dataRedis", dataRedis);
 
       if (dataRedis) {
         const dataParse = JSON.parse(dataRedis);
@@ -309,7 +317,7 @@ class vehicleService {
       try {
         // const { vehicle_id, device_id, code, key_time } = body;
 
-        const { djson } = body;
+        const { djson, promo } = body;
 
         // console.log("djson", djson);
 
@@ -332,7 +340,7 @@ class vehicleService {
           const { vehicle_id, device_id, code, value_time } = dataParse[i];
           // console.log("dataParse[i]", dataParse[i]);
 
-          if (!vehicle_id || !device_id || !code || !value_time) {
+          if (!vehicle_id || !device_id || !code || (!value_time && !promo)) {
             checkDataError = true;
             break;
           }
@@ -342,7 +350,12 @@ class vehicleService {
           listCode.push(...code.split(";"));
           listVehicleId.push(vehicle_id);
           listDeviceId.push(device_id);
-          dataFormat[device_id] = { vehicle_id, device_id, code, value_time };
+          dataFormat[device_id] = {
+            vehicle_id,
+            device_id,
+            code,
+            value_time: promo ? 1 : value_time,
+          };
         }
         // console.log("checkDataError", checkDataError);
 
@@ -355,12 +368,14 @@ class vehicleService {
           tableRenewalCode,
           "code",
           [listCode],
-          "Mã gia hạn",
+          !promo ? "Mã gia hạn" : "Mã khuyến mãi",
           "code",
           null,
           false,
           "id,code,is_used",
-          true
+          true,
+          "",
+          promo
         );
 
         const dataCodeFormat = dataCheck.reduce((result, { id, code }) => {
@@ -419,7 +434,7 @@ class vehicleService {
 
         await connPromise.rollback();
         const { isLockAcc } = error;
-        // console.log("isLockAcc", isLockAcc);
+        console.log("isLockAcc", isLockAcc);
 
         if (isLockAcc) {
           try {

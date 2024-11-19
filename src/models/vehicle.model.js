@@ -2,6 +2,7 @@ const {
   ERROR,
   REMOTE_TURN_OFF_DEVICE_ERROR,
   REMOTE_TURN_ON_DEVICE_ERROR,
+  NOT_EXITS,
 } = require("../constants/msg.constant");
 const {
   REDIS_KEY_LIST_IMEI_OF_USERS,
@@ -12,7 +13,6 @@ const {
   tableVehicle,
   tableUsersDevices,
   tableDeviceVehicle,
-  tableDeviceExtend,
   tableOrders,
   tableOrdersDevice,
   tableVehicleType,
@@ -24,6 +24,7 @@ const {
   tableUsers,
   tableRenewalCode,
   tableRenewalCodeDevice,
+  tableServicePackage,
 } = require("../constants/tableName.constant");
 const { date } = require("../ultils/getTime");
 const { makeCode } = require("../ultils/makeCode");
@@ -31,7 +32,6 @@ const DatabaseModel = require("./database.model");
 const deviceLoggingModel = require("./deviceLogging.model");
 const ordersModel = require("./orders.model");
 const { del: delRedis, hdelOneKey, hSet: hsetRedis } = require("./redis.model");
-const DeviceExtendSchema = require("./schema/deviceExtend.schema");
 const configureEnvironment = require("../config/dotenv.config");
 const { fork } = require("child_process");
 const deviceApi = require("../api/device.api");
@@ -163,21 +163,120 @@ class VehicleModel extends DatabaseModel {
     // console.log("listUserId123456", data);
   }
 
-  async updatePackage(con, body, params) {
+  async updatePackage(
+    conn,
+    connPromise,
+    body,
+    params,
+    { user_id, ip, os, gps }
+  ) {
     const { device_id, service_package_id } = body;
     const { id } = params;
 
-    await this.update(
-      con,
-      tableDeviceVehicle,
-      { service_package_id },
-      "",
-      [device_id, id],
-      "service_package_id",
-      true,
-      "device_id = ? AND vehicle_id = ?"
-    );
+    const joinTable = `${tableDevice} d INNER JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id
+      INNER JOIN ${tableServicePackage} sp ON dv.service_package_id = sp.id`;
+    const selectOld = "d.activation_date,dv.expired_on,sp.name";
+    const [dataOld, dataPackage] = await Promise.all([
+      this.select(
+        conn,
+        joinTable,
+        selectOld,
+        "dv.device_id = ? AND dv.vehicle_id = ? AND dv.is_deleted = ?",
+        [device_id, id, 0],
+        "dv.id"
+      ),
+      this.select(
+        conn,
+        tableServicePackage,
+        "name,times",
+        "id = ?",
+        service_package_id
+      ),
+    ]);
 
+    if (!dataOld?.length)
+      throw {
+        msg: ERROR,
+        errors: [{ msg: `Phương tiện ${NOT_EXITS}`, value: id, params: "id" }],
+      };
+
+    if (!dataPackage?.length)
+      throw {
+        msg: ERROR,
+        errors: [
+          {
+            msg: `Gói dịch vụ ${NOT_EXITS}`,
+            value: service_package_id,
+            params: "service_package_id",
+          },
+        ],
+      };
+
+    const {
+      activation_date,
+      expired_on,
+      name: sevicePackageNameOld,
+    } = dataOld[0];
+    const { times: quantityMonth, name: sevicePackageName } = dataPackage[0];
+
+    const activationDate = new Date(activation_date);
+
+    activationDate.setMonth(activationDate.getMonth() + Number(quantityMonth));
+
+    const expiredOn = activationDate.getTime();
+    // console.log(Date.now(), Number(activation_date));
+
+    const isUpdateExpiredOn =
+      Date.now() - Number(activation_date) <= 5 * 24 * 3600 * 1000;
+    await connPromise.beginTransaction();
+
+    if (isUpdateExpiredOn) {
+      await this.update(
+        conn,
+        tableDeviceVehicle,
+        { service_package_id, expired_on: expiredOn, updated_at: Date.now() },
+        "",
+        [device_id, id],
+        "service_package_id",
+        true,
+        "device_id = ? AND vehicle_id = ?"
+      );
+      await this.update(
+        conn,
+        tableDevice,
+        { expired_on: expiredOn },
+        "id",
+        device_id
+      );
+    } else {
+      await this.update(
+        conn,
+        tableDeviceVehicle,
+        { service_package_id },
+        "",
+        [device_id, id],
+        "service_package_id",
+        true,
+        "device_id = ? AND vehicle_id = ?"
+      );
+    }
+    const des = isUpdateExpiredOn
+      ? `[Thay đổi gói dịch vụ ${sevicePackageNameOld} ===> ${sevicePackageName}, Ngày hết hạn củ ${date(
+          expired_on
+        )} ===> Ngày hết hạn mới ${date(expiredOn)}]`
+      : `[Thay đổi gói dịch vụ ${sevicePackageNameOld} ===> ${sevicePackageName}]`;
+
+    await deviceLoggingModel.postOrDelete(conn, {
+      user_id,
+      device_id,
+      ip,
+      os,
+      gps,
+      des,
+      action: "Sửa sau kích hoạt",
+      createdAt: Date.now(),
+    });
+    await connPromise.commit();
     return [];
   }
 
@@ -240,7 +339,7 @@ class VehicleModel extends DatabaseModel {
     const { redis: listPromiseDelRedis, logging: listPromiseLogging } =
       dataInfo.reduce(
         (result, { imei, device_id }) => {
-          console.log("imei", imei);
+          // console.log("imei", imei);
 
           result.redis.push(this.getInfoDevice(conn, imei));
           result.logging.push(
@@ -267,7 +366,7 @@ class VehicleModel extends DatabaseModel {
 
     for (let i = 0; i < listDataGetRedis.length; i++) {
       const result = listDataGetRedis[i];
-      console.log("result", result);
+      // console.log("result", result);
 
       if (!result?.length) {
         isRollback = true;
@@ -583,7 +682,7 @@ class VehicleModel extends DatabaseModel {
     listCode,
     dataCodeFormat,
     dataKeyTimeFormat,
-    { user_id, ip, os, gps }
+    { user_id, ip, os, gps, action }
   ) {
     await connPromise.beginTransaction();
 
@@ -617,7 +716,7 @@ class VehicleModel extends DatabaseModel {
           ip,
           os,
           des,
-          "Gia hạn",
+          action,
           gps,
           0,
           Date.now(),
@@ -880,6 +979,7 @@ class VehicleModel extends DatabaseModel {
               ip,
               os,
               gps,
+              action: "Sửa",
             })
           );
 
@@ -964,6 +1064,7 @@ class VehicleModel extends DatabaseModel {
               ip,
               os,
               gps,
+              action: "Sửa",
             })
           );
 

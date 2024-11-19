@@ -248,12 +248,12 @@ class DeviceModel extends DatabaseModel {
       conditions.push(start_warranty_expired_on, end_warranty_expired_on);
     }
 
-    if (start_activation_date && end_activation_date) {
+    if (start_activation_date && end_activation_date && type == 1) {
       where += ` AND dv.activation_date BETWEEN ? AND ?`;
       conditions.push(start_activation_date, end_activation_date);
     }
 
-    if (start_expired_on && end_expired_on) {
+    if (start_expired_on && end_expired_on && type == 1) {
       where += ` AND dv.expired_on BETWEEN ? AND ?`;
       conditions.push(start_expired_on, end_expired_on);
     }
@@ -273,7 +273,7 @@ class DeviceModel extends DatabaseModel {
     `;
 
     let select = `d.id,d.dev_id,d.imei,d.serial,m.name as model_name,
-     dv.expired_on,d.warranty_expired_on,dv.activation_date,fw.version_hardware,
+    d.warranty_expired_on,fw.version_hardware,
      fw.version_software,COALESCE(fw.updated_at,fw.created_at) as time_update_version,ca.host`;
 
     if (type == 1) {
@@ -292,7 +292,7 @@ class DeviceModel extends DatabaseModel {
 
       conditions = [0, customer, 0, ...conditions, 0, 0];
 
-      select += ` ,latest_order.orders_code,v.name as vehicle_name, v.is_checked,dv.is_transmission_gps,dv.is_transmission_image,
+      select += ` ,dv.expired_on,dv.activation_date,latest_order.orders_code,v.name as vehicle_name, v.is_checked,dv.is_transmission_gps,dv.is_transmission_image,
         vt.name as vehicle_type_name,dv.is_lock,dv.quantity_channel,sp.name as service_package_name,MAX(COALESCE(c1.company,c1.name)) as customer_name,c1.id as customer_id,v.id as vehicle_id`;
     } else if (type == 2) {
       joinTable += ` LEFT JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id AND dv.is_deleted = ?
@@ -309,7 +309,7 @@ class DeviceModel extends DatabaseModel {
       WHERE od.is_deleted = ? AND o.creator_customer_id = ? AND o.is_deleted = ?
       ) latest_order ON ud.device_id = latest_order.device_id
       LEFT JOIN ${tableCustomers} c1 ON latest_order.orders_code IS NOT NULL AND latest_order.reciver = c1.id`;
-      select += ` ,latest_order.orders_code,d.created_at,d.updated_at,
+      select += ` ,d.expired_on,d.activation_date,latest_order.orders_code,d.created_at,d.updated_at,
         ds.title as device_status_name,MAX(COALESCE(c1.company,c1.name)) as customer_name,c1.id as customer_id,v.id as vehicle_id,v.name as vehicle_name`;
       conditions = [0, 0, 0, customer, 0, ...conditions];
     }

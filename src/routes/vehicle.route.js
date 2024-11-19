@@ -59,7 +59,10 @@ module.exports = (app) => {
   router.patch(
     "/update-package/:id",
     [
-      param("id", VALIDATE_DATA).isNumeric(),
+      param("id", VALIDATE_DATA)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA),
       body("service_package_id", NOT_EMPTY)
         .notEmpty()
         .isNumeric()
@@ -101,6 +104,14 @@ module.exports = (app) => {
     isAuth,
     checkPermission,
     vehicleController.updateExpiredOn
+  );
+
+  router.patch(
+    "/promo",
+    [body("djson", NOT_EMPTY).notEmpty().isString().withMessage(VALIDATE_DATA)],
+    isAuth,
+    checkPermission,
+    vehicleController.promo
   );
 
   router.patch(
@@ -259,7 +270,7 @@ module.exports = (app) => {
         .escape(),
     ],
     isAuth,
-    // checkPermission,
+    checkPermission,
     vehicleController.remote
   );
 
