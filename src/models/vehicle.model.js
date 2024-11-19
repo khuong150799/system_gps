@@ -248,6 +248,11 @@ class VehicleModel extends DatabaseModel {
         "id",
         device_id
       );
+
+      const result = await this.getInfoDevice(conn, "", device_id);
+
+      if (!result?.length)
+        throw { msg: ERROR, errors: "Không thể cập nhật data trên realtime" };
     } else {
       await this.update(
         conn,
@@ -373,7 +378,8 @@ class VehicleModel extends DatabaseModel {
       }
     }
 
-    if (isRollback) throw { msg: ERROR };
+    if (isRollback)
+      throw { msg: ERROR, errors: "Không thể cập nhật data trên realtime" };
     // throw { msg: ERROR };
 
     await connPromise.commit();
@@ -449,7 +455,8 @@ class VehicleModel extends DatabaseModel {
       }
     }
 
-    if (isRollback) throw { msg: ERROR };
+    if (isRollback)
+      throw { msg: ERROR, errors: "Không thể cập nhật data trên realtime" };
     // throw { msg: ERROR };
 
     await connPromise.commit();
@@ -545,7 +552,8 @@ class VehicleModel extends DatabaseModel {
       }
     }
 
-    if (isRollback) throw { msg: ERROR };
+    if (isRollback)
+      throw { msg: ERROR, errors: "Không thể cập nhật data trên realtime" };
 
     await connPromise.commit();
     vehicle.id = id;
@@ -946,10 +954,10 @@ class VehicleModel extends DatabaseModel {
       tableDeviceVehicle,
       { activation_date },
       "",
-      [id, device_id],
+      [id, device_id, 0],
       "vehicle_id",
       true,
-      "vehicle_id = ? AND device_id = ?"
+      "vehicle_id = ? AND device_id = ? AND is_deleted = ?"
     );
 
     await this.update(
@@ -1089,7 +1097,8 @@ class VehicleModel extends DatabaseModel {
       }
     }
 
-    if (isRollback) throw { msg: ERROR };
+    if (isRollback)
+      throw { msg: ERROR, errors: "Không thể cập nhật data trên realtime" };
 
     await connPromise.commit();
 
@@ -1373,7 +1382,8 @@ class VehicleModel extends DatabaseModel {
     if (!resultOld || !resultNew?.length) {
       isRollback = true;
     }
-    if (isRollback) throw { msg: ERROR };
+    if (isRollback)
+      throw { msg: ERROR, errors: "Không thể cập nhật data trên realtime" };
     const dataLog = {
       ...infoUser,
       device_id: device_id_old,
