@@ -23,6 +23,14 @@ module.exports = (app) => {
   );
 
   router.get(
+    "/cskh-rows",
+
+    isAuth,
+    // checkPermission,
+    usersController.getallrowsSiteCustomerService
+  );
+
+  router.get(
     "/lock-extend",
     isAuth,
     checkPermission,
@@ -138,7 +146,7 @@ module.exports = (app) => {
   router.post(
     "/register",
     [
-      body("customer_id", NOT_EMPTY)
+      body("parent_id", NOT_EMPTY)
         .notEmpty()
         .isNumeric()
         .withMessage(VALIDATE_DATA),

@@ -202,6 +202,36 @@ class UsersModel extends DatabaseModel {
     return { data: res_, totalPage, totalRecord: count?.[0]?.total };
   }
 
+  async getallrowsSiteCustomerService(conn, query) {
+    const offset = query.offset || 0;
+    const limit = query.limit || 10;
+    const isDeleted = query.is_deleted || 0;
+
+    let where = `parent_id = ? AND is_deleted = ? AND is_main = ?`;
+    const conditions = [1, isDeleted, 0];
+
+    const select = `id,username,depatment_id`;
+
+    const [res_, count] = await Promise.all([
+      this.select(
+        conn,
+        tableUsers,
+        select,
+        where,
+        conditions,
+        `id`,
+        "ASC",
+        offset,
+        limit
+      ),
+      this.count(conn, tableUsers, "*", where, conditions),
+    ]);
+
+    const totalPage = Math.ceil(count?.[0]?.total / limit);
+
+    return { data: res_, totalPage, totalRecord: count?.[0]?.total };
+  }
+
   //getallrow
   async getallChild(conn, query, customerId) {
     const offset = query.offset || 0;

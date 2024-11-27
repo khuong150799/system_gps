@@ -85,7 +85,7 @@ const handleResponse = (response) => {
 };
 
 const handleResponseError = (error) => {
-  console.log("error", error);
+  // console.log("error", error);
   // Handle errors
   throw error?.response?.data || error;
 };

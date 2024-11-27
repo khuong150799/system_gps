@@ -78,25 +78,24 @@ module.exports = (app) => {
     vehicleController.updatePackage
   );
 
-  // router.patch(
-  //   "/update-expired/:id",
-  //   [
-  //     param("id", VALIDATE_DATA).isNumeric(),
+  router.patch(
+    "/update-sleep-time/:id",
+    [
+      param("id", VALIDATE_DATA).isNumeric(),
 
-  //     body("device_id", NOT_EMPTY)
-  //       .notEmpty()
-  //       .isNumeric()
-  //       .withMessage(VALIDATE_DATA),
-  //     body("extend_date", NOT_EMPTY)
-  //       .notEmpty()
-  //       .isNumeric()
-  //       .withMessage(VALIDATE_DATA),
-  //     body("code", NOT_EMPTY).notEmpty().isNumeric().withMessage(VALIDATE_DATA),
-  //   ],
-  //   isAuth,
-  //   checkPermission,
-  //   vehicleController.updateExpiredOn
-  // );
+      body("device_id", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA),
+      body("minute", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA),
+    ],
+    isAuth,
+    // checkPermission,
+    vehicleController.updateSleepTime
+  );
 
   router.patch(
     "/update-expired",

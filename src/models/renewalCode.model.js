@@ -79,7 +79,7 @@ class RenewalCodeModel extends DatabaseModel {
     const dataInsert = [];
 
     for (let i = 0; i < quantity; i++) {
-      dataInsert.push([generateRandomNumber(), type, 0, createdAt]);
+      dataInsert.push([generateRandomNumber(Number(type)), type, 0, createdAt]);
     }
 
     const res_ = await this.insertMulti(

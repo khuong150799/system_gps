@@ -94,6 +94,25 @@ class UsersService {
     }
   }
 
+  async getallrowsSiteCustomerService(query) {
+    try {
+      const { conn } = await db.getConnection();
+      try {
+        const data = await usersModel.getallrowsSiteCustomerService(
+          conn,
+          query
+        );
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      throw new BusinessLogicError(error.msg);
+    }
+  }
+
   async getallChild(query, customerId) {
     try {
       const { conn } = await db.getConnection();
@@ -608,7 +627,7 @@ class UsersService {
 
         // await validateModel.checkRegexPassword(old_password);
 
-        await validateModel.checkRegexPassword(new_password, true);
+        // await validateModel.checkRegexPassword(new_password, true);
 
         const { is_actived, is_deleted, password } =
           await validateModel.checkUserInfo(conn, userId);

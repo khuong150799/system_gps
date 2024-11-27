@@ -10,4 +10,7 @@ module.exports = {
   REDIS_KEY_CALIB_FUEL: "calibFuel",
   REDIS_KEY_SENSOR_TEPM: "sensorTemp",
   REDIS_KEY_LOCK_ACC_WITH_EXTEND: "lockAccWithExtend",
+  REDIS_KEY_GPS_LINK_ANTI_THEFT: "gpsLinkAntiTheft",
+  REDIS_KEY_ANTI_THEFT_LINK_GPS: "antiTheftLinkGps",
+  REDIS_KEY_DATA_SLEEP_TIME: "dataSleepTime",
 };

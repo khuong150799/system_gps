@@ -7,6 +7,8 @@ const {
 const {
   REDIS_KEY_LIST_IMEI_OF_USERS,
   REDIS_KEY_LIST_DEVICE,
+  REDIS_KEY_LOCK_ACC_WITH_EXTEND,
+  REDIS_KEY_DATA_SLEEP_TIME,
 } = require("../constants/redis.constant");
 const {
   tableDevice,
@@ -252,7 +254,10 @@ class VehicleModel extends DatabaseModel {
       const result = await this.getInfoDevice(conn, "", device_id);
 
       if (!result?.length)
-        throw { msg: ERROR, errors: "Không thể cập nhật data trên realtime" };
+        throw {
+          msg: ERROR,
+          errors: [{ msg: "Không thể cập nhật data trên realtime" }],
+        };
     } else {
       await this.update(
         conn,
@@ -379,7 +384,10 @@ class VehicleModel extends DatabaseModel {
     }
 
     if (isRollback)
-      throw { msg: ERROR, errors: "Không thể cập nhật data trên realtime" };
+      throw {
+        msg: ERROR,
+        errors: [{ msg: "Không thể cập nhật data trên realtime" }],
+      };
     // throw { msg: ERROR };
 
     await connPromise.commit();
@@ -456,7 +464,10 @@ class VehicleModel extends DatabaseModel {
     }
 
     if (isRollback)
-      throw { msg: ERROR, errors: "Không thể cập nhật data trên realtime" };
+      throw {
+        msg: ERROR,
+        errors: [{ msg: "Không thể cập nhật data trên realtime" }],
+      };
     // throw { msg: ERROR };
 
     await connPromise.commit();
@@ -553,134 +564,15 @@ class VehicleModel extends DatabaseModel {
     }
 
     if (isRollback)
-      throw { msg: ERROR, errors: "Không thể cập nhật data trên realtime" };
+      throw {
+        msg: ERROR,
+        errors: [{ msg: "Không thể cập nhật data trên realtime" }],
+      };
 
     await connPromise.commit();
     vehicle.id = id;
     return vehicle;
   }
-
-  // async updateExpiredOn(
-  //   conn,
-  //   connPromise,
-  //   body,
-  //   params,
-  //   dataInfo,
-  //   codeId,
-  //   { user_id, ip, os, gps }
-  // ) {
-  //   const { extend_date, device_id } = body;
-  //   const { id } = params;
-
-  //   await connPromise.beginTransaction();
-
-  //   await this.update(
-  //     conn,
-  //     tableDeviceVehicle,
-  //     { expired_on: extend_date },
-  //     "",
-  //     [id, device_id],
-  //     "expired_on",
-  //     true,
-  //     "vehicle_id = ? AND device_id = ?"
-  //   );
-  //   // console.log("dataInfo", dataInfo);
-
-  //   const {
-  //     redis: listPromiseDelRedis,
-  //     logging: listPromiseAddDb,
-  //     extend: listPromiseExtend,
-  //     renewalCode: listPromiseRenewalCode,
-  //     renewalCodeDevice: listPromiseRenewalCodeDevice,
-  //   } = dataInfo.reduce(
-  //     (result, { imei, expired_on: current_date }) => {
-  //       // console.log("result", result);
-
-  //       const dataExtend = new DeviceExtendSchema({
-  //         device_id,
-  //         expired_on_old: current_date,
-  //         extend_date,
-  //         is_deleted: 0,
-  //         created_at: Date.now(),
-  //       });
-  //       dataExtend.updated_at;
-
-  //       const des = `Ngày hết hạn củ: ${date(
-  //         current_date
-  //       )} ===> Ngày hết hạn mới: ${date(extend_date)}`;
-
-  //       result.redis.push(this.getInfoDevice(conn, imei));
-  //       result.logging.push(
-  //         deviceLoggingModel.extendVehicle(conn, des, {
-  //           user_id,
-  //           device_id,
-  //           ip,
-  //           os,
-  //           gps,
-  //         })
-  //       );
-
-  //       result.extend.push(this.insert(conn, tableDeviceExtend, dataExtend));
-  //       result.renewalCode.push(
-  //         this.update(conn, tableRenewalCode, { is_used: 1 }, "id", codeId)
-  //       );
-  //       result.renewalCodeDevice.push(
-  //         this.insert(
-  //           conn,
-  //           tableRenewalCodeDevice,
-  //           {
-  //             user_id,
-  //             renewal_code_id: codeId,
-  //             device_id,
-  //             vehicle_id: id,
-  //             created_at: Date.now(),
-  //           },
-  //           "id",
-  //           codeId
-  //         )
-  //       );
-
-  //       return result;
-  //     },
-  //     {
-  //       redis: [],
-  //       logging: [],
-  //       extend: [],
-  //       renewalCode: [],
-  //       renewalCodeDevice: [],
-  //     }
-  //   );
-
-  //   // console.log({ listPromiseDelRedis, listPromiseAddDb, listPromiseExtend });
-
-  //   await Promise.all(listPromiseAddDb);
-
-  //   await Promise.all(listPromiseExtend);
-
-  //   await Promise.all(listPromiseRenewalCode);
-
-  //   await Promise.all(listPromiseRenewalCodeDevice);
-
-  //   const listDataGetRedis = await Promise.all(listPromiseDelRedis);
-
-  //   let isRollback = false;
-
-  //   for (let i = 0; i < listDataGetRedis.length; i++) {
-  //     const result = listDataGetRedis[i];
-
-  //     if (!result?.length) {
-  //       isRollback = true;
-  //     }
-  //   }
-
-  //   if (isRollback) throw { msg: ERROR };
-
-  //   await connPromise.commit();
-
-  //   return [];
-  // }
-
-  //updateActivationDate
 
   async updateExpiredOn(
     conn,
@@ -841,7 +733,67 @@ class VehicleModel extends DatabaseModel {
     }
 
     if (isRollback)
-      throw { msg: ERROR, errors: "Không thể cập nhật data trên realtime" };
+      throw {
+        msg: ERROR,
+        errors: [{ msg: "Không thể cập nhật data trên realtime" }],
+      };
+
+    await hdelOneKey(REDIS_KEY_LOCK_ACC_WITH_EXTEND, user_id.toString());
+
+    await connPromise.commit();
+
+    return [];
+  }
+
+  async updateSleepTime(
+    conn,
+    connPromise,
+    dataInfo,
+    body,
+    params,
+    { user_id, ip, os, gps }
+  ) {
+    await connPromise.beginTransaction();
+
+    const { device_id, minute } = body;
+    const { id } = params;
+
+    await this.update(
+      conn,
+      tableDeviceVehicle,
+      { sleep_time: minute },
+      "",
+      [id, device_id, 0],
+      "vehicle_id",
+      true,
+      "vehicle_id = ? AND device_id = ? AND is_deleted = ?"
+    );
+
+    const { imei, sleep_time } = dataInfo[0];
+
+    const des = `Thay đổi thời gian ngủ của thiết bị ${sleep_time} phút ===> ${minute} phút`;
+
+    await deviceLoggingModel.postOrDelete(conn, {
+      user_id,
+      device_id,
+      ip,
+      os,
+      gps,
+      des,
+      action: "Sửa",
+      createdAt: Date.now(),
+    });
+
+    const { result } = await hsetRedis(
+      REDIS_KEY_DATA_SLEEP_TIME,
+      imei,
+      minute.toString()
+    );
+    if (!result)
+      throw {
+        msg: ERROR,
+        errors: [{ msg: "Không thể cập nhật thời gian ngủ cho thiết bị" }],
+      };
 
     await connPromise.commit();
 
@@ -929,7 +881,10 @@ class VehicleModel extends DatabaseModel {
     }
 
     if (isRollback)
-      throw { msg: ERROR, errors: "Không thể cập nhật data trên realtime" };
+      throw {
+        msg: ERROR,
+        errors: [{ msg: "Không thể cập nhật data trên realtime" }],
+      };
 
     await connPromise.commit();
 
@@ -1013,7 +968,10 @@ class VehicleModel extends DatabaseModel {
     }
 
     if (isRollback)
-      throw { msg: ERROR, errors: "Không thể cập nhật data trên realtime" };
+      throw {
+        msg: ERROR,
+        errors: [{ msg: "Không thể cập nhật data trên realtime" }],
+      };
 
     await connPromise.commit();
 
@@ -1098,7 +1056,10 @@ class VehicleModel extends DatabaseModel {
     }
 
     if (isRollback)
-      throw { msg: ERROR, errors: "Không thể cập nhật data trên realtime" };
+      throw {
+        msg: ERROR,
+        errors: [{ msg: "Không thể cập nhật data trên realtime" }],
+      };
 
     await connPromise.commit();
 
@@ -1383,7 +1344,10 @@ class VehicleModel extends DatabaseModel {
       isRollback = true;
     }
     if (isRollback)
-      throw { msg: ERROR, errors: "Không thể cập nhật data trên realtime" };
+      throw {
+        msg: ERROR,
+        errors: [{ msg: "Không thể cập nhật data trên realtime" }],
+      };
     const dataLog = {
       ...infoUser,
       device_id: device_id_old,

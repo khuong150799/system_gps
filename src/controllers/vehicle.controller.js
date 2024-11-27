@@ -45,12 +45,12 @@ class VehicleController {
     UPDATE(res, [data]);
   });
 
-  // updateExpiredOn = catchAsync(async (req, res) => {
-  //   const { body, params, userId } = req;
-  //   const infoUser = { user_id: userId, ip: null, os: null, gps: null };
-  //   const data = await vehicleService.updateExpiredOn(body, params, infoUser);
-  //   UPDATE(res, [data]);
-  // });
+  updateSleepTime = catchAsync(async (req, res) => {
+    const { body, params, userId } = req;
+    const infoUser = { user_id: userId, ip: null, os: null, gps: null };
+    const data = await vehicleService.updateSleepTime(body, params, infoUser);
+    UPDATE(res, [data]);
+  });
 
   updateExpiredOn = catchAsync(async (req, res) => {
     const { body, userId } = req;

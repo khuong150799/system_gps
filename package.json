@@ -1,6 +1,6 @@
 {
   "name": "sv_system_api",
-  "version": "1.5.6",
+  "version": "1.5.7",
   "description": "",
   "main": "server.js",
   "scripts": {
@@ -8,7 +8,9 @@
     "dev": "nodemon --inspect serverCluster.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "createMigrate": "node node_modules/db-migrate/bin/db-migrate create",
-    "upMigrate": "node node_modules/db-migrate/bin/db-migrate up"
+    "upMigrate": "node node_modules/db-migrate/bin/db-migrate up",
+    "common": "ncc build server.js",
+    "build": "pkg dist/index.js --out-path build"
   },
   "keywords": [],
   "author": "",
@@ -38,5 +40,17 @@
     "notify-services": "^1.0.4",
     "redis": "^4.6.13",
     "uuid": "^9.0.1"
+  },
+  "pkg": {
+    "assets": [
+      "./.env",
+      "./.env.local"
+    ],
+    "targets": [
+      "node18-linux-x64",
+      "node18-macos-x64",
+      "node18-win-x64"
+    ],
+    "outputPath": "build"
   }
 }

@@ -23,10 +23,13 @@ const {
   NOT_EXITS,
   VEHICLE_NOT_PERMISSION,
   LOCK_PERMISSION_ACC,
+  VALIDATE_DATA,
+  NOT_CONFIG_SLEEP_TIME_DEVICE,
 } = require("../constants/msg.constant");
 const { hGet, hSet } = require("../models/redis.model");
 const {
   REDIS_KEY_LOCK_ACC_WITH_EXTEND,
+  REDIS_KEY_ANTI_THEFT_LINK_GPS,
 } = require("../constants/redis.constant");
 
 const dataBaseModel = new DatabaseModel();
@@ -233,64 +236,86 @@ class vehicleService {
     }
   }
 
-  // async updateExpiredOn(body, params, infoUser) {
-  //   try {
-  //     const { conn, connPromise } = await db.getConnection();
-  //     try {
-  //       const { id } = params;
-  //       const { device_id, code } = body;
+  async updateSleepTime(body, params, infoUser) {
+    // console.log("body", body);
 
-  //       // console.log(id, device_id);
+    try {
+      const { conn, connPromise } = await db.getConnection();
+      try {
+        const { device_id, minute } = body;
+        const { id: vehicle_id } = params;
+        const { user_id } = infoUser;
 
-  //       const dataCode = await validateModel.checkExitValue(
-  //         conn,
-  //         tableRenewalCode,
-  //         "code",
-  //         code,
-  //         "Mã gia hạn",
-  //         "code",
-  //         null,
-  //         false,
-  //         "id,is_used",
-  //         false,
-  //         true
-  //       );
+        if (Number(minute) <= 0)
+          throw new SendMissingDataError(VALIDATE_DATA, [
+            { value: minute, param: "minute", msg: VALIDATE_DATA },
+          ]);
 
-  //       const { id: codeId } = dataCode[0];
+        const joinTable = `${tableVehicle} v INNER JOIN ${tableDeviceVehicle} dv ON v.id = dv.vehicle_id
+        INNER JOIN ${tableDevice} d ON dv.device_id = d.id 
+        INNER JOIN ${tableUserDevice} ud ON dv.device_id = ud.device_id`;
 
-  //       const joinTable = `${tableVehicle} v INNER JOIN ${tableDeviceVehicle} dv ON v.id = dv.vehicle_id
-  //       INNER JOIN ${tableDevice} d ON dv.device_id = d.id`;
+        const dataInfo = await dataBaseModel.select(
+          conn,
+          joinTable,
+          "d.id,d.imei,dv.sleep_time",
+          "v.id = ? AND dv.device_id = ? AND v.is_deleted = 0 AND d.is_deleted = 0 AND dv.is_deleted = 0 AND ud.user_id = ? AND ud.is_deleted = 0",
+          [vehicle_id, device_id, user_id],
+          "d.id",
+          "ASC"
+        );
 
-  //       const dataInfo = await dataBaseModel.select(
-  //         conn,
-  //         joinTable,
-  //         "d.imei,dv.expired_on",
-  //         "v.id = ? AND d.id = ?",
-  //         [id, device_id],
-  //         "d.id"
-  //       );
-  //       const data = await vehicleModel.updateExpiredOn(
-  //         conn,
-  //         connPromise,
-  //         body,
-  //         params,
-  //         dataInfo,
-  //         codeId,
-  //         infoUser
-  //       );
-  //       return data;
-  //     } catch (error) {
-  //       await connPromise.rollback();
-  //       throw error;
-  //     } finally {
-  //       conn.release();
-  //     }
-  //   } catch (error) {
-  //     console.log(error);
-  //     const { msg, errors } = error;
-  //     throw new BusinessLogicError(msg, errors);
-  //   }
-  // }
+        if (!dataInfo?.length)
+          throw new SendMissingDataError(VALIDATE_DATA, [
+            {
+              value: vehicle_id,
+              param: "id",
+              msg: `Phương tiện ${NOT_EXITS}`,
+            },
+          ]);
+        const { imei } = dataInfo[0];
+        const { data: dataRedis } = await hGet(
+          REDIS_KEY_ANTI_THEFT_LINK_GPS,
+          imei.toString()
+        );
+
+        // console.log("dataRedis", dataRedis);
+
+        if (!dataRedis)
+          throw new SendMissingDataError(VALIDATE_DATA, [
+            {
+              value: device_id,
+              param: "device_id",
+              msg: NOT_CONFIG_SLEEP_TIME_DEVICE,
+            },
+          ]);
+
+        const data = await vehicleModel.updateSleepTime(
+          conn,
+          connPromise,
+          dataInfo,
+          body,
+          params,
+          infoUser
+        );
+        return data;
+      } catch (error) {
+        console.log("error", error);
+
+        await connPromise.rollback();
+
+        throw error;
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      const { msg, errors, message } = error;
+      // console.log({ msg, errors });
+
+      if (!msg) throw new SendMissingDataError(message, errors);
+      throw new BusinessLogicError(msg, errors);
+    }
+  }
 
   async updateExpiredOn(body, infoUser) {
     // console.log("body", body);
@@ -434,7 +459,7 @@ class vehicleService {
 
         await connPromise.rollback();
         const { isLockAcc } = error;
-        console.log("isLockAcc", isLockAcc);
+        // console.log("isLockAcc", isLockAcc);
 
         if (isLockAcc) {
           try {

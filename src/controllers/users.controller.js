@@ -31,6 +31,13 @@ class CustomersController {
     GET(res, data, totalPage, totalRecaord);
   });
 
+  getallrowsSiteCustomerService = catchAsync(async (req, res) => {
+    const query = req.query;
+    const { data, totalPage, totalRecaord } =
+      await usersSrevice.getallrowsSiteCustomerService(query);
+    GET(res, data, totalPage, totalRecaord);
+  });
+
   getallChild = catchAsync(async (req, res) => {
     const query = req.query;
     const customerId = req.customerId;
