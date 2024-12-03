@@ -3,6 +3,7 @@ const PermissionSchema = require("./schema/permission.schema");
 const {
   set: setRedis,
   setWithExpired: setRedisWithExpired,
+  hSet,
 } = require("./redis.model");
 const {
   tablePermission,
@@ -39,20 +40,47 @@ class PermissionModel extends DatabaseModel {
       0,
       100000
     );
+
+    // console.log("res", res);
+
     if (!res.length) {
       await setRedisWithExpired(REDIS_KEY_PERMISSION, JSON.stringify([]));
       return [];
     }
 
-    const formatData = res.reduce((result, item) => {
-      result[`${item.method}_${item.router}`] = {
-        role: item.role,
-        level: item.level,
-      };
-      return result;
-    }, {});
+    const formatData = {};
+    const listPromise = [];
 
-    await setRedis(REDIS_KEY_PERMISSION, JSON.stringify(formatData));
+    for (let i = 0; i < res.length; i++) {
+      const { method, router, role, level } = res[i];
+      const key = `${method}_${router}`;
+      const value = JSON.stringify({
+        role,
+        level,
+      });
+      formatData[key] = value;
+      listPromise.push(() =>
+        hSet(
+          REDIS_KEY_PERMISSION,
+          key,
+          value,
+          "permission.model.js",
+          Date.now()
+        )
+      );
+    }
+
+    await Promise.all(listPromise.map((fn) => fn()));
+
+    // const formatData = res.reduce((result, item) => {
+    //   result[`${item.method}_${item.router}`] = {
+    //     role: item.role,
+    //     level: item.level,
+    //   };
+    //   return result;
+    // }, {});
+
+    // await setRedis(REDIS_KEY_PERMISSION, JSON.stringify(formatData));
     return formatData;
   }
 
@@ -168,15 +196,11 @@ class PermissionModel extends DatabaseModel {
       tableRolePermission,
       { is_deleted: 1 },
       "permission_id",
-      id
-    );
-    await this.update(
-      conn,
-      tableRolePermission,
-      { is_deleted: 1 },
+      id,
       "permission_id",
-      id
+      false
     );
+
     await this.init(conn);
 
     await connPromise.commit();

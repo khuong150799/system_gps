@@ -69,6 +69,13 @@ class DeviceController {
     CREATED(res, [data]);
   });
 
+  serviceReservation = catchAsync(async (req, res) => {
+    const { body, params, userId } = req;
+    const infoUser = { user_id: userId, ip: null, os: null, gps: null };
+    const data = await deviceService.serviceReservation(body, params, infoUser);
+    UPDATE(res, [data]);
+  });
+
   register = catchAsync(async (req, res) => {
     const { isMain, parentId, body, userId } = req;
     const infoUser = { user_id: userId, ip: null, os: null, gps: null };

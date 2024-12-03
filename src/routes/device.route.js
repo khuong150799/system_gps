@@ -186,6 +186,21 @@ module.exports = (app) => {
     deviceController.activationInside
   );
 
+  router.put(
+    "/service-reservation/:id",
+    [
+      param("id", VALIDATE_DATA).isNumeric(),
+      body("msg_notify", NOT_EMPTY)
+        .notEmpty()
+        .isString()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+    ],
+    isAuth,
+    checkPermission,
+    deviceController.serviceReservation
+  );
+
   router.post(
     "/register",
     [

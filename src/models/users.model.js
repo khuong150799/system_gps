@@ -814,7 +814,8 @@ class UsersModel extends DatabaseModel {
     body,
     dataRemoveOrders,
     dataAddOrders,
-    listDevices
+    listDevices,
+    reciverParentId
   ) {
     const { reciver, user_is_moved } = body;
     // console.log(reciver, user_is_moved);

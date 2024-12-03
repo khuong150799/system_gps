@@ -9,6 +9,7 @@ const {
   PASS_FAILED,
   LOGIN_FAIL,
   NOT_EXITS,
+  STRUCTURE_CUSTOMER_FAIL,
 } = require("../constants/msg.constant");
 
 const bcrypt = require("bcrypt");
@@ -231,39 +232,52 @@ class UsersService {
       const { reciver, user_is_moved } = body;
       const { conn, connPromise } = await db.getConnection();
       try {
-        // console.log(reciver, user_is_moved);
+        console.log(reciver, user_is_moved);
 
         if (Number(userId) === Number(user_is_moved)) throw "lỗi";
 
-        const [treeReciver, treeUserIsMoved, listDevices] = await Promise.all([
-          validateModel.CheckIsChild(
-            connPromise,
-            userId,
-            customerId,
-            parentId,
-            reciver,
-            "reciver"
-          ),
-          validateModel.CheckIsChild(
-            connPromise,
-            userId,
-            customerId,
-            parentId,
-            user_is_moved,
-            "user_is_moved"
-          ),
-          databaseModel.select(
-            conn,
-            tableUserDevice,
-            "device_id",
-            "user_id = ? AND is_main = ? AND is_deleted = ?",
-            [user_is_moved, 1, 0],
-            "device_id",
-            "ASC",
-            0,
-            100000
-          ),
-        ]);
+        const [treeReciver, treeUserIsMoved, listDevices, infoReciver] =
+          await Promise.all([
+            validateModel.CheckIsChild(
+              connPromise,
+              userId,
+              customerId,
+              parentId,
+              reciver,
+              "reciver"
+            ),
+            validateModel.CheckIsChild(
+              connPromise,
+              userId,
+              customerId,
+              parentId,
+              user_is_moved,
+              "user_is_moved"
+            ),
+            databaseModel.select(
+              conn,
+              tableUserDevice,
+              "device_id",
+              "user_id = ? AND is_main = ? AND is_deleted = ?",
+              [user_is_moved, 1, 0],
+              "device_id",
+              "ASC",
+              0,
+              100000
+            ),
+            databaseModel.select(
+              conn,
+              tableUsers,
+              "id,parent_id",
+              "id = ? AND is_deleted = ?",
+              [reciver, 0]
+            ),
+          ]);
+
+        if (!infoReciver?.length || infoReciver[0]?.parent_id == user_is_moved)
+          throw { msg: ERROR, errors: [{ msg: STRUCTURE_CUSTOMER_FAIL }] };
+
+        // return { treeReciver, treeUserIsMoved, listDevices, infoReciver };
 
         // const customerIdUserIsMove =
         //   treeUserIsMoved?.[treeUserIsMoved?.length - 1]?.customer_id;

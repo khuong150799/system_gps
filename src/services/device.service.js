@@ -262,15 +262,15 @@ class DeviceService {
           id,
           type: model_type_id,
           imei: imeiDb,
-          activation_date,
-          warranty_expired_on,
           expired_on,
+          remaining_time,
         } = dataInfoDevice;
         const dataBody = {
           ...body,
-          activation_date,
-          warranty_expired_on,
-          expired_on,
+
+          expired_on: remaining_time
+            ? Date.now() + Number(remaining_time)
+            : expired_on,
           parent_id: user_id,
           device_id: id,
           model_type_id,
@@ -325,9 +325,8 @@ class DeviceService {
           id,
           type: model_type_id,
           imei: imeiDb,
-          activation_date,
-          warranty_expired_on,
           expired_on,
+          remaining_time,
         } = dataInfoDevice;
 
         const { is_actived, is_deleted, is_main } =
@@ -349,9 +348,9 @@ class DeviceService {
 
         const dataBody = {
           ...body,
-          activation_date,
-          warranty_expired_on,
-          expired_on,
+          expired_on: remaining_time
+            ? Date.now() + Number(remaining_time)
+            : expired_on,
           device_id: id,
           model_type_id,
           imei: imeiDb,
@@ -373,6 +372,58 @@ class DeviceService {
       }
     } catch (error) {
       console.log(error);
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
+    }
+  }
+
+  //serviceReservation
+  async serviceReservation(body, params, infoUser) {
+    try {
+      const { conn, connPromise } = await db.getConnection();
+      try {
+        const { id } = params;
+
+        const infoDevice = await databaseModel.select(
+          conn,
+          tableDevice,
+          "expired_on",
+          "id = ? AND is_deleted = ?",
+          [id, 0]
+        );
+
+        if (!infoDevice?.length)
+          throw { msg: ERROR, errors: [{ msg: `Thiết bị ${NOT_EXITS}` }] };
+
+        const { expired_on } = infoDevice[0];
+        const dateNow = Date.now();
+        const expiredOn = expired_on || dateNow;
+
+        const remainingTime = Date.now() - Number(expiredOn);
+
+        if (remainingTime <= 0)
+          throw {
+            msg: ERROR,
+            errors: [{ msg: `Thiết bị không thể bảo lưu dịch vụ` }],
+          };
+
+        const device = await deviceModel.serviceReservation(
+          conn,
+          connPromise,
+          body,
+          params,
+          { remainingTime },
+          infoUser
+        );
+        return device;
+      } catch (error) {
+        await connPromise.rollback();
+        throw error;
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      console.log("error", error);
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
     }

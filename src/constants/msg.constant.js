@@ -24,6 +24,7 @@ const constants = {
   MERGE_ORDER_FAIL: "Phải có ít nhất 2 đơn hàng để gộp",
   ALREADY_EXITS_ORDERS: "đã có đơn hàng",
   STRUCTURE_ORDERS_FAIL: "Cấu trúc đơn hàng không hợp lệ",
+  STRUCTURE_CUSTOMER_FAIL: "Cấu trúc khách hàng không hợp lệ",
   ALREADY_EXITS: "đã tồn tại",
   NOT_ACTIVE_CUSTOMER: "Khách hàng đã bị vô hiệu",
   DELETED_CUSTOMER: "Khách hàng đã bị xóa",

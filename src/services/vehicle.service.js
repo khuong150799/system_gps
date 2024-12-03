@@ -688,7 +688,7 @@ class vehicleService {
           "o.id"
         );
 
-        console.log("inforOrder", inforOrder);
+        // console.log("inforOrder", inforOrder);
         let listOrdersId = [];
         if (inforOrder?.length) {
           const { od_id } = inforOrder[0];
@@ -707,7 +707,7 @@ class vehicleService {
 
           listOrdersId = allOrders?.map((item) => item.id);
 
-          console.log("listOrdersId", listOrdersId);
+          // console.log("listOrdersId", listOrdersId);
         }
 
         const data = await vehicleModel.deleteById(
@@ -763,7 +763,7 @@ class vehicleService {
         const jointableUsersDevicesWithDeviceVehicle = `${tableDevice} d INNER JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id`;
         const whereJointableUsersDevicesWithDeviceVehicle = `d.id = ? AND d.is_deleted = 0 AND dv.is_deleted = 0`;
 
-        const selectJointableUsersDevicesWithDeviceVehicle = `d.id,d.imei,dv.id as dv_id,dv.vehicle_id,dv.service_package_id,dv.expired_on,
+        const selectJointableUsersDevicesWithDeviceVehicle = `d.id,d.imei,dv.id as dv_id,dv.vehicle_id,dv.service_package_id,dv.expired_on,dv.warranty_expired_on,
         dv.activation_date,dv.is_use_gps,dv.type,dv.quantity_channel,dv.quantity_channel_lock,dv.is_transmission_gps,dv.is_transmission_image,dv.is_deleted`;
 
         const [infoDeviceOld, infoDeviceNew] = await Promise.all([
@@ -781,7 +781,7 @@ class vehicleService {
           dataBaseModel.select(
             conn,
             `${tableDevice} d`,
-            "id,imei,activation_date,warranty_expired_on",
+            "id,imei,warranty_expired_on,expired_on",
             "id = ?",
             device_id_new,
             "id",
@@ -797,6 +797,7 @@ class vehicleService {
         const {
           expired_on,
           activation_date,
+          warranty_expired_on,
           service_package_id,
           type,
           is_use_gps,
@@ -811,6 +812,7 @@ class vehicleService {
           vehicle_id,
           expired_on,
           activation_date,
+          warranty_expired_on,
           service_package_id,
           type,
           is_use_gps,
@@ -822,32 +824,32 @@ class vehicleService {
           created_at: Date.now(),
         };
 
-        const {
-          activation_date: activation_date_device,
-          warranty_expired_on: warranty_expired_on_device,
-        } = infoDeviceNew[0];
+        // const {
+        //   activation_date: activation_date_device,
+        //   warranty_expired_on: warranty_expired_on_device,
+        // } = infoDeviceNew[0];
 
-        let dataUpdateDevice = {
-          activation_date: null,
-          warranty_expired_on: null,
-        };
-        if (!warranty_expired_on_device) {
-          const createdAt = Date.now();
-          const date = new Date(createdAt);
-          date.setFullYear(date.getFullYear() + 1);
+        // let dataUpdateDevice = {
+        //   activation_date: activation_date_device,
+        //   warranty_expired_on: warranty_expired_on_device,
+        // };
+        // if (!warranty_expired_on_device) {
+        //   const createdAt = Date.now();
+        //   const date = new Date(createdAt);
+        //   date.setFullYear(date.getFullYear() + 1);
 
-          dataUpdateDevice = {
-            activation_date: createdAt,
-            warranty_expired_on: date.getTime(),
-          };
-        } else {
-          dataUpdateDevice = {
-            activation_date: activation_date_device,
-            warranty_expired_on: warranty_expired_on_device,
-          };
-        }
+        //   dataUpdateDevice = {
+        //     activation_date: createdAt,
+        //     warranty_expired_on: date.getTime(),
+        //   };
+        // } else {
+        //   dataUpdateDevice = {
+        //     activation_date: activation_date_device,
+        //     warranty_expired_on: warranty_expired_on_device,
+        //   };
+        // }
 
-        console.log({ infoDeviceOld, infoDeviceNew });
+        // console.log({ infoDeviceOld, infoDeviceNew });
 
         const joinTableVehicle = `${tableVehicle} v INNER JOIN ${tableDeviceVehicle} dv ON v.id = dv.vehicle_id
           INNER JOIN ${tableUserDevice} ud ON dv.device_id = ud.device_id`;
@@ -914,7 +916,7 @@ class vehicleService {
           infoVehicleInsert,
           infoDeviceNew[0],
           infoDeviceOld[0],
-          dataUpdateDevice,
+          // dataUpdateDevice,
           listOrdersId,
           infoUser
         );
