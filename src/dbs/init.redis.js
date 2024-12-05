@@ -11,7 +11,7 @@ let client = {},
 
 async function handleEventConnectiion(connection) {
   try {
-    connection.on(statusConnectRedis.CONNECT, () => {
+    connection.on(statusConnectRedis.CONNECT, async () => {
       console.log("connectRedis - status: connected");
     });
 

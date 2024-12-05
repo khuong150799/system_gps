@@ -18,7 +18,7 @@ const checkPermission = async function (req, res, next) {
 
     let data = dataRedis;
 
-    console.log("data", data);
+    // console.log("data", data);
 
     // const { result, data: dataRedis } = await getRedis(REDIS_KEY_PERMISSION);
     // console.log("perissionRedis", perissionRedis);

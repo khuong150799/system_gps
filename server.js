@@ -14,7 +14,8 @@ function init() {
   if (cluster.isMaster) {
     let numCPUs = os.cpus().length;
     // console.log(" Num of CPU ", numCPUs);
-    for (let idx = 1; idx < numCPUs; idx++) {
+    const condition = numCPUs > 4 ? 4 : numCPUs;
+    for (let idx = 0; idx < condition; idx++) {
       cluster.fork();
       // let worker = cluster.fork();
       // worker.on("message", function (msg) {

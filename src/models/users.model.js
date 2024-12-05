@@ -12,7 +12,7 @@ const {
   REFRESH_TOKEN_SECRET_KEY,
 } = require("../constants/msg.constant");
 
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const {
   makeAccessToken,
   makeRefreshToken,
