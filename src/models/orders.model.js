@@ -476,7 +476,7 @@ class OrdersModel extends DatabaseModel {
       tableUsersDevices,
       "user_id,device_id,is_main,is_deleted,is_moved,created_at",
       usersDevicesInsert,
-      `is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved),created_at=VALUES(created_at)`
+      `is_deleted=VALUES(is_deleted),is_main=VALUES(is_main),is_moved=VALUES(is_moved),created_at=VALUES(created_at)`
     );
 
     if (isBeginTransaction) {

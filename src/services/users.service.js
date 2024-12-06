@@ -318,7 +318,7 @@ class UsersService {
           dataInfoParent[0].index + 1,
           treeReciver.length
         );
-
+        // return { dataRemoveOrders, dataAddOrders, listDevices };
         const data = await usersModel.move(
           conn,
           connPromise,

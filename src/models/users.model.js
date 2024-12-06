@@ -814,8 +814,7 @@ class UsersModel extends DatabaseModel {
     body,
     dataRemoveOrders,
     dataAddOrders,
-    listDevices,
-    reciverParentId
+    listDevices
   ) {
     const { reciver, user_is_moved } = body;
     // console.log(reciver, user_is_moved);
@@ -913,7 +912,16 @@ class UsersModel extends DatabaseModel {
     );
 
     if (listDevices.length) {
-      const listDeviceId = listDevices.map(({ device_id }) => device_id);
+      const listDeviceId = [];
+      const listRealtimePromise = [];
+      for (let i = 0; i < listDevices.length; i++) {
+        const { device_id } = listDevices[i];
+        listDeviceId.push(device_id);
+        listRealtimePromise.push(() =>
+          vehicleModel.getInfoDevice(conn, null, device_id)
+        );
+      }
+      // const listDeviceId = listDevices.map(({ device_id }) => device_id);
 
       if (dataAddOrders?.length) {
         const dataInsertUserDevice = [];
@@ -982,8 +990,28 @@ class UsersModel extends DatabaseModel {
           whereOrders
         );
       }
-    }
 
+      const listDataGetRedis = await Promise.all(
+        listRealtimePromise.map((fn) => fn())
+      );
+
+      let isRollback = false;
+
+      for (let i = 0; i < listDataGetRedis.length; i++) {
+        const result = listDataGetRedis[i];
+
+        if (!result?.length) {
+          isRollback = true;
+        }
+      }
+
+      if (isRollback)
+        throw {
+          msg: ERROR,
+          errors: [{ msg: "Không thể cập nhật data trên realtime" }],
+        };
+    }
+    // throw { msg: "lỗi" };
     await connPromise.commit();
     return [];
   }
