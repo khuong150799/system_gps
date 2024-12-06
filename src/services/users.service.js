@@ -10,7 +10,7 @@ const {
   LOGIN_FAIL,
 } = require("../constants/msg.constant");
 
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 
 const {
   BusinessLogicError,
