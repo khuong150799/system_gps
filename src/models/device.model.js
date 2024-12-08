@@ -27,6 +27,7 @@ const {
   tableDeviceVehicle,
   tableServerCamera,
   tableGpsLinkAntiTheft,
+  tableDeviceInfo,
 } = require("../constants/tableName.constant");
 const { hSet: hsetRedis, del: delRedis, hdelOneKey } = require("./redis.model");
 const {
@@ -272,12 +273,12 @@ class DeviceModel extends DatabaseModel {
     INNER JOIN ${tableCustomers} c ON uc.customer_id = c.id
     INNER JOIN ${tableModel} m ON d.model_id = m.id
     INNER JOIN ${tableDeviceStatus} ds ON d.device_status_id = ds.id
-    LEFT JOIN ${tableFirmware} fw ON m.id = fw.model_id
+    LEFT JOIN ${tableDeviceInfo} di ON d.imei = di.imei
     LEFT JOIN ${tableServerCamera} ca ON d.sv_cam_id = ca.id
     `;
 
-    let select = `d.id,d.dev_id,d.imei,d.serial,m.name as model_name,fw.version_hardware,
-     fw.version_software,COALESCE(fw.updated_at,fw.created_at) as time_update_version,ca.host`;
+    let select = `d.id,d.dev_id,d.imei,m.name as model_name,di.sid as serial,di.hver as version_hardware,
+     di.sver as version_software,di.updated_at as time_update_version,ca.host`;
 
     if (type == 1) {
       joinTable += ` INNER JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id
@@ -1026,6 +1027,7 @@ class DeviceModel extends DatabaseModel {
     // delete device.updated_at;
 
     const dataInsertDevice = [];
+    const dataInsertDeviceInfo = [];
 
     for (let i = 0; i < listImei.length; i++) {
       const imei = listImei[i];
@@ -1042,6 +1044,8 @@ class DeviceModel extends DatabaseModel {
         0,
         Date.now(),
       ]);
+
+      dataInsertDeviceInfo.push([imei, listSerial[i]], Date.now());
     }
 
     const res_ = await this.insertMulti(
@@ -1068,6 +1072,7 @@ class DeviceModel extends DatabaseModel {
     // );
 
     const dataInsertUserDevice = [];
+
     const dataInsertLogs = [];
 
     const { user_id, ip, os, gps } = infoUser;
@@ -1101,6 +1106,13 @@ class DeviceModel extends DatabaseModel {
       "user_id,device_id,is_deleted,is_main,is_moved,created_at",
       dataInsertUserDevice,
       "is_deleted=VALUES(is_deleted),created_at=VALUES(created_at)"
+    );
+
+    await this.insertIgnore(
+      conn,
+      tableDeviceInfo,
+      "imei,sid,updated_at",
+      dataInsertDeviceInfo
     );
 
     // const dataSaveLog = {
@@ -1166,6 +1178,17 @@ class DeviceModel extends DatabaseModel {
     ]);
 
     await this.update(conn, tableDevice, device, "id", id);
+
+    if (sv_cam_id) {
+      await this.insertDuplicate(
+        conn,
+        tableDeviceInfo,
+        "imei,sid,updated_at",
+        [[imei, serial, Date.now()]],
+        "imei=VALUES(imei),sid=VALUES(sid),updated_at=VALUES(updated_at)"
+      );
+    }
+
     await vehicleModel.getInfoDevice(conn, imei);
     await deviceLoggingModel.update(conn, {
       dataModel,
