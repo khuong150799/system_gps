@@ -1045,7 +1045,7 @@ class DeviceModel extends DatabaseModel {
         Date.now(),
       ]);
 
-      dataInsertDeviceInfo.push([imei, listSerial[i]], Date.now());
+      dataInsertDeviceInfo.push([imei, listSerial[i], Date.now()]);
     }
 
     const res_ = await this.insertMulti(

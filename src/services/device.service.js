@@ -435,7 +435,6 @@ class DeviceService {
       const { conn, connPromise } = await db.getConnection();
       try {
         const { dev_id, imei, model_id, sv_cam_id } = body;
-        console.log("body", body);
 
         const listImei = JSON.parse(imei);
         const listDevId = JSON.parse(dev_id);
