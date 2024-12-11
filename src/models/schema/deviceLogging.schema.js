@@ -2,6 +2,7 @@ class DeviceLoggingSchema {
   constructor({
     user_id,
     device_id,
+    vehicle_id,
     ip,
     os,
     des,
@@ -12,6 +13,7 @@ class DeviceLoggingSchema {
   }) {
     this.user_id = user_id;
     this.device_id = device_id;
+    this.vehicle_id = vehicle_id;
     this.ip = ip;
     this.os = os;
     this.gps = gps;

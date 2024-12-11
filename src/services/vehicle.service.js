@@ -414,7 +414,7 @@ class vehicleService {
         const dataInfo = await dataBaseModel.select(
           conn,
           joinTable,
-          "d.id,d.imei,dv.expired_on",
+          "d.id,d.imei,d.expired_on as expired_on_device,dv.expired_on,v.name as vehicle_name",
           "v.id IN (?) AND dv.device_id IN (?) AND v.is_deleted = 0 AND d.is_deleted = 0 AND dv.is_deleted = 0",
           [listVehicleId, listDeviceId],
           "d.id",
@@ -610,9 +610,9 @@ class vehicleService {
 
         const dataInfo = await dataBaseModel.select(
           conn,
-          `${tableDevice} d`,
-          "d.imei,d.warranty_expired_on",
-          "d.id = ?",
+          `${tableDevice} d INNER JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id`,
+          "d.imei,d.warranty_expired_on as warranty_expired_on_device,dv.warranty_expired_on",
+          "d.id = ? AND dv.is_deleted = 0",
           [id, device_id],
           "d.id"
         );
@@ -824,10 +824,15 @@ class vehicleService {
           created_at: Date.now(),
         };
 
-        // const {
-        //   activation_date: activation_date_device,
-        //   warranty_expired_on: warranty_expired_on_device,
-        // } = infoDeviceNew[0];
+        const {
+          // activation_date: activationDateNew,
+          // warranty_expired_on: warrantyExpiredOnNew,
+          expired_on: expiredOnNew,
+        } = infoDeviceNew[0];
+
+        if (expiredOnNew && Number(expiredOnNew) < Number(expired_on)) {
+          infoVehicleInsert.expired_on = expiredOnNew;
+        }
 
         // let dataUpdateDevice = {
         //   activation_date: activation_date_device,
@@ -1027,6 +1032,7 @@ class vehicleService {
         const data = await vehicleModel.move(
           conn,
           connPromise,
+          body,
           imei,
           vehicle_name,
           userId,

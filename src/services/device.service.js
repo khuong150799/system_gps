@@ -256,7 +256,6 @@ class DeviceService {
           "Biển số phương tiện",
           "vehicle"
         );
-
         const {
           user_id,
           id,
@@ -264,13 +263,20 @@ class DeviceService {
           imei: imeiDb,
           expired_on,
           remaining_time,
+          duration,
         } = dataInfoDevice;
+
+        const dateNow = Date.now();
+
+        const expiredOn =
+          !duration || (duration && dateNow > Number(duration))
+            ? expired_on
+            : Date.now() + Number(remaining_time);
+
         const dataBody = {
           ...body,
 
-          expired_on: remaining_time
-            ? Date.now() + Number(remaining_time)
-            : expired_on,
+          expired_on: expiredOn,
           parent_id: user_id,
           device_id: id,
           model_type_id,
@@ -327,6 +333,7 @@ class DeviceService {
           imei: imeiDb,
           expired_on,
           remaining_time,
+          duration,
         } = dataInfoDevice;
 
         const { is_actived, is_deleted, is_main } =
@@ -346,11 +353,16 @@ class DeviceService {
           );
         }
 
+        const dateNow = Date.now();
+
+        const expiredOn =
+          !duration || (duration && dateNow > Number(duration))
+            ? expired_on
+            : Date.now() + Number(remaining_time);
+
         const dataBody = {
           ...body,
-          expired_on: remaining_time
-            ? Date.now() + Number(remaining_time)
-            : expired_on,
+          expired_on: expiredOn,
           device_id: id,
           model_type_id,
           imei: imeiDb,
@@ -384,35 +396,51 @@ class DeviceService {
       try {
         const { id } = params;
 
+        const { duration } = body;
+
         const infoDevice = await databaseModel.select(
           conn,
           tableDevice,
-          "expired_on",
+          "expired_on,device_status_id,duration",
           "id = ? AND is_deleted = ?",
           [id, 0]
         );
 
-        if (!infoDevice?.length)
-          throw { msg: ERROR, errors: [{ msg: `Thiết bị ${NOT_EXITS}` }] };
+        const date = new Date();
 
-        const { expired_on } = infoDevice[0];
+        const isReservation =
+          !infoDevice?.length ||
+          infoDevice[0]?.device_status_id == 3 ||
+          !infoDevice[0]?.expired_on ||
+          infoDevice[0]?.expired_on <= date.getTime() ||
+          date.getMonth() - new Date(infoDevice[0]?.expired_on).getMonth() <=
+            12;
+
+        if (isReservation)
+          throw { msg: ERROR, errors: [{ msg: `Thiết bị không thể bảo lưu` }] };
+
+        const { expired_on, duration: durationOld } = infoDevice[0];
+
+        if (Number(duration) >= Number(expiredOn))
+          throw {
+            msg: ERROR,
+            errors: [{ msg: `Thời hạn bảo lưu vượt quá giới hạn` }],
+          };
+
+        const isUpdateRemainingTime =
+          !durationOld || Number(durationOld) + 24 * 3600 * 1000 < Date.now();
+
         const dateNow = Date.now();
         const expiredOn = expired_on || dateNow;
 
         const remainingTime = Date.now() - Number(expiredOn);
-
-        if (remainingTime <= 0)
-          throw {
-            msg: ERROR,
-            errors: [{ msg: `Thiết bị không thể bảo lưu dịch vụ` }],
-          };
 
         const device = await deviceModel.serviceReservation(
           conn,
           connPromise,
           body,
           params,
-          { remainingTime },
+          { remainingTime, isUpdateRemainingTime },
           infoUser
         );
         return device;

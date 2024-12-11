@@ -190,9 +190,9 @@ module.exports = (app) => {
     "/service-reservation/:id",
     [
       param("id", VALIDATE_DATA).isNumeric(),
-      body("msg_notify", NOT_EMPTY)
+      body("duration", NOT_EMPTY)
         .notEmpty()
-        .isString()
+        .isNumeric()
         .withMessage(VALIDATE_DATA)
         .escape(),
     ],

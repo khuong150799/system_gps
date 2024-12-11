@@ -156,6 +156,7 @@ class ValidateModel extends DatabaseModel {
         ],
       };
     }
+    // console.log("dataCheck", dataCheck);
 
     return dataCheck;
   }

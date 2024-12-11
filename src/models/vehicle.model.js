@@ -279,6 +279,7 @@ class VehicleModel extends DatabaseModel {
     await deviceLoggingModel.postOrDelete(conn, {
       user_id,
       device_id,
+      vehicle_id: id,
       ip,
       os,
       gps,
@@ -356,6 +357,7 @@ class VehicleModel extends DatabaseModel {
             deviceLoggingModel.nameVehicle(conn, {
               user_id,
               device_id,
+              vehicle_id: id,
               ip,
               os,
               gps,
@@ -437,6 +439,7 @@ class VehicleModel extends DatabaseModel {
               {
                 user_id,
                 device_id,
+                vehicle_id: id,
                 ip,
                 os,
                 gps,
@@ -594,28 +597,43 @@ class VehicleModel extends DatabaseModel {
       dataUpdateLock,
       dataUpdateExpiredDevice,
     } = dataInfo.reduce(
-      (result, { id, imei, expired_on: current_date }, i) => {
+      (result, { id, imei, expired_on: current_date, expired_on_device }) => {
         const { vehicle_id, device_id, code, value_time } = dataFormat[id];
 
         const startExtendDate = new Date(
           Math.max(Date.now(), Number(current_date))
         );
 
+        const startExtendDateDevice = new Date(
+          Math.max(Date.now(), Number(expired_on_device))
+        );
+
         const currentMonth = startExtendDate.getMonth();
+        const currentMonthDevice = startExtendDateDevice.getMonth();
 
         const extendDate = startExtendDate.setMonth(
           currentMonth + code.split(";").length * value_time
         );
 
-        const des = `Ngày hết hạn củ: ${date(
-          current_date
-        )} ===> Ngày hết hạn mới: ${date(extendDate)}`;
+        const extendDateDevice = startExtendDateDevice.setMonth(
+          currentMonthDevice + code.split(";").length * value_time
+        );
+
+        const des = [
+          `Ngày hết hạn củ của PT: ${date(
+            current_date
+          )} ===> Ngày hết hạn mới của PT: ${date(extendDate)}`,
+          `Ngày hết hạn củ của TB ${imei}: ${date(
+            expired_on_device
+          )} ===> Ngày hết hạn mới của TB ${imei}: ${date(extendDateDevice)}`,
+        ];
         result.dataExtendVehicle.push([
           user_id,
           id,
+          vehicle_id,
           ip,
           os,
-          des,
+          JSON.stringify(des),
           action,
           gps,
           0,
@@ -650,7 +668,7 @@ class VehicleModel extends DatabaseModel {
         result.dataUpdateExpiredDevice.push({
           conditionField: ["id", "is_deleted"],
           conditionValue: [device_id, 0],
-          updateValue: extendDate,
+          updateValue: extendDateDevice,
         });
 
         result.listPromiseDelRedis.push(() => this.getInfoDevice(conn, imei));
@@ -776,6 +794,7 @@ class VehicleModel extends DatabaseModel {
     await deviceLoggingModel.postOrDelete(conn, {
       user_id,
       device_id,
+      vehicle_id: id,
       ip,
       os,
       gps,
@@ -860,7 +879,18 @@ class VehicleModel extends DatabaseModel {
     )} ===> Ngày hết hạn mới: ${date(extendDate)}`;
 
     await deviceLoggingModel.extendMutiVehicle(conn, [
-      [user_id, device_id, ip, os, des, "Thu hồi gia hạn", gps, 0, Date.now()],
+      [
+        user_id,
+        device_id,
+        id,
+        ip,
+        os,
+        des,
+        "Thu hồi gia hạn",
+        gps,
+        0,
+        Date.now(),
+      ],
     ]);
 
     // console.log("dataInsertRenewalCodeDevice", dataInsertRenewalCodeDevice);
@@ -915,14 +945,14 @@ class VehicleModel extends DatabaseModel {
       "vehicle_id = ? AND device_id = ? AND is_deleted = ?"
     );
 
-    await this.update(
-      conn,
-      tableDevice,
-      { activation_date },
-      "id",
-      [device_id],
-      "device_id"
-    );
+    // await this.update(
+    //   conn,
+    //   tableDevice,
+    //   { activation_date },
+    //   "id",
+    //   [device_id],
+    //   "device_id"
+    // );
     // console.log("dataInfo", dataInfo);
 
     const { redis: listPromiseDelRedis, logging: listPromiseAddDb } =
@@ -939,6 +969,7 @@ class VehicleModel extends DatabaseModel {
             deviceLoggingModel.extendVehicle(conn, des, {
               user_id,
               device_id,
+              vehicle_id: id,
               ip,
               os,
               gps,
@@ -987,9 +1018,7 @@ class VehicleModel extends DatabaseModel {
     dataInfo,
     { user_id, ip, os, gps }
   ) {
-    const { warranty_expired_on, device_id } = body;
-    const { id } = params;
-
+    if (!dataInfo?.length) throw { msg: ERROR };
     await connPromise.beginTransaction();
 
     // await this.update(
@@ -1003,14 +1032,15 @@ class VehicleModel extends DatabaseModel {
     //   "vehicle_id = ? AND device_id = ?"
     // );
 
-    await this.update(
-      conn,
-      tableDevice,
-      { warranty_expired_on },
-      "id",
-      [device_id],
-      "device_id"
-    );
+    const { warranty_expired_on, device_id } = body;
+    const { id } = params;
+    const {
+      warranty_expired_on: warrantyExpiredOnOldVehicle,
+      warranty_expired_on_device: warrantyExpiredOnOldDevice,
+    } = dataInfo[0];
+
+    const timeWarrantyExpiredON =
+      Number(warranty_expired_on) - Number(warrantyExpiredOnOldVehicle);
 
     await this.update(
       conn,
@@ -1020,22 +1050,46 @@ class VehicleModel extends DatabaseModel {
       [device_id],
       "device_id"
     );
+
+    if (timeWarrantyExpiredON > 0) {
+      await this.update(
+        conn,
+        tableDevice,
+        {
+          warranty_expired_on:
+            Number(warrantyExpiredOnOldDevice) + timeWarrantyExpiredON,
+        },
+        "id",
+        [device_id],
+        "device_id"
+      );
+    }
+
     // console.log("dataInfo", dataInfo);
 
     const { redis: listPromiseDelRedis, logging: listPromiseAddDb } =
       dataInfo.reduce(
-        (result, { imei, warranty_expired_on: wr_date }) => {
+        (
+          result,
+          { imei, warranty_expired_on: wr_date, warranty_expired_on_device }
+        ) => {
           // console.log("result", result);
 
-          const des = `Hạn bảo hành củ: ${date(
-            wr_date
-          )} ===> Hạn bảo hành mới: ${date(warranty_expired_on)}`;
+          const des = [
+            `Hạn bảo hành củ của PT: ${date(
+              wr_date
+            )} ===> Hạn bảo hành mới của PT: ${date(warranty_expired_on)}`,
+            `Hạn bảo hành củ của TB: ${date(
+              warranty_expired_on_device
+            )} ===> Hạn bảo hành mới PT: ${date(warranty_expired_on)}`,
+          ];
 
           result.redis.push(this.getInfoDevice(conn, imei));
           result.logging.push(
             deviceLoggingModel.extendVehicle(conn, des, {
               user_id,
               device_id,
+              vehicle_id: id,
               ip,
               os,
               gps,
@@ -1179,6 +1233,7 @@ class VehicleModel extends DatabaseModel {
     const dataLog = {
       ...infoUser,
       device_id,
+      vehicle_id: id,
       action: "Xoá",
       des: JSON.stringify([`Xoá phương tiện ${vehicle_name}`]),
       createdAt: Date.now(),
@@ -1219,10 +1274,13 @@ class VehicleModel extends DatabaseModel {
       imei: imeiNew,
       // activation_date: activationDate,
       warranty_expired_on: warrantyExpiredOn,
-      expired_on: expiredOnNew,
+      // expired_on: expiredOnNew,
     },
     // infoDeviceOld,
-    { imei: imeiOld, expired_on: expiredOnOld },
+    {
+      imei: imeiOld,
+      //  expired_on: expiredOnOld
+    },
     // { activation_date: activationDate, warranty_expired_on:warrantyExpiredOn },
     listOrdersId,
     infoUser
@@ -1257,55 +1315,47 @@ class VehicleModel extends DatabaseModel {
         "id = ?"
       );
 
-      await this.update(
-        conn,
-        tableDevice,
-        { device_status_id: 2, expired_on: null },
-        "",
-        [device_id_old],
-        "device_id",
-        true,
-        "id = ?"
-      );
+      // await this.update(
+      //   conn,
+      //   tableDevice,
+      //   {
+      //     device_status_id: 2,
+      //      expired_on: null
+      //   },
+      //   "",
+      //   [device_id_old],
+      //   "device_id",
+      //   true,
+      //   "id = ?"
+      // );
     } else {
       await this.update(
         conn,
         tableDevice,
         {
           device_status_id: 3,
-          expired_on: expiredOnOld,
+          // expired_on: expiredOnOld,
         },
         "id",
         [device_id_new],
         "device_id"
       );
-
-      await this.update(
-        conn,
-        tableDevice,
-        { device_status_id: 2, expired_on: expiredOnNew },
-        "",
-        [device_id_old],
-        "device_id",
-        true,
-        "id = ?"
-      );
     }
 
-    // await this.update(
-    //   conn,
-    //   tableDevice,
-    //   {
-    //     device_status_id: 3,
-    //     activation_date: activationDate,
-    //     warranty_expired_on: warrantyExpiredOn,
-    //   },
-    //   "",
-    //   [device_id_new],
-    //   "device_id",
-    //   true,
-    //   "id = ?"
-    // );
+    await this.update(
+      conn,
+      tableDevice,
+      {
+        device_status_id: 2,
+        //  expired_on: expiredOnNew
+      },
+      "",
+      [device_id_old],
+      "device_id",
+      true,
+      "id = ?"
+    );
+
     await this.update(
       conn,
       tableUsersDevices,
@@ -1403,7 +1453,7 @@ class VehicleModel extends DatabaseModel {
       hdelOneKey(REDIS_KEY_LIST_DEVICE, imeiOld),
       this.getInfoDevice(conn, imeiNew),
     ]);
-    console.log({ resultOld, resultNew });
+    // console.log({ resultOld, resultNew });
 
     let isRollback = false;
     if (!resultOld || !resultNew?.length) {
@@ -1417,6 +1467,7 @@ class VehicleModel extends DatabaseModel {
     const dataLog = {
       ...infoUser,
       device_id: device_id_old,
+      vehicle_id: id,
       action: "Sửa",
       des: JSON.stringify(
         `Bảo hành phương tiện ${vehicle_name}: ${imeiOld} ===> ${imeiNew}`
@@ -1433,6 +1484,7 @@ class VehicleModel extends DatabaseModel {
   async move(
     conn,
     connPromise,
+    body,
     imei,
     vehicle_name,
     userId,
@@ -1540,6 +1592,7 @@ class VehicleModel extends DatabaseModel {
     const dataLog = {
       ...infoUser,
       device_id: listDeviceId[0],
+      vehicle_id: body.vehicle_id,
       action: "Chuyển",
       des: JSON.stringify(
         `Chuyển phương tiện ${vehicle_name}: ${nameUserMove}(${userIdMove}) ===> ${reciver}(${nameReciver})`

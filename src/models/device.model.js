@@ -50,7 +50,7 @@ const vehicleModel = require("./vehicle.model");
 const deviceLoggingModel = require("./deviceLogging.model");
 const DeviceVehicleSchema = require("./schema/deviceVehicle.schema");
 const cameraApi = require("../api/camera.api");
-const { caculateTime } = require("../ultils/getTime");
+const { caculateTime, date } = require("../ultils/getTime");
 
 class DeviceModel extends DatabaseModel {
   constructor() {
@@ -140,7 +140,7 @@ class DeviceModel extends DatabaseModel {
     let errors = {};
     const where = `(d.imei = ? OR d.dev_id = ?) AND d.is_deleted = ? AND ud.is_moved = ?`;
     const conditions = [imei, imei, 0, 0];
-    const select = `d.id,d.imei,d.device_status_id,d.activation_date,d.warranty_expired_on,d.expired_on,d.remaining_time,ud.user_id,m.model_type_id as type`;
+    const select = `d.id,d.imei,d.device_status_id,d.activation_date,d.warranty_expired_on,d.expired_on,d.remaining_time,d.duration,ud.user_id,m.model_type_id as type`;
     const joinTable = `${tableDevice} d INNER JOIN ${tableUsersDevices} ud ON d.id = ud.device_id 
       INNER JOIN ${tableModel} m ON d.model_id = m.id`;
 
@@ -175,7 +175,7 @@ class DeviceModel extends DatabaseModel {
     const conditions = [imei, imei, 0, 0];
     const joinTable = `${tableDevice} d INNER JOIN ${tableUsersDevices} ud ON d.id = ud.device_id 
       INNER JOIN ${tableModel} m ON d.model_id = m.id`;
-    const select = `d.id,d.imei,d.device_status_id,d.activation_date,d.warranty_expired_on,d.expired_on,d.remaining_time,ud.user_id,m.model_type_id as type`;
+    const select = `d.id,d.imei,d.device_status_id,d.activation_date,d.warranty_expired_on,d.expired_on,d.remaining_time,d.duration,ud.user_id,m.model_type_id as type`;
 
     const [res, infoUser] = await Promise.all([
       this.select(conn, joinTable, select, where, conditions, `d.id`),
@@ -547,11 +547,13 @@ class DeviceModel extends DatabaseModel {
     delete vehicle_.updated_at;
     const vehicleId = await this.insert(conn, tableVehicle, vehicle_);
 
+    const expiredOn = expired_on || date_.getTime();
+
     const deviceVehicle = new DeviceVehicleSchema({
       device_id,
       vehicle_id: vehicleId,
       service_package_id,
-      expired_on: expired_on || date_.getTime(),
+      expired_on: expiredOn,
       activation_date: createdAt,
       warranty_expired_on: date.getTime(),
       quantity_channel,
@@ -575,7 +577,7 @@ class DeviceModel extends DatabaseModel {
       device_status_id: 3,
       warranty_expired_on: date.getTime(),
       activation_date: createdAt,
-      expired_on: expired_on || date_.getTime(),
+      expired_on: expiredOn,
     };
 
     if (expired_on) {
@@ -829,11 +831,13 @@ class DeviceModel extends DatabaseModel {
         };
     }
 
+    const expiredOn = expired_on || date_.getTime();
+
     const deviceVehicle = new DeviceVehicleSchema({
       device_id,
       vehicle_id: vehicleId,
       service_package_id,
-      expired_on: expired_on || date_.getTime(),
+      expired_on: expiredOn,
       // expired_on,
       activation_date: createdAt,
       warranty_expired_on: date.getTime(),
@@ -858,7 +862,7 @@ class DeviceModel extends DatabaseModel {
       device_status_id: 3,
       warranty_expired_on: date.getTime(),
       activation_date: createdAt,
-      expired_on: expired_on || date_.getTime(),
+      expired_on: expiredOn,
     };
     if (expired_on) {
       delete dataUpdateDevice.activation_date;
@@ -958,25 +962,22 @@ class DeviceModel extends DatabaseModel {
   }
 
   async serviceReservation(conn, connPromise, body, params, data, infoUser) {
-    const { msg_notify } = body;
+    const { msg_notify, duration } = body;
     const { id } = params;
 
-    const { remainingTime } = data;
+    const { remainingTime, isUpdateRemainingTime } = data;
 
     await connPromise.beginTransaction();
+    const dataUpdate = isUpdateRemainingTime
+      ? { remaining_time: remainingTime, duration, updated_at: Date.now() }
+      : { duration, updated_at: Date.now() };
 
-    await this.update(
-      conn,
-      tableDevice,
-      { remaining_time: remainingTime, updated_at: Date.now() },
-      "id",
-      id
-    );
+    await this.update(conn, tableDevice, dataUpdate, "id", id);
     await deviceLoggingModel.postOrDelete(conn, {
       ...infoUser,
       device_id: id,
 
-      des: `Bảo lưu ${caculateTime(Math.floor(remainingTime / 1000))}`,
+      des: `Bảo lưu đến ${date(duration)}`,
       action: "Bảo lưu",
       createdAt: Date.now(),
     });

@@ -51,10 +51,21 @@ class DeviceLoggingModel extends DatabaseModel {
   }
 
   async postOrDelete(conn, data) {
-    const { user_id, device_id, ip, os, gps, des, action, createdAt } = data;
+    const {
+      user_id,
+      device_id,
+      vehicle_id,
+      ip,
+      os,
+      gps,
+      des,
+      action,
+      createdAt,
+    } = data;
     const logs = new DeviceLoggingSchema({
       user_id,
       device_id,
+      vehicle_id,
       ip: ip || null,
       os: os || null,
       des: des || "[]",
@@ -146,13 +157,18 @@ class DeviceLoggingModel extends DatabaseModel {
     await this.insert(conn, tableDeviceLogging, logs);
   }
 
-  async extendVehicle(conn, des, { user_id, device_id, ip, os, gps, action }) {
+  async extendVehicle(
+    conn,
+    des,
+    { user_id, device_id, vehicle_id, ip, os, gps, action }
+  ) {
     const logs = new DeviceLoggingSchema({
       user_id,
       device_id,
+      vehicle_id,
       ip: ip || null,
       os: os || null,
-      des: JSON.stringify([des]),
+      des: JSON.stringify(Array.isArray(des) ? des : [des]),
       action,
       gps,
       is_deleted: 0,
@@ -167,6 +183,7 @@ class DeviceLoggingModel extends DatabaseModel {
       tableDeviceLogging,
       `user_id,
       device_id,
+      vehicle_id,
       ip,
       os,
       des,
@@ -182,11 +199,12 @@ class DeviceLoggingModel extends DatabaseModel {
     conn,
     des,
     action = "Khoá",
-    { user_id, device_id, ip, os, gps }
+    { user_id, device_id, vehicle_id, ip, os, gps }
   ) {
     const logs = new DeviceLoggingSchema({
       user_id,
       device_id,
+      vehicle_id,
       ip: ip || null,
       os: os || null,
       des: JSON.stringify(des),
@@ -200,12 +218,13 @@ class DeviceLoggingModel extends DatabaseModel {
 
   async nameVehicle(
     conn,
-    { user_id, device_id, ip, os, gps, name_old, name_new }
+    { user_id, device_id, vehicle_id, ip, os, gps, name_old, name_new }
   ) {
     const des = `BS củ: ${name_old} ===> BS mới: ${name_new}`;
     const logs = new DeviceLoggingSchema({
       user_id,
       device_id,
+      vehicle_id,
       ip: ip || null,
       os: os || null,
       des: JSON.stringify([des]),

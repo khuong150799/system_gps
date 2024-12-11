@@ -26,8 +26,8 @@ class RenewalCodeModel extends DatabaseModel {
     const conditions = [1];
 
     if (query.keyword) {
-      where += ` AND code LIKE ?`;
-      conditions.push(`%${query.keyword}%`);
+      where += ` AND (code LIKE ? OR v.name LIKE ?)`;
+      conditions.push(`%${query.keyword}%`, `%${query.keyword}%`);
     }
 
     if (query.type) {
