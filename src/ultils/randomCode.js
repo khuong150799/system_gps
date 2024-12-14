@@ -73,10 +73,10 @@ function generateRandomNumber(type) {
       90) +
     Number(type);
 
-  console.log(
-    'sumAuthWithType?.length === 1 ? "0" + sumAuthWithType : sumAuthWithType',
-    sumAuthWithType?.length === 1 ? "0" + sumAuthWithType : sumAuthWithType
-  );
+  // console.log(
+  //   'sumAuthWithType?.length === 1 ? "0" + sumAuthWithType : sumAuthWithType',
+  //   sumAuthWithType?.length === 1 ? "0" + sumAuthWithType : sumAuthWithType
+  // );
 
   return Number(
     `${threeNumberDivisibleBy9}${year}${numRandom}${threesumNumbersBy18}${

@@ -847,13 +847,21 @@ class VehicleModel extends DatabaseModel {
       false
     );
 
-    const { expired_on, imei } = dataInfo[0];
+    const { expired_on, imei, expired_on_device } = dataInfo[0];
 
     const startExtendDate = new Date(expired_on);
 
+    const startExtendDateDevice = new Date(expired_on_device);
+
     const currentMonth = startExtendDate.getMonth();
 
+    const currentMonthDevice = startExtendDateDevice.getMonth();
+
     const extendDate = startExtendDate.setMonth(currentMonth - valueTime);
+
+    const extendDateDevice = startExtendDateDevice.setMonth(
+      currentMonthDevice - valueTime
+    );
 
     await this.update(
       conn,
@@ -869,14 +877,19 @@ class VehicleModel extends DatabaseModel {
     await this.update(
       conn,
       tableDevice,
-      { expired_on: extendDate },
+      { expired_on: extendDateDevice },
       "id",
       device_id
     );
 
-    const des = `Ngày hết hạn củ: ${date(
-      expired_on
-    )} ===> Ngày hết hạn mới: ${date(extendDate)}`;
+    const des = [
+      `Ngày hết hạn củ của PT: ${date(
+        expired_on
+      )} ===> Ngày hết hạn mới của PT: ${date(extendDate)}`,
+      `Ngày hết hạn củ của TB: ${date(
+        expired_on_device
+      )} ===> Ngày hết hạn mới của TB: ${date(extendDateDevice)}`,
+    ];
 
     await deviceLoggingModel.extendMutiVehicle(conn, [
       [
@@ -885,7 +898,7 @@ class VehicleModel extends DatabaseModel {
         id,
         ip,
         os,
-        des,
+        JSON.stringify(des),
         "Thu hồi gia hạn",
         gps,
         0,

@@ -55,4 +55,5 @@ module.exports = {
   tableApiKey: "tbl_api_key",
   tableGpsLinkAntiTheft: "tbl_gps_link_anti_theft",
   tableDeviceInfo: "tbl_device_info",
+  tablePlatForm: "tbl_platform",
 };

@@ -33,4 +33,5 @@ module.exports = (app) => {
   require("./renewalCode.route")(app);
   require("./typeCode.route")(app);
   require("./keyTime.route")(app);
+  require("./platform.route")(app);
 };

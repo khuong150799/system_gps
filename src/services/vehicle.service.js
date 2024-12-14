@@ -8,7 +8,6 @@ const {
   tableVehicle,
   tableDevice,
   tableDeviceVehicle,
-  tableServicePackage,
   tableUserDevice,
   tableOrders,
   tableOrdersDevice,
@@ -25,6 +24,9 @@ const {
   LOCK_PERMISSION_ACC,
   VALIDATE_DATA,
   NOT_CONFIG_SLEEP_TIME_DEVICE,
+  ERROR,
+  ERROR_PROMO_RECHARGE_CARD_LIMIT,
+  ERROR_RENEWAL_CODE,
 } = require("../constants/msg.constant");
 const { hGet, hSet } = require("../models/redis.model");
 const {
@@ -35,6 +37,50 @@ const {
 const dataBaseModel = new DatabaseModel();
 
 class vehicleService {
+  async checkRechargeCard(conn, deviceId) {
+    const joinTable = `${tableRenewalCodeDevice} rnd INNER JOIN ${tableRenewalCode} rn ON rnd.renewal_code_id = rn.id`;
+    const data = await dataBaseModel.select(
+      conn,
+      joinTable,
+      "rnd.id",
+      "rnd.device_id = ? AND rn.type = 2",
+      deviceId,
+      "rnd.id",
+      "ASC"
+    );
+
+    return data?.length || 0;
+  }
+
+  async checkPlatform(conn, listCode, deviceId) {
+    const joinTable = `${tableRenewalCode} rn INNER JOIN ${tableUserDevice} ud ON rn.platform_value = ud.user_id`;
+    const [dataPlatform, dataDifferentPlatform] = await Promise.all([
+      dataBaseModel.select(
+        conn,
+        joinTable,
+        "rn.id,ud.user_id",
+        "rn.code IN (?) AND ud.device_id = ? GROUP BY ud.user_id",
+        [listCode, deviceId],
+        "rn.id",
+        "ASC"
+      ),
+      dataBaseModel.select(
+        conn,
+        tableUserDevice,
+        "id",
+        "user_id = 783 AND device_id = ?",
+        deviceId
+      ),
+    ]);
+    // console.log({ dataPlatform, dataDifferentPlatform });
+    if (!dataPlatform?.length)
+      throw new SendMissingDataError(ERROR_RENEWAL_CODE);
+
+    const userId = dataPlatform?.[0]?.user_id;
+    if (userId == 1 && dataDifferentPlatform?.length)
+      throw new SendMissingDataError(ERROR_RENEWAL_CODE);
+  }
+
   async updateName(body, params, infoUser) {
     try {
       const { conn, connPromise } = await db.getConnection();
@@ -353,6 +399,7 @@ class vehicleService {
         if (!dataParse?.length) throw new SendMissingDataError();
 
         let checkDataError = false;
+        let checkPromoLimit = 0;
         const listCode = [];
 
         let dataFormat = {};
@@ -364,6 +411,10 @@ class vehicleService {
         for (let i = 0; i < dataParse.length; i++) {
           const { vehicle_id, device_id, code, value_time } = dataParse[i];
           // console.log("dataParse[i]", dataParse[i]);
+          if (promo) {
+            checkPromoLimit = await this.checkRechargeCard(conn, device_id);
+            if (checkPromoLimit >= 3) break;
+          }
 
           if (!vehicle_id || !device_id || !code || (!value_time && !promo)) {
             checkDataError = true;
@@ -386,6 +437,9 @@ class vehicleService {
 
         if (checkDataError) throw new SendMissingDataError();
 
+        if (promo && (listCode.length > 3 || checkPromoLimit >= 3))
+          throw new SendMissingDataError(ERROR_PROMO_RECHARGE_CARD_LIMIT);
+
         // console.log("listCode", listCode);
 
         const dataCheck = await validateModel.checkExitMultiValue(
@@ -397,11 +451,15 @@ class vehicleService {
           "code",
           null,
           false,
-          "id,code,is_used",
+          "id,code,platform_value,is_used",
           true,
           "",
           promo
         );
+
+        if (promo) {
+          await this.checkPlatform(conn, listCode, listDeviceId[0]);
+        }
 
         const dataCodeFormat = dataCheck.reduce((result, { id, code }) => {
           result[code] = id;
@@ -520,11 +578,14 @@ class vehicleService {
         const dataInfo = await dataBaseModel.select(
           conn,
           joinTable,
-          "d.imei,dv.expired_on",
+          "d.imei,d.expired_on as expired_on_device,dv.expired_on",
           "v.id = ? AND d.id = ?",
           [id, device_id],
           "d.id"
         );
+
+        if (!dataInfo?.length) throw { msg: ERROR };
+
         const data = await vehicleModel.recallExtend(
           conn,
           connPromise,

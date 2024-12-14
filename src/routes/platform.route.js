@@ -5,7 +5,7 @@ const { isAuth } = require("../middlewares/jwt.middleware");
 const {
   checkPermission,
 } = require("../middlewares/checkPermission.middleware");
-const typeCodeController = require("../controllers/typeCode.controller");
+const platformController = require("../controllers/platform.controller");
 
 module.exports = (app) => {
   router.get(
@@ -13,8 +13,8 @@ module.exports = (app) => {
     [query("keyword", VALIDATE_DATA).isString().escape()],
     isAuth,
     checkPermission,
-    typeCodeController.getAllRows
+    platformController.getAllRows
   );
 
-  app.use("/api/v1/type-code", router);
+  app.use("/api/v1/platform", router);
 };

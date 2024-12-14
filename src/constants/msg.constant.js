@@ -86,6 +86,9 @@ const constants = {
   ERR_RENEWAL_CODE: "Mã gia hạn đã được sử dụng",
   NOT_USED_RENEWAL_CODE: "Mã gia hạn chưa được sử dụng",
   LOCK_PERMISSION_ACC: "Tài khoản đã bị khoá quyền",
+  ERROR_PROMO_RECHARGE_CARD_LIMIT:
+    "Chỉ sử dụng tối đa 3 mã cho 1 thiết bị trên 1 phương tiện",
+  ERROR_RENEWAL_CODE: "Mã không hợp lệ",
 };
 
 module.exports = constants;

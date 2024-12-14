@@ -10,6 +10,7 @@ const {
   tableServicePackage,
   tableTypeCode,
   tableKeyTime,
+  tablePlatForm,
 } = require("../constants/tableName.constant");
 const generateRandomNumber = require("../ultils/randomCode");
 
@@ -31,8 +32,13 @@ class RenewalCodeModel extends DatabaseModel {
     }
 
     if (query.type) {
-      where += ` AND type = ?`;
-      conditions.push(query.type);
+      where += ` AND rn.type = ?`;
+      conditions.push(Number(query.type));
+    }
+
+    if (query.platform_id) {
+      where += ` AND pl.id = ?`;
+      conditions.push(Number(query.platform_id));
     }
 
     if (query.is_used) {
@@ -42,6 +48,7 @@ class RenewalCodeModel extends DatabaseModel {
 
     const joinTable = `${tableRenewalCode} rn LEFT JOIN ${tableRenewalCodeDevice} rnd ON rn.id = rnd.renewal_code_id 
       INNER JOIN ${tableTypeCode} tc ON rn.type = tc.id
+      INNER JOIN ${tablePlatForm} pl ON rn.platform_value = pl.value
       LEFT JOIN ${tableKeyTime} kt ON rnd.key_time_id = kt.id
       LEFT JOIN ${tableUsersCustomers} uc ON rnd.user_id = uc.user_id 
       LEFT JOIN ${tableUsers} u ON uc.user_id = u.id AND u.is_deleted = 0
@@ -51,7 +58,7 @@ class RenewalCodeModel extends DatabaseModel {
       LEFT JOIN ${tableVehicle} v ON rnd.vehicle_id = v.id AND v.is_deleted = 0`;
 
     const select =
-      "rn.id,rn.code,tc.name as type_name,rn.is_used,rn.created_at,u.username,d.imei,d.id as device_id,v.id as vehicle_id,v.name as vehicle_name, sp.name as service_package_name, rnd.created_at as date_of_use,IF(kt.value > 1, sp.fees_to_agency, sp.	one_month_fee_to_agency) AS price";
+      "rn.id,rn.code,tc.name as type_name,rn.is_used,rn.created_at,u.username,d.imei,d.id as device_id,v.id as vehicle_id,v.name as vehicle_name,pl.name as platform,sp.name as service_package_name, rnd.created_at as date_of_use,IF(kt.value > 1, sp.fees_to_agency, sp.one_month_fee_to_agency) AS price";
     const [res_, count] = await Promise.all([
       this.select(
         conn,
@@ -59,7 +66,7 @@ class RenewalCodeModel extends DatabaseModel {
         select,
         where,
         conditions,
-        "rn.id",
+        "date_of_use DESC,rn.id",
         "DESC",
         offset,
         limit
@@ -74,18 +81,25 @@ class RenewalCodeModel extends DatabaseModel {
 
   //Register
   async register(conn, body = {}) {
-    const { type, quantity } = body;
+    const { type, quantity, platform_value } = body;
     const createdAt = Date.now();
     const dataInsert = [];
 
     for (let i = 0; i < quantity; i++) {
-      dataInsert.push([generateRandomNumber(Number(type)), type, 0, createdAt]);
+      dataInsert.push([
+        generateRandomNumber(Number(type)),
+        type,
+        platform_value,
+        0,
+        createdAt,
+      ]);
     }
+    // console.log("dataInsert", JSON.stringify(dataInsert, null, 2));
 
     const res_ = await this.insertMulti(
       conn,
       tableRenewalCode,
-      "code,type,is_used,created_at",
+      "code,type,platform_value,is_used,created_at",
       dataInsert
     );
 

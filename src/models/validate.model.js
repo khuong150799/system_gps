@@ -16,6 +16,7 @@ const {
   VALIDATE_LICENSE,
   ERR_RENEWAL_CODE,
   NOT_USED_RENEWAL_CODE,
+  ERROR_RENEWAL_CODE,
 } = require("../constants/msg.constant");
 const {
   tableDevice,
@@ -183,6 +184,8 @@ class ValidateModel extends DatabaseModel {
     }
     if (promo) {
       where += `AND type = 2`;
+    } else {
+      where += `AND type = 1`;
     }
 
     if (id) {
@@ -219,14 +222,20 @@ class ValidateModel extends DatabaseModel {
         };
       const codeIsUsed = [];
       const listCodeDb = [];
+      let errorPlatform = false;
 
       for (let i = 0; i < dataCheck.length; i++) {
-        const { code, is_used } = dataCheck[i];
+        const { code, is_used, platform_value } = dataCheck[i];
 
         if (is_used == 1) {
           codeIsUsed.push(code);
         } else {
           listCodeDb.push(code);
+        }
+
+        if (promo && dataCheck.length > 1 && i > 0) {
+          const { prev_platform_value } = dataCheck[i - 1];
+          if (platform_value != prev_platform_value) errorPlatform = true;
         }
       }
       // console.log("codeIsUsed", codeIsUsed);
@@ -239,6 +248,18 @@ class ValidateModel extends DatabaseModel {
               value: codeIsUsed.join(","),
               msg: `${msgError} ${codeIsUsed.join(",")} đã được sử dụng`,
               param,
+            },
+          ],
+          isLockAcc: true,
+        };
+
+      if (errorPlatform)
+        throw {
+          msg: ERROR,
+          errors: [
+            {
+              msg: ERROR_RENEWAL_CODE,
+              param: "platform_value",
             },
           ],
           isLockAcc: true,

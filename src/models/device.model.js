@@ -15,7 +15,6 @@ const {
   tableUsersDevices,
   tableUsersCustomers,
   tableOrdersDevice,
-  tableFirmware,
   tableModel,
   tableLevel,
   tableVehicle,
@@ -29,9 +28,8 @@ const {
   tableGpsLinkAntiTheft,
   tableDeviceInfo,
 } = require("../constants/tableName.constant");
-const { hSet: hsetRedis, del: delRedis, hdelOneKey } = require("./redis.model");
+const { hSet: hsetRedis, del: delRedis } = require("./redis.model");
 const {
-  REDIS_KEY_LIST_DEVICE,
   REDIS_KEY_DEVICE_SPAM,
   REDIS_KEY_ANTI_THEFT_LINK_GPS,
   REDIS_KEY_GPS_LINK_ANTI_THEFT,
@@ -50,13 +48,13 @@ const vehicleModel = require("./vehicle.model");
 const deviceLoggingModel = require("./deviceLogging.model");
 const DeviceVehicleSchema = require("./schema/deviceVehicle.schema");
 const cameraApi = require("../api/camera.api");
-const { caculateTime, date } = require("../ultils/getTime");
+const { date } = require("../ultils/getTime");
 
 class DeviceModel extends DatabaseModel {
   constructor() {
     super();
   }
-  async activationCms(conn, svCamId, vehicle, imei, quantity_channel) {
+  activationCms = async (conn, svCamId, vehicle, imei, quantity_channel) => {
     const dataServerCam = await this.select(
       conn,
       tableServerCamera,
@@ -64,7 +62,9 @@ class DeviceModel extends DatabaseModel {
       "id = ?",
       svCamId
     );
+
     // console.log("dataServerCam", dataServerCam);
+    // return;
 
     if (!dataServerCam?.length)
       throw {
@@ -84,12 +84,11 @@ class DeviceModel extends DatabaseModel {
     };
 
     let resCms = {};
-
     const { result: resAddDevice } = await cameraApi.addDeviceCMS1({
       ...dataAddDeviceCms,
       url: `${host}:${port}`,
     });
-    // console.log("resAddDevice", resAddDevice);
+    // console.log("resAddDevice", imei, resAddDevice);
 
     if (resAddDevice != 0)
       throw {
@@ -101,40 +100,14 @@ class DeviceModel extends DatabaseModel {
       url: `${host}:${port}`,
     });
 
-    // if (SV_CMS1.includes(hostCmc)) {
-    //   const { result: resAdđevice } = await cameraApi.addDeviceCMS1(
-    //     dataAddDeviceCms
-    //   );
-
-    //   if (resAdđevice != 0)
-    //     throw {
-    //       msg: ERROR,
-    //     };
-
-    //   resCms = await cameraApi.addVehicleCMS1(dataAddVehicleCms);
-    // } else if (SV_CMS2.includes(hostCmc)) {
-    //   const { result: resAdđevice } = await cameraApi.addDeviceCMS2(
-    //     dataAddDeviceCms
-    //   );
-    //   console.log("resAdđevice", resAdđevice);
-    //   if (resAdđevice != 0)
-    //     throw {
-    //       msg: ERROR,
-    //     };
-
-    //   resCms = await cameraApi.addVehicleCMS2(dataAddVehicleCms);
-    // }
-    // console.log("resCms", resCms, {
-    //   ...dataAddVehicleCms,
-    //   url: `${host}:${port}`,
-    // });
+    // console.log("resCms", imei, resCms);
 
     const { result: resultCms } = resCms;
     if (resultCms != 0)
       throw {
         msg: ERROR,
       };
-  }
+  };
 
   async validateCheckOutside(conn, imei) {
     let errors = {};
