@@ -34,4 +34,5 @@ module.exports = (app) => {
   require("./typeCode.route")(app);
   require("./keyTime.route")(app);
   require("./platform.route")(app);
+  require("./typeAiSafe.route")(app);
 };

@@ -4,6 +4,12 @@ const constants = require("../constants/msg.constant");
 
 const pool = mysql.createPool(dbConfig);
 const vehicleModel = require("../models/vehicle.model");
+const {
+  tableDevice,
+  tableDeviceVehicle,
+  tableVehicle,
+} = require("../constants/tableName.constant");
+const { activationCms } = require("../models/device.model");
 // const configFuelModel = require("../models/configFuel.model");
 // const driverModel = require("../models/driver.model");
 // const { hSet } = require("../models/redis.model");
@@ -26,8 +32,59 @@ class Datatbase {
         return console.log("error when connecting to Database", err);
       } else {
         // try {
-        // Bắt đầu transaction
         //   console.log(`SUCCESS:: CONNECTED TO DATABASE >> ${dbConfig.host}`);
+        //   const select =
+        //     "d.id,d.imei,v.name as vehicle_name,dv.quantity_channel";
+        //   const joinTable = `${tableDevice} d INNER JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id
+        //     INNER JOIN ${tableVehicle} v ON dv.vehicle_id = v.id`;
+        //   const where =
+        //     "WHERE d.is_deleted = 0 AND d.device_status_id = 3 AND d.sv_cam_id = 10 AND dv.is_deleted = 0 AND v.is_deleted = 0";
+
+        //   conn.query(
+        //     `SELECT ${select} FROM ${joinTable} ${where}`,
+        //     (err, data) => {
+        //       if (err) {
+        //         console.log(err);
+        //         throw err;
+        //       }
+
+        //       console.log("data", data.length);
+
+        //       let i = 0;
+
+        //       const intervalId = setInterval(async () => {
+        //         if (i === data.length - 1) {
+        //           clearInterval(intervalId);
+        //           return;
+        //         }
+
+        //         const { imei, vehicle_name, quantity_channel } = data[i];
+        //         console.log(i, imei);
+        //         i++;
+        //         try {
+        //           await activationCms(
+        //             conn,
+        //             10,
+        //             vehicle_name,
+        //             imei,
+        //             quantity_channel
+        //           );
+        //         } catch (error) {
+        //           console.log(error);
+        //         }
+        //       }, 1000);
+        //     }
+        //   );
+        // } catch (error) {
+        //   console.log(error);
+        // } finally {
+        //   // Đóng kết nối
+        //   conn.release();
+        // }
+
+        // try {
+        // Bắt đầu transaction
+        console.log(`SUCCESS:: CONNECTED TO DATABASE >> ${dbConfig.host}`);
 
         //   await conn.promise().beginTransaction();
 
