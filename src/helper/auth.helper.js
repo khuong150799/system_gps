@@ -1,18 +1,15 @@
 const jwt = require("jsonwebtoken");
 const constants = require("../constants/msg.constant");
 
-const keyTokenService = require("../services/keyToken.service");
 const {
   Api401Error,
   Api403Error,
   BusinessLogicError,
 } = require("../core/error.response");
-// const { get: getRedis, set: setRedis } = require("../models/redis.model_");
 const { promisify } = require("util");
 const {
   hGet,
-  get: getRedis,
-  set: setRedis,
+
   hdelOneKey,
 } = require("../models/redis.model");
 const { REDIS_KEY_TOKEN } = require("../constants/redis.constant");

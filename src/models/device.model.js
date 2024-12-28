@@ -6,6 +6,7 @@ const {
   DEVICE_CANNOT_ACTIVATE,
   ERROR,
   NOT_OWN,
+  NOT_UPDATE_REALTIME,
 } = require("../constants/msg.constant");
 const VehicleSchema = require("./schema/vehicle.schema");
 const {
@@ -903,7 +904,7 @@ class DeviceModel extends DatabaseModel {
     if (!inforDevice?.length)
       throw {
         msg: ERROR,
-        errors: [{ msg: "Không thể cập nhật data trên realtime" }],
+        errors: [{ msg: NOT_UPDATE_REALTIME }],
       };
     await vehicleModel.removeListDeviceOfUsersRedis(conn, device_id);
 

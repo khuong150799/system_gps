@@ -3,6 +3,7 @@ const {
   REMOTE_TURN_OFF_DEVICE_ERROR,
   REMOTE_TURN_ON_DEVICE_ERROR,
   NOT_EXITS,
+  NOT_UPDATE_REALTIME,
 } = require("../constants/msg.constant");
 const {
   REDIS_KEY_LIST_IMEI_OF_USERS,
@@ -256,7 +257,7 @@ class VehicleModel extends DatabaseModel {
       if (!result?.length)
         throw {
           msg: ERROR,
-          errors: [{ msg: "Không thể cập nhật data trên realtime" }],
+          errors: [{ msg: NOT_UPDATE_REALTIME }],
         };
     } else {
       await this.update(
@@ -388,7 +389,7 @@ class VehicleModel extends DatabaseModel {
     if (isRollback)
       throw {
         msg: ERROR,
-        errors: [{ msg: "Không thể cập nhật data trên realtime" }],
+        errors: [{ msg: NOT_UPDATE_REALTIME }],
       };
     // throw { msg: ERROR };
 
@@ -469,7 +470,7 @@ class VehicleModel extends DatabaseModel {
     if (isRollback)
       throw {
         msg: ERROR,
-        errors: [{ msg: "Không thể cập nhật data trên realtime" }],
+        errors: [{ msg: NOT_UPDATE_REALTIME }],
       };
     // throw { msg: ERROR };
 
@@ -569,7 +570,7 @@ class VehicleModel extends DatabaseModel {
     if (isRollback)
       throw {
         msg: ERROR,
-        errors: [{ msg: "Không thể cập nhật data trên realtime" }],
+        errors: [{ msg: NOT_UPDATE_REALTIME }],
       };
 
     await connPromise.commit();
@@ -753,7 +754,7 @@ class VehicleModel extends DatabaseModel {
     if (isRollback)
       throw {
         msg: ERROR,
-        errors: [{ msg: "Không thể cập nhật data trên realtime" }],
+        errors: [{ msg: NOT_UPDATE_REALTIME }],
       };
 
     await hdelOneKey(REDIS_KEY_LOCK_ACC_WITH_EXTEND, user_id.toString());
@@ -926,7 +927,7 @@ class VehicleModel extends DatabaseModel {
     if (isRollback)
       throw {
         msg: ERROR,
-        errors: [{ msg: "Không thể cập nhật data trên realtime" }],
+        errors: [{ msg: NOT_UPDATE_REALTIME }],
       };
 
     await connPromise.commit();
@@ -1014,7 +1015,7 @@ class VehicleModel extends DatabaseModel {
     if (isRollback)
       throw {
         msg: ERROR,
-        errors: [{ msg: "Không thể cập nhật data trên realtime" }],
+        errors: [{ msg: NOT_UPDATE_REALTIME }],
       };
 
     await connPromise.commit();
@@ -1134,7 +1135,7 @@ class VehicleModel extends DatabaseModel {
     if (isRollback)
       throw {
         msg: ERROR,
-        errors: [{ msg: "Không thể cập nhật data trên realtime" }],
+        errors: [{ msg: NOT_UPDATE_REALTIME }],
       };
 
     await connPromise.commit();
@@ -1475,7 +1476,7 @@ class VehicleModel extends DatabaseModel {
     if (isRollback)
       throw {
         msg: ERROR,
-        errors: [{ msg: "Không thể cập nhật data trên realtime" }],
+        errors: [{ msg: NOT_UPDATE_REALTIME }],
       };
     const dataLog = {
       ...infoUser,

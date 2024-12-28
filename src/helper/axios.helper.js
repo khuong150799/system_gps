@@ -1,7 +1,7 @@
 const { default: axios } = require("axios");
 const configureEnvironment = require("../config/dotenv.config");
 
-const https = require("https");
+// const https = require("https");
 
 const { SV_REAL_ALARM, SV_ASSET_STORAGE, ACCOUNT_CMS, PASSWORD_CMS } =
   configureEnvironment();
@@ -13,13 +13,13 @@ const axiosAssetStorage = axios.create({
   baseURL: SV_ASSET_STORAGE,
 });
 
-const agent = new https.Agent({
-  rejectUnauthorized: false,
-});
+// const agent = new https.Agent({
+//   rejectUnauthorized: false,
+// });
 
 const axiosCMS1NoAuth = axios.create({
   timeout: 20000,
-  httpsAgent: agent,
+  // httpsAgent: agent,
 });
 
 const axiosCMS = axios.create({

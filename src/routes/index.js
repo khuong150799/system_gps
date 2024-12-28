@@ -35,4 +35,5 @@ module.exports = (app) => {
   require("./keyTime.route")(app);
   require("./platform.route")(app);
   require("./typeAiSafe.route")(app);
+  require("./monitor.route")(app);
 };

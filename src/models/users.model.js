@@ -10,6 +10,7 @@ const {
   PASSWORD_DEFAULT,
 
   REFRESH_TOKEN_SECRET_KEY,
+  NOT_UPDATE_REALTIME,
 } = require("../constants/msg.constant");
 
 const bcrypt = require("bcryptjs");
@@ -1008,7 +1009,7 @@ class UsersModel extends DatabaseModel {
       if (isRollback)
         throw {
           msg: ERROR,
-          errors: [{ msg: "Không thể cập nhật data trên realtime" }],
+          errors: [{ msg: NOT_UPDATE_REALTIME }],
         };
     }
     // throw { msg: "lỗi" };
