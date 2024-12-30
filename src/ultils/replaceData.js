@@ -1,6 +1,7 @@
 const handleReplaceData = (data) => {
   return data
     .trim()
+    .toLowerCase()
     .replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a")
     .replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e")
     .replace(/ì|í|ị|ỉ|ĩ/g, "i")
@@ -13,4 +14,5 @@ const handleReplaceData = (data) => {
     .toUpperCase();
   // .replace(/^-+|-+$/g, '');
 };
+
 module.exports = handleReplaceData;
