@@ -105,6 +105,35 @@ class vehicleService {
     return dataParse;
   }
 
+  async handleCheckCode({ conn, listCode, promo }) {
+    const data = await validateModel.checkExitMultiValue(
+      conn,
+      tableRenewalCode,
+      "code",
+      [listCode],
+      !promo ? "Mã gia hạn" : "Mã khuyến mãi",
+      "code",
+      null,
+      false,
+      "id,code,platform_value,is_used,created_at",
+      true,
+      "",
+      promo
+    );
+
+    const { created_at } = data[0];
+
+    if (promo) {
+      const month = new Date(created_at).getMonth();
+      const currentMonth = new Date().getMonth();
+
+      if (month !== currentMonth)
+        throw new SendMissingDataError("Mã hết hạn sử dụng");
+    }
+
+    return data;
+  }
+
   async handleProcessData({ conn, dataParse, promo }) {
     let checkDataError = false;
     let checkPromoLimit = 0;
@@ -150,20 +179,7 @@ class vehicleService {
 
     // console.log("listCode", listCode);
 
-    const dataCheck = await validateModel.checkExitMultiValue(
-      conn,
-      tableRenewalCode,
-      "code",
-      [listCode],
-      !promo ? "Mã gia hạn" : "Mã khuyến mãi",
-      "code",
-      null,
-      false,
-      "id,code,platform_value,is_used",
-      true,
-      "",
-      promo
-    );
+    const dataCheck = await this.handleCheckCode({ conn, listCode, promo });
 
     if (promo) {
       await this.handleCheckPlatform(conn, listCode, listDeviceId[0]);
