@@ -3,8 +3,13 @@ const configureEnvironment = require("../config/dotenv.config");
 
 // const https = require("https");
 
-const { SV_REAL_ALARM, SV_ASSET_STORAGE, ACCOUNT_CMS, PASSWORD_CMS } =
-  configureEnvironment();
+const {
+  SV_REAL_ALARM,
+  SV_CRON_JOB,
+  SV_ASSET_STORAGE,
+  ACCOUNT_CMS,
+  PASSWORD_CMS,
+} = configureEnvironment();
 const axiosAlarm = axios.create({
   baseURL: SV_REAL_ALARM,
 });
@@ -16,6 +21,10 @@ const axiosAssetStorage = axios.create({
 // const agent = new https.Agent({
 //   rejectUnauthorized: false,
 // });
+
+const axiosCronJob = axios.create({
+  baseURL: SV_CRON_JOB,
+});
 
 const axiosCMS1NoAuth = axios.create({
   timeout: 20000,
@@ -104,10 +113,13 @@ axiosAssetStorage.interceptors.response.use(
   handleResponseError
 );
 
+axiosCronJob.interceptors.response.use(handleResponse, handleResponseError);
+
 module.exports = {
   axiosAlarm,
   axiosAssetStorage,
   axiosCMS,
   axiosNoConfig,
   axiosCMS1NoAuth,
+  axiosCronJob,
 };

@@ -13,4 +13,5 @@ module.exports = {
   REDIS_KEY_GPS_LINK_ANTI_THEFT: "gpsLinkAntiTheft",
   REDIS_KEY_ANTI_THEFT_LINK_GPS: "antiTheftLinkGps",
   REDIS_KEY_DATA_SLEEP_TIME: "dataSleepTime",
+  REDIS_KEY_MAINTENANCE: "maintenance",
 };
