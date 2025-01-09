@@ -1,6 +1,13 @@
 const driverApi = require("../api/driver.api");
-const { ERROR, WRITE_CARD_FAIL } = require("../constants/msg.constant");
-const { REDIS_KEY_LIST_DRIVER } = require("../constants/redis.constant");
+const {
+  ERROR,
+  WRITE_CARD_FAIL,
+  WRITE_CARD_SUCCESS,
+} = require("../constants/msg.constant");
+const {
+  REDIS_KEY_LIST_DRIVER,
+  REDIS_KEY_SV_CAM,
+} = require("../constants/redis.constant");
 const {
   tableDriver,
   tableLicenseType,
@@ -13,11 +20,38 @@ const {
   tableCustomersDriver,
 } = require("../constants/tableName.constant");
 const DatabaseModel = require("./database.model");
-const { hSet, hdelOneKey } = require("./redis.model");
+const { hSet, hdelOneKey, hGet } = require("./redis.model");
 const DriverSchema = require("./schema/driver.schema");
 const handleReplaceData = require("../ultils/replaceData");
 
 class DriverModel extends DatabaseModel {
+  constructor() {
+    super();
+    this.modelCam = {
+      33: { isExisted: true, fn: this.getDataWriteCardAICam },
+      32: { isExisted: true, fn: this.getDataWriteCardCMRGSHT },
+      23: { isExisted: true, fn: this.getDataWriteCardCMRGSHT },
+    };
+  }
+
+  getDataWriteCardAICam = ({ licenseNumber, name }) => {
+    return {
+      Flag: 9,
+      TextInfo: `#RfidWrite:id=${licenseNumber},name=${name}#`,
+      TextType: 1,
+      utf8: 1,
+    };
+  };
+
+  getDataWriteCardCMRGSHT = ({ licenseNumber, name }) => {
+    return {
+      Flag: 9,
+      TextInfo: `<EXTM1YN,${licenseNumber},${name}>`,
+      TextType: 1,
+      utf8: 1,
+    };
+  };
+
   //getallrow
   async getallrows(conn, query, left, right) {
     const offset = query.offset || 0;
@@ -188,23 +222,54 @@ class DriverModel extends DatabaseModel {
 
   async writeCard(conn, body) {
     const { license_number, name, device_id } = body;
-    const infoDevice = await this.select(conn, tableDevice, "imei", "id = ?", [
-      device_id,
-    ]);
+    const infoDevice = await this.select(
+      conn,
+      tableDevice,
+      "imei,model_id,sv_cam_id",
+      "id = ? AND is_deleted = 0",
+      [device_id]
+    );
     // console.log("infoDevice", infoDevice);
     if (!infoDevice?.length)
       throw { msg: ERROR, errors: [{ msg: WRITE_CARD_FAIL }] };
     const formatName = handleReplaceData(name);
 
-    const { result, message, status, data, options } =
-      await driverApi.writeCard({
+    const { imei, model_id, sv_cam_id } = infoDevice[0];
+
+    if (this.modelCam?.[model_id]?.isExisted && sv_cam_id) {
+      const { data } = await hGet(REDIS_KEY_SV_CAM, sv_cam_id.toString());
+
+      // console.log("data");
+
+      if (!data) throw { msg: ERROR, errors: [{ msg: WRITE_CARD_FAIL }] };
+
+      const { host, port } = JSON.parse(data);
+      const bodySendCms = this.modelCam[model_id].fn({
+        licenseNumber: license_number,
+        name: formatName,
+      });
+
+      const res = await driverApi.writeCardCms({
+        url: host,
+        body: bodySendCms,
+        params: { Command: 33536, DevIDNO: imei, toMap: 1 },
+        port,
+      });
+      // console.log("res", res);
+      if (res?.result !== 0)
+        throw { msg: ERROR, errors: [{ msg: res?.message }] };
+    } else {
+      // const { result, message, status, data, options } =
+      const { result } = await driverApi.writeCard({
         license_number,
         name: formatName,
-        imei: infoDevice[0].imei,
+        imei,
       });
-    // console.log("result", result);
-    if (!result) throw { msg: ERROR, errors: [{ msg: WRITE_CARD_FAIL }] };
-    return { message, status, data, options };
+      // console.log("result", { result, message, status, data, options });
+      if (!result) throw { msg: ERROR, errors: [{ msg: WRITE_CARD_FAIL }] };
+      // return { message, status, data, options };
+    }
+    return { message: WRITE_CARD_SUCCESS };
   }
 
   //Register
