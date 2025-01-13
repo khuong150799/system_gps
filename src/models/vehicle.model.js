@@ -1049,12 +1049,12 @@ class VehicleModel extends DatabaseModel {
     const { warranty_expired_on, device_id } = body;
     const { id } = params;
     const {
-      warranty_expired_on: warrantyExpiredOnOldVehicle,
+      // warranty_expired_on: warrantyExpiredOnOldVehicle,
       warranty_expired_on_device: warrantyExpiredOnOldDevice,
     } = dataInfo[0];
 
-    const timeWarrantyExpiredON =
-      Number(warranty_expired_on) - Number(warrantyExpiredOnOldVehicle);
+    // const timeWarrantyExpiredON =
+    //   Number(warranty_expired_on) - Number(warrantyExpiredOnOldVehicle);
 
     await this.update(
       conn,
@@ -1065,13 +1065,15 @@ class VehicleModel extends DatabaseModel {
       "device_id"
     );
 
-    if (timeWarrantyExpiredON > 0) {
+    // if (timeWarrantyExpiredON > 0) {
+    if (Number(warranty_expired_on) > Number(warrantyExpiredOnOldDevice)) {
       await this.update(
         conn,
         tableDevice,
         {
-          warranty_expired_on:
-            Number(warrantyExpiredOnOldDevice) + timeWarrantyExpiredON,
+          // warranty_expired_on:
+          //   Number(warrantyExpiredOnOldDevice) + timeWarrantyExpiredON,
+          warranty_expired_on,
         },
         "id",
         [device_id],
@@ -1348,7 +1350,7 @@ class VehicleModel extends DatabaseModel {
         tableDevice,
         {
           device_status_id: 3,
-          // expired_on: expiredOnOld,
+          expired_on,
         },
         "id",
         [device_id_new],
@@ -1361,7 +1363,7 @@ class VehicleModel extends DatabaseModel {
       tableDevice,
       {
         device_status_id: 2,
-        //  expired_on: expiredOnNew
+        expired_on: Date.now(),
       },
       "",
       [device_id_old],

@@ -1019,17 +1019,23 @@ class UsersModel extends DatabaseModel {
 
   //update
   async updateById(conn, connPromise, body, params) {
-    const { parent_id, role_id, customer_id, is_actived } = body;
+    const {
+      // parent_id,
+      role_id,
+      customer_id,
+      is_actived,
+    } = body;
     const { id } = params;
     const updatedAt = Date.now();
 
     await connPromise.beginTransaction();
 
     const user = new UsersSchema({
-      parent_id: parent_id || null,
+      // parent_id: parent_id || null,
       is_actived,
       updated_at: updatedAt,
     });
+    delete user.parent_id;
     delete user.username;
     delete user.password;
     delete user.is_team;

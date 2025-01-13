@@ -1057,12 +1057,15 @@ class vehicleService {
 
         const {
           // activation_date: activationDateNew,
-          // warranty_expired_on: warrantyExpiredOnNew,
-          expired_on: expiredOnNew,
+          warranty_expired_on: warrantyExpiredOnNew,
+          // expired_on: expiredOnNew,
         } = infoDeviceNew[0];
 
-        if (expiredOnNew && Number(expiredOnNew) < Number(expired_on)) {
-          infoVehicleInsert.expired_on = expiredOnNew;
+        if (
+          warrantyExpiredOnNew &&
+          Number(warrantyExpiredOnNew) < Number(warranty_expired_on)
+        ) {
+          infoVehicleInsert.warranty_expired_on = null;
         }
 
         // let dataUpdateDevice = {
