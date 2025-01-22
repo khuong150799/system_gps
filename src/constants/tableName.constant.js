@@ -57,4 +57,6 @@ module.exports = {
   tableDeviceInfo: "tbl_device_info",
   tablePlatForm: "tbl_platform",
   tableTypeAiSafe: "tbl_type_ai_safe",
+  tableTransmission: "tbl_transmission",
+  tableBusinessType: "tbl_business_type",
 };

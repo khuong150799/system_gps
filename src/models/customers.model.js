@@ -10,12 +10,19 @@ const {
   tableUsers,
 } = require("../constants/tableName.constant");
 const vehicleModel = require("./vehicle.model");
-const { DELETED_CUSTOMER } = require("../constants/msg.constant");
+const { DELETED_CUSTOMER, ERROR } = require("../constants/msg.constant");
+const transmissionInfoApi = require("../api/transmissionInfo.api");
+const { String2Unit } = require("../ultils/getTime");
+const {
+  CREATE_TYPE,
+  UPDATE_TYPE,
+  DELETE_TYPE,
+} = require("../constants/global.constant");
+const handleShufflePhoneNumber = require("../ultils/shufflePhoneNumber");
 
 class CustomersModel extends DatabaseSchema {
   constructor() {
     super();
-    // this.validate = this.validate()
   }
 
   //getallrow
@@ -74,6 +81,17 @@ class CustomersModel extends DatabaseSchema {
     return { data: res_, totalPage, totalRecord: count?.[0]?.total };
   }
 
+  async handleTransmission({ tax_code, company, address, phone, type }) {
+    await transmissionInfoApi.company({
+      tax_code,
+      full_name: company,
+      address,
+      phone: phone ? handleShufflePhoneNumber(phone) : null,
+      time: String2Unit(Date.now()),
+      type,
+    });
+  }
+
   //getbyid
   async getById(conn, params, query) {
     const { id } = params;
@@ -81,7 +99,7 @@ class CustomersModel extends DatabaseSchema {
     const where = `${tableCustomers}.is_deleted = ? AND ${tableCustomers}.id = ?`;
     const conditions = [isDeleted, id];
 
-    const selectData = `${tableCustomers}.id,${tableCustomers}.name,${tableCustomers}.company,${tableCustomers}.email,${tableCustomers}.phone,${tableCustomers}.address,${tableCustomers}.tax_code,${tableCustomers}.website,${tableCustomers}.level_id`;
+    const selectData = `${tableCustomers}.id,${tableCustomers}.name,${tableCustomers}.company,${tableCustomers}.email,${tableCustomers}.phone,${tableCustomers}.address,${tableCustomers}.tax_code,${tableCustomers}.website,${tableCustomers}.level_id,${tableCustomers}.business_type_id`;
 
     const res_ = await this.select(
       conn,
@@ -104,6 +122,7 @@ class CustomersModel extends DatabaseSchema {
       address,
       tax_code,
       website,
+      business_type_id,
       parent_id,
       username,
       password,
@@ -119,6 +138,7 @@ class CustomersModel extends DatabaseSchema {
       email: email || null,
       phone: phone || null,
       address: address || null,
+      business_type_id: business_type_id || null,
       tax_code: tax_code || null,
       website: website || null,
       publish,
@@ -147,10 +167,20 @@ class CustomersModel extends DatabaseSchema {
       -1,
       false
     );
+
+    //transmission
+    if (tax_code) {
+      await this.handleTransmission({
+        tax_code,
+        company,
+        address,
+        phone,
+        type: CREATE_TYPE,
+      });
+    }
+
     if (isCommit) {
       await connPromise.commit();
-    }
-    if (isCommit) {
       customer.id = res_;
     }
 
@@ -169,6 +199,7 @@ class CustomersModel extends DatabaseSchema {
       email,
       phone,
       address,
+      business_type_id,
       tax_code,
       website,
       publish,
@@ -180,6 +211,7 @@ class CustomersModel extends DatabaseSchema {
       email: email || null,
       phone: phone || null,
       address: address || null,
+      business_type_id: business_type_id || null,
       tax_code: tax_code || null,
       website: website || null,
       publish,
@@ -206,19 +238,45 @@ class CustomersModel extends DatabaseSchema {
       company: companyCustomer,
     } = infoUser[0];
     await connPromise.beginTransaction();
+
     await this.update(conn, tableCustomers, customer, "id", id);
-    await connPromise.commit();
+
     if (name != nameCustomer || company != companyCustomer) {
       await vehicleModel.getInfoDevice(conn, null, null, userId);
     }
+
+    //transmission
+    if (tax_code) {
+      await this.handleTransmission({
+        tax_code,
+        company,
+        address,
+        phone,
+        type: UPDATE_TYPE,
+      });
+    }
+
+    await connPromise.commit();
     customer.id = id;
     return customer;
   }
 
   //delete
-  async deleteById(conn, params) {
+  async deleteById(conn, params, info) {
     const { id } = params;
+
+    const { tax_code, company, address, phone } = info[0];
     await this.update(conn, tableCustomers, { is_deleted: 1 }, "id", id);
+    // console.log("tax_code", tax_code);
+    if (tax_code) {
+      await this.handleTransmission({
+        tax_code,
+        company,
+        address,
+        phone,
+        type: DELETE_TYPE,
+      });
+    }
     // await vehicleModel.getInfoDevice(conn);
     return [];
   }

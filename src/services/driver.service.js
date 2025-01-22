@@ -213,6 +213,8 @@ class DriverService {
         conn.release();
       }
     } catch (error) {
+      console.log(error);
+
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
     }
@@ -225,10 +227,13 @@ class DriverService {
       try {
         const { id } = params;
 
+        const select =
+          "d.id as driver_id, d.license_number,d.license_type_id,d.name,d.activation_date,d.expired_on,d.place_of_issue,cd.customer_id";
+
         const driverInfo = await databaseModel.select(
           conn,
           `${tableDriver} d INNER JOIN ${tableCustomersDriver} cd ON d.id = cd.driver_id`,
-          "d.id as driver_id, d.license_number,cd.customer_id",
+          select,
           "cd.id = ? AND cd.is_deleted = 0 AND d.is_deleted = 0",
           id,
           "d.id",

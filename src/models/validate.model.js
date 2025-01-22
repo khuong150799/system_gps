@@ -441,7 +441,7 @@ class ValidateModel extends DatabaseModel {
     return [];
   }
 
-  async checkRegexEmial(email) {
+  async checkRegexEmail(email) {
     const errors = [];
     if (!regexEmail(email)) {
       errors.push({

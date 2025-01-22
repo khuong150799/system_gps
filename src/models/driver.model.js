@@ -23,6 +23,13 @@ const DatabaseModel = require("./database.model");
 const { hSet, hdelOneKey, hGet } = require("./redis.model");
 const DriverSchema = require("./schema/driver.schema");
 const handleReplaceData = require("../ultils/replaceData");
+const transmissionInfoApi = require("../api/transmissionInfo.api");
+const { date, String2Unit } = require("../ultils/getTime");
+const {
+  CREATE_TYPE,
+  UPDATE_TYPE,
+  DELETE_TYPE,
+} = require("../constants/global.constant");
 
 class DriverModel extends DatabaseModel {
   constructor() {
@@ -32,6 +39,41 @@ class DriverModel extends DatabaseModel {
       32: { isExisted: true, fn: this.getDataWriteCardCMRGSHT },
       23: { isExisted: true, fn: this.getDataWriteCardCMRGSHT },
     };
+  }
+
+  async transmission({
+    conn,
+    licenseTypeId: license_type_id,
+    licenseNumber: license_number,
+    name,
+    activationDate: activation_date,
+    expiredOn: expired_on,
+    placeOfIssue: place_of_issue,
+    type,
+  }) {
+    const dataLicenseType = await this.select(
+      conn,
+      tableLicenseType,
+      "id,title",
+      "id = ? ",
+      license_type_id
+    );
+
+    // console.log("dataLicenseType", dataLicenseType);
+
+    if (dataLicenseType?.length) {
+      const licenseType = dataLicenseType[0]?.title;
+      await transmissionInfoApi.driver({
+        license_number,
+        name,
+        issue_date: date(activation_date),
+        expired_date: date(expired_on),
+        issue_place: place_of_issue,
+        license_type: licenseType,
+        time: String2Unit(Date.now()),
+        type,
+      });
+    }
   }
 
   getDataWriteCardAICam = ({ licenseNumber, name }) => {
@@ -104,16 +146,7 @@ class DriverModel extends DatabaseModel {
      INNER JOIN ${tableRole} r ON ur.role_id = r.id
     `;
 
-    // const joinTable = `${tableDriver}
-    //  INNER JOIN ${tableLicenseType} ON ${tableDriver}.license_type_id = ${tableLicenseType}.id
-    //  INNER JOIN ${tableCustomers} ON ${tableDriver}.customer_id = ${tableCustomers}.id
-    //  INNER JOIN ${tableUsersCustomers} ON ${tableDriver}.creator = ${tableUsersCustomers}.user_id
-    //  INNER JOIN ${tableCustomers} c ON ${tableUsersCustomers}.customer_id = c.id
-    //  INNER JOIN ${tableUsers} ON ${tableDriver}.creator = ${tableUsers}.id
-    //  INNER JOIN ${tableUsersRole} ON ${tableDriver}.creator = ${tableUsersRole}.user_id
-    //  INNER JOIN ${tableRole} ON ${tableUsersRole}.role_id = ${tableRole}.id`;
-
-    const select = `cdr.id,dr.name,dr.license_number,dr.is_actived,dr.is_check,
+    const select = `cdr.id,dr.name,dr.license_number,dr.is_actived,dr.is_check,dr.place_of_issue,
       dr.phone,dr.address,dr.birthday,dr.expired_on,dr.activation_date,
       lt.title as license_type_name,c.name as customer_name,dr.gender,
       CONCAT(u.username,"(",r.name,") ",COALESCE(c1.company, c1.name)) as creator,dr.citizen_identity_card,dr.created_at,dr.updated_at`;
@@ -202,6 +235,7 @@ class DriverModel extends DatabaseModel {
       dr.license_type_id,
       dr.expired_on,
       dr.activation_date,
+      dr.place_of_issue,
       dr.is_actived`;
 
     const joinTable = `${tableDriver} dr INNER JOIN ${tableCustomersDriver} cdr ON dr.id = cdr.driver_id`;
@@ -286,67 +320,42 @@ class DriverModel extends DatabaseModel {
       license_type_id,
       expired_on,
       activation_date,
+      place_of_issue,
       is_actived,
     } = body;
+
     const driver = new DriverSchema({
-      creator: accId,
-      customer_id,
       name,
       license_number,
+      expired_on,
+      activation_date,
+      place_of_issue,
+      license_type_id,
       birthday: birthday || null,
       citizen_identity_card: citizen_identity_card || null,
       gender,
       phone: phone || null,
       address: address || null,
-      license_type_id,
-      expired_on: expired_on || null,
-      activation_date: activation_date || null,
       is_check: 0,
       is_actived,
       is_deleted: 0,
       created_at: Date.now(),
     });
     delete driver.updated_at;
+
     await connPromise.beginTransaction();
 
     const res_ = await this.insertDuplicate(
       conn,
       tableDriver,
-      ` 
-        name,
-        license_number,
-        birthday,
-        citizen_identity_card,
-        gender,
-        phone,
-        address,
-        license_type_id,
-        expired_on,
-        activation_date,
-        is_check,
-        is_actived,
-        is_deleted,
-        created_at`,
-      [
-        [
-          name,
-          license_number,
-          birthday || null,
-          citizen_identity_card || null,
-          gender,
-          phone || null,
-          address || null,
-          license_type_id,
-          expired_on || null,
-          activation_date || null,
-          0,
-          is_actived,
-          0,
-          Date.now(),
-        ],
-      ],
-      `is_deleted=VALUES(is_deleted),updated_at=VALUES(created_at)`
+      Object.keys(driver).join(","),
+      [Object.values(driver)],
+      `is_deleted=VALUES(is_deleted),updated_at=VALUES(created_at)`,
+      true
     );
+
+    // console.log("res_", res_);
+    const { insertId: driverId, affectedRows } = res_;
 
     await this.insertDuplicate(
       conn,
@@ -356,11 +365,11 @@ class DriverModel extends DatabaseModel {
         driver_id,
         is_deleted,
         created_at`,
-      [[accId, customer_id, res_, 0, Date.now()]],
+      [[accId, customer_id, driverId, 0, Date.now()]],
       `is_deleted=VALUES(is_deleted),updated_at=VALUES(created_at)`
     );
 
-    driver.id = res_;
+    driver.id = driverId;
     delete driver.is_deleted;
     delete driver.is_check;
 
@@ -372,6 +381,20 @@ class DriverModel extends DatabaseModel {
     );
 
     if (!result) throw { msg: ERROR };
+
+    if (affectedRows == 1) {
+      await this.transmission({
+        conn,
+        licenseNumber: license_number,
+        licenseTypeId: license_type_id,
+        name,
+        activationDate: activation_date,
+        expiredOn: expired_on,
+        placeOfIssue: place_of_issue,
+        type: CREATE_TYPE,
+      });
+    }
+
     await connPromise.commit();
     return driver;
   }
@@ -398,6 +421,7 @@ class DriverModel extends DatabaseModel {
       license_type_id,
       expired_on,
       activation_date,
+      place_of_issue,
       is_actived,
     } = body;
     const { id } = params;
@@ -405,20 +429,18 @@ class DriverModel extends DatabaseModel {
     const driver = new DriverSchema({
       name,
       license_number,
+      expired_on,
+      activation_date,
+      place_of_issue,
+      license_type_id,
       birthday: birthday || null,
       citizen_identity_card: citizen_identity_card || null,
       gender,
       phone: phone || null,
       address: address || null,
-      license_type_id,
-      expired_on: expired_on || null,
-      activation_date: activation_date || null,
       is_actived,
       updated_at: Date.now(),
     });
-    // console.log(id)
-    delete driver.creator;
-    delete driver.customer_id;
     delete driver.is_check;
     delete driver.is_deleted;
     delete driver.created_at;
@@ -446,6 +468,17 @@ class DriverModel extends DatabaseModel {
       await hdelOneKey(REDIS_KEY_LIST_DRIVER, licenseNumber.toString());
     }
 
+    await this.transmission({
+      conn,
+      licenseNumber: license_number,
+      licenseTypeId: license_type_id,
+      name,
+      activationDate: activation_date,
+      expiredOn: expired_on,
+      placeOfIssue: place_of_issue,
+      type: UPDATE_TYPE,
+    });
+
     await connPromise.commit();
 
     return driver;
@@ -454,7 +487,15 @@ class DriverModel extends DatabaseModel {
   //delete
   async deleteById(conn, connPromise, params, driverInfo, isDeleteđriver) {
     const { id } = params;
-    const { driver_id, license_number } = driverInfo;
+    const {
+      driver_id,
+      license_number,
+      license_type_id,
+      name,
+      activation_date,
+      expired_on,
+      place_of_issue,
+    } = driverInfo;
     await connPromise.beginTransaction();
 
     await this.update(conn, tableCustomersDriver, { is_deleted: 1 }, "id", id);
@@ -468,6 +509,17 @@ class DriverModel extends DatabaseModel {
         driver_id
       );
       await hdelOneKey(REDIS_KEY_LIST_DRIVER, license_number.toString());
+
+      await this.transmission({
+        conn,
+        licenseNumber: license_number,
+        licenseTypeId: license_type_id,
+        name,
+        activationDate: activation_date || null,
+        expiredOn: expired_on,
+        placeOfIssue: place_of_issue || null,
+        type: DELETE_TYPE,
+      });
     }
 
     await connPromise.commit();

@@ -28,8 +28,9 @@ const {
   tableRenewalCode,
   tableRenewalCodeDevice,
   tableServicePackage,
+  tableTransmission,
 } = require("../constants/tableName.constant");
-const { date } = require("../ultils/getTime");
+const { date, String2Unit } = require("../ultils/getTime");
 const { makeCode } = require("../ultils/makeCode");
 const DatabaseModel = require("./database.model");
 const deviceLoggingModel = require("./deviceLogging.model");
@@ -38,12 +39,75 @@ const { del: delRedis, hdelOneKey, hSet: hsetRedis } = require("./redis.model");
 const configureEnvironment = require("../config/dotenv.config");
 const { fork } = require("child_process");
 const deviceApi = require("../api/device.api");
+const { UPDATE_TYPE } = require("../constants/global.constant");
+const transmissionInfoApi = require("../api/transmissionInfo.api");
 
 const { SV_NOTIFY } = configureEnvironment();
 
 class VehicleModel extends DatabaseModel {
   constructor() {
     super();
+  }
+
+  async getTransmission(conn, query, userId) {
+    const offset = query.offset || 0;
+    const limit = query.limit || 10;
+
+    const {
+      keyword,
+      model_id,
+      start_activation_date,
+      end_activation_date,
+      is_deleted,
+    } = query;
+
+    const isDeleted = is_deleted || 0;
+    let where = `ud.user_id = ? AND ud.is_deleted = ? AND ud.is_main = ? AND d.is_deleted = ?`;
+    let conditions = [userId, isDeleted, 1, isDeleted];
+
+    if (keyword) {
+      where = `(d.imei LIKE ? OR d.dev_id LIKE ? OR v.name LIKE ?) AND ${where}`;
+      conditions.unshift(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`);
+    }
+
+    if (model_id) {
+      where += ` AND d.model_id = ?`;
+      conditions.push(model_id);
+    }
+
+    if (start_activation_date && end_activation_date && type == 1) {
+      where += ` AND dv.activation_date BETWEEN ? AND ?`;
+      conditions.push(start_activation_date, end_activation_date);
+    }
+
+    const joinTable = `${tableDevice} d INNER JOIN ${tableUsersDevices} ud ON d.id = ud.device_id
+      INNER JOIN ${tableModel} m ON d.model_id = m.id
+      INNER JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id
+      INNER JOIN ${tableVehicle} v ON dv.vehicle_id = v.id
+      LEFT JOIN ${tableTransmission} t ON v.id = t.vehicle_id
+    `;
+
+    const select = `d.id as device_id,d.dev_id,d.imei,dv.activation_date,dv.is_transmission_gps,dv.is_transmission_image,v.id as vehicle_id,
+      v.name as vehicle_name,m.name as model_name,t.first_time,t.last_time,t.location,t.quantity,t.time,t.note`;
+
+    const [res_, count] = await Promise.all([
+      this.select(
+        conn,
+        joinTable,
+        select,
+        `${where} GROUP BY d.id`,
+        conditions,
+        "dv.activation_date",
+        "DESC",
+        offset,
+        limit
+      ),
+      this.count(conn, joinTable, "DISTINCT d.id", where, conditions),
+    ]);
+
+    const totalPage = Math.ceil(count?.[0]?.total / limit);
+
+    return { data: res_, totalPage, totalRecord: count?.[0]?.total };
   }
 
   async getInfoDevice(conn, imei, device_id, user_id) {
@@ -66,7 +130,7 @@ class VehicleModel extends DatabaseModel {
       v.display_name,v.name as vehicle_name,v.id as vehicle_id,v.vehicle_type_id,vt.name as vehicle_type_name,vt.vehicle_icon_id,vt.max_speed,
       m.name as model_name,m.model_type_id,ds.title as device_status_name,COALESCE(c0.company,
       c0.name) as customer_name,COALESCE(c.company, c.name) as agency_name,c.phone as agency_phone,vi.name as vehicle_icon_name,
-      c0.id as customer_id,c.id as agency_id,d.sv_cam_id`;
+      c0.id as customer_id,c0.tax_code as tax_code,c.id as agency_id,d.sv_cam_id`;
 
     let where = `AND ud.is_moved = 0 AND ud.is_main = 1 AND ud.is_deleted = 0 AND d.is_deleted = 0 AND c0.is_deleted = 0 AND u.is_deleted = 0 AND dv.is_deleted = 0`;
     const condition = [];
@@ -96,7 +160,7 @@ class VehicleModel extends DatabaseModel {
       99999
     );
 
-    // console.log("data", imei, data);
+    // console.log("data", imei, data?.length);
 
     if (data.length) {
       await Promise.all(
@@ -576,6 +640,121 @@ class VehicleModel extends DatabaseModel {
     await connPromise.commit();
     vehicle.id = id;
     return vehicle;
+  }
+
+  async handleUpdate({ conn, dataUpdate, device_id, vehicle_id }) {
+    await this.update(
+      conn,
+      tableDeviceVehicle,
+      dataUpdate,
+      "",
+      [device_id, vehicle_id],
+      "id",
+      true,
+      "device_id = ? AND vehicle_id = ?"
+    );
+  }
+
+  async handleTransmission({ conn, vehicleId, deviceId }) {
+    const joinTable = `${tableVehicle} v INNER JOIN ${tableDeviceVehicle} dv ON v.id = dv.vehicle_id
+    INNER JOIN ${tableDevice} d ON dv.device_id = d.id
+    INNER JOIN ${tableUsersDevices} ud ON d.id = ud.device_id
+    INNER JOIN ${tableUsersCustomers} uc ON ud.user_id = uc.user_id
+    INNER JOIN ${tableCustomers} c ON uc.customer_id = c.id
+    INNER JOIN ${tableModel} m ON d.model_id = m.id`;
+
+    const select = `v.id as vehicle_id,v.name as vehicle_name,c.business_type_id,c.tax_code,
+    m.compliance_device_number,m.compliance_device_type as model_name,
+    d.imei,d.serial as sim,v.created_at,v.updated_at,v.chassis_number,v.weight`;
+
+    const where = `v.id = ? AND v.is_deleted = ? AND d.id = ? AND d.is_deleted = ?
+       AND ud.device_id = ? AND ud.is_main = ? AND ud.is_deleted = ? AND ud.is_moved = ?
+       AND c.is_deleted = ? AND m.is_deleted = ?`;
+
+    const conditions = [vehicleId, 0, deviceId, 0, deviceId, 1, 0, 0, 0, 0];
+
+    const vehicle = await this.select(
+      conn,
+      joinTable,
+      select,
+      where,
+      conditions,
+      "v.id",
+      "ASC",
+      0,
+      1
+    );
+
+    if (!vehicle?.length)
+      throw { msg: ERROR, errors: [{ msg: "Vehicle not found" }] };
+
+    const {
+      vehicle_name,
+      business_type_id,
+      tax_code,
+      compliance_device_number,
+      model_name,
+      imei,
+      sim,
+      created_at,
+      updated_at,
+      chassis_number,
+      weight,
+    } = vehicle[0];
+
+    const body = {
+      vehicle_name,
+      business_type: business_type_id,
+      license_number: null,
+      tax_code,
+      compliance_device_number,
+      model: model_name,
+      imei,
+      sim,
+      installation_or_adjustmentDate: updated_at
+        ? date(updated_at)
+        : date(created_at),
+      chassis_number,
+      weight: weight ? weight / 1000 : 0,
+      time: String2Unit(Date.now()),
+      type: UPDATE_TYPE,
+    };
+    await transmissionInfoApi.vehicle(body);
+  }
+
+  async updateTransmission(conn, connPromise, body, params) {
+    const { property, value, device_id } = body;
+    const { id: vehicle_id } = params;
+    const dataTranmission = {
+      is_transmission_gps: { is_transmission_gps: value },
+      is_transmission_image: { is_transmission_image: value },
+    };
+
+    const dataUpdate = dataTranmission[property];
+
+    if (!dataUpdate)
+      throw { msg: ERROR, errors: [{ msg: "Transmission is not defined" }] };
+
+    await connPromise.beginTransaction();
+
+    await this.handleUpdate({ conn, dataUpdate, device_id, vehicle_id });
+
+    const dataSaveRedis = await this.getInfoDevice(conn, null, device_id);
+
+    if (!dataSaveRedis?.length)
+      throw {
+        msg: ERROR,
+        errors: [{ msg: NOT_UPDATE_REALTIME }],
+      };
+
+    await this.handleTransmission({
+      conn,
+      vehicleId: vehicle_id,
+      deviceId: device_id,
+    });
+
+    await connPromise.commit();
+    return [];
   }
 
   async updateExpiredOn(

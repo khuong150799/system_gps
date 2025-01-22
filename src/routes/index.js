@@ -40,4 +40,5 @@ module.exports = (app) => {
   require("./platform.route")(app);
   require("./typeAiSafe.route")(app);
   require("./monitor.route")(app);
+  require("./businessType.route")(app);
 };

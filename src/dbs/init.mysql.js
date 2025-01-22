@@ -3,13 +3,13 @@ const dbConfig = require("../config/db.config");
 const constants = require("../constants/msg.constant");
 
 const pool = mysql.createPool(dbConfig);
-const vehicleModel = require("../models/vehicle.model");
-const {
-  tableDevice,
-  tableDeviceVehicle,
-  tableVehicle,
-} = require("../constants/tableName.constant");
-const { activationCms } = require("../models/device.model");
+// const vehicleModel = require("../models/vehicle.model");
+// const {
+//   tableDevice,
+//   tableDeviceVehicle,
+//   tableVehicle,
+// } = require("../constants/tableName.constant");
+// const { activationCms } = require("../models/device.model");
 // const configFuelModel = require("../models/configFuel.model");
 // const driverModel = require("../models/driver.model");
 // const { hSet } = require("../models/redis.model");
@@ -85,6 +85,10 @@ class Datatbase {
         // try {
         // Bắt đầu transaction
         console.log(`SUCCESS:: CONNECTED TO DATABASE >> ${dbConfig.host}`);
+
+        // await vehicleModel.getInfoDevice(conn, null, null, null);
+
+        // console.log(`SUCCESS UPDATE REDIS`);
 
         //   await conn.promise().beginTransaction();
 

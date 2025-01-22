@@ -1,4 +1,4 @@
-const { UPDATE, DELETE } = require("../core/success.response");
+const { UPDATE, DELETE, GET } = require("../core/success.response");
 const catchAsync = require("../helper/catchAsync.helper");
 const vehicleService = require("../services/vehicle.service");
 
@@ -7,6 +7,20 @@ class VehicleController {
     const { body, params } = req;
     const data = await vehicleService.updateById(body, params);
     UPDATE(res, [data]);
+  });
+
+  updateTransmission = catchAsync(async (req, res) => {
+    const { body, params } = req;
+    const data = await vehicleService.updateTransmission(body, params);
+    UPDATE(res, [data]);
+  });
+
+  getTransmission = catchAsync(async (req, res) => {
+    const { query, userId } = req;
+    const { data, totalPage, totalRecord } =
+      await vehicleService.getTransmission(query, userId);
+
+    GET(res, data, totalPage, totalRecord);
   });
 
   remote = catchAsync(async (req, res) => {

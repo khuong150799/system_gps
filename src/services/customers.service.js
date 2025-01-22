@@ -1,6 +1,10 @@
 const db = require("../dbs/init.mysql");
 const customersModel = require("../models/customers.model");
-const { ERROR, ALREADY_EXITS } = require("../constants/msg.constant");
+const {
+  ERROR,
+  ALREADY_EXITS,
+  NOT_EXITS,
+} = require("../constants/msg.constant");
 const { BusinessLogicError } = require("../core/error.response");
 const DatabaseModel = require("../models/database.model");
 const validateModel = require("../models/validate.model");
@@ -153,7 +157,7 @@ class CustomersService {
           parent_id,
         } = body;
         if (email) {
-          await validateModel.checkRegexEmial(email);
+          await validateModel.checkRegexEmail(email);
         }
 
         if (phone) {
@@ -250,7 +254,12 @@ class CustomersService {
     try {
       const { conn } = await db.getConnection();
       try {
-        await customersModel.deleteById(conn, params);
+        const info = await customersModel.getById(conn, params);
+
+        if (!info?.length)
+          throw { msg: ERROR, errors: [{ msg: `ID ${NOT_EXITS}` }] };
+
+        await customersModel.deleteById(conn, params, info);
         return [];
       } catch (error) {
         throw error;

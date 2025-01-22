@@ -60,6 +60,14 @@ module.exports = (app) => {
         .notEmpty()
         .isNumeric()
         .withMessage(VALIDATE_DATA),
+      body("activation_date", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA),
+      body("expired_on", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA),
       body("license_type_id", NOT_EMPTY)
         .notEmpty()
         .isNumeric()
@@ -89,6 +97,14 @@ module.exports = (app) => {
       body("name", NOT_EMPTY).notEmpty().isString().withMessage(VALIDATE_DATA),
 
       body("license_number", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA),
+      body("activation_date", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA),
+      body("expired_on", NOT_EMPTY)
         .notEmpty()
         .isNumeric()
         .withMessage(VALIDATE_DATA),

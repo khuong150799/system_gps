@@ -20,6 +20,38 @@ module.exports = (app) => {
   );
 
   router.patch(
+    "/update-transmission/:id",
+    [
+      param("id", VALIDATE_DATA).isNumeric(),
+      body("property", NOT_EMPTY)
+        .notEmpty()
+        .isString()
+        .withMessage(VALIDATE_DATA),
+      body("value", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA),
+    ],
+    isAuth,
+    checkPermission,
+    vehicleController.updateTransmission
+  );
+
+  router.get(
+    "/transmission",
+    [
+      query("keyword", VALIDATE_DATA).isString().escape(),
+      query("is_deleted").escape(),
+      query("model_id").escape(),
+      query("start_activation_date").escape(),
+      query("end_activation_date").escape(),
+    ],
+    isAuth,
+    // checkPermission,
+    vehicleController.getTransmission
+  );
+
+  router.patch(
     "/update-lock/:id",
     [
       param("id", VALIDATE_DATA).isNumeric(),

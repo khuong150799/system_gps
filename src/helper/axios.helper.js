@@ -1,12 +1,11 @@
 const { default: axios } = require("axios");
 const configureEnvironment = require("../config/dotenv.config");
 
-// const https = require("https");
-
 const {
   SV_REAL_ALARM,
-  SV_CRON_JOB,
+  SV_CRON_SYSTEM,
   SV_ASSET_STORAGE,
+  SV_TRANSMISSION_INFO,
   ACCOUNT_CMS,
   PASSWORD_CMS,
 } = configureEnvironment();
@@ -18,27 +17,24 @@ const axiosAssetStorage = axios.create({
   baseURL: SV_ASSET_STORAGE,
 });
 
-// const agent = new https.Agent({
-//   rejectUnauthorized: false,
-// });
+const axiosCronSystem = axios.create({
+  baseURL: SV_CRON_SYSTEM,
+});
 
-const axiosCronJob = axios.create({
-  baseURL: SV_CRON_JOB,
+const axiosTransmissionInfo = axios.create({
+  baseURL: SV_TRANSMISSION_INFO,
 });
 
 const axiosCMS1NoAuth = axios.create({
   timeout: 20000,
-  // httpsAgent: agent,
 });
 
 const axiosCMS = axios.create({
   timeout: 20000,
-  // httpsAgent: agent,
 });
 
 const axiosNoConfig = axios.create({
   timeout: 20000,
-  // httpsAgent: agent,
 });
 
 const handleRequestCMS = async (config) => {
@@ -108,12 +104,18 @@ axiosCMS1NoAuth.interceptors.response.use(handleResponse, handleResponseError);
 axiosCMS.interceptors.response.use(handleResponse, handleResponseError);
 
 axiosAlarm.interceptors.response.use(handleResponse, handleResponseError);
+
 axiosAssetStorage.interceptors.response.use(
   handleResponse,
   handleResponseError
 );
 
-axiosCronJob.interceptors.response.use(handleResponse, handleResponseError);
+axiosCronSystem.interceptors.response.use(handleResponse, handleResponseError);
+
+axiosTransmissionInfo.interceptors.response.use(
+  handleResponse,
+  handleResponseError
+);
 
 module.exports = {
   axiosAlarm,
@@ -121,5 +123,6 @@ module.exports = {
   axiosCMS,
   axiosNoConfig,
   axiosCMS1NoAuth,
-  axiosCronJob,
+  axiosCronSystem,
+  axiosTransmissionInfo,
 };

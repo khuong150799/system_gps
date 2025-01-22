@@ -37,6 +37,24 @@ const {
 const dataBaseModel = new DatabaseModel();
 
 class vehicleService {
+  async getTransmission(query, userId) {
+    try {
+      const { conn } = await db.getConnection();
+      try {
+        const data = await vehicleModel.getTransmission(conn, query, userId);
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      console.log(error);
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
+    }
+  }
+
   async handleCheckRechargeCard(conn, deviceId) {
     const joinTable = `${tableRenewalCodeDevice} rnd INNER JOIN ${tableRenewalCode} rn ON rnd.renewal_code_id = rn.id`;
     const data = await dataBaseModel.select(
@@ -427,6 +445,30 @@ class vehicleService {
           body,
           params,
           dataInfo
+        );
+        return data;
+      } catch (error) {
+        await connPromise.rollback();
+        throw error;
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      console.log(error);
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
+    }
+  }
+
+  async updateTransmission(body, params) {
+    try {
+      const { conn, connPromise } = await db.getConnection();
+      try {
+        const data = await vehicleModel.updateTransmission(
+          conn,
+          connPromise,
+          body,
+          params
         );
         return data;
       } catch (error) {

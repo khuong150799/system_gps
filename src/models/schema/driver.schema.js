@@ -1,7 +1,5 @@
 class DriverSchema {
   constructor({
-    creator,
-    customer_id,
     name,
     license_number,
     birthday,
@@ -12,14 +10,13 @@ class DriverSchema {
     license_type_id,
     expired_on,
     activation_date,
+    place_of_issue,
     is_check,
     is_actived,
     is_deleted,
     created_at,
     updated_at,
   }) {
-    this.creator = creator;
-    this.customer_id = customer_id;
     this.name = name;
     this.license_number = license_number;
     this.birthday = birthday;
@@ -30,6 +27,7 @@ class DriverSchema {
     this.license_type_id = license_type_id;
     this.expired_on = expired_on;
     this.activation_date = activation_date;
+    this.place_of_issue = place_of_issue;
     this.is_check = is_check;
     this.is_actived = is_actived;
     this.is_deleted = is_deleted;

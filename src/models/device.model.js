@@ -43,13 +43,14 @@ const {
   initialNameOfTableRunning,
   initialNameOfTableReportRegion,
 } = require("../constants/setting.constant");
-const usersModel = require("./users.model");
-const { makeCode } = require("../ultils/makeCode");
+// const usersModel = require("./users.model");
+// const { makeCode } = require("../ultils/makeCode");
 const vehicleModel = require("./vehicle.model");
 const deviceLoggingModel = require("./deviceLogging.model");
 const DeviceVehicleSchema = require("./schema/deviceVehicle.schema");
 const cameraApi = require("../api/camera.api");
 const { date } = require("../ultils/getTime");
+const customersModel = require("./customers.model");
 
 class DeviceModel extends DatabaseModel {
   constructor() {
@@ -414,30 +415,7 @@ class DeviceModel extends DatabaseModel {
     return data;
   }
 
-  //activation
-  async activationOutside(conn, connPromise, body) {
-    const {
-      device_id,
-      name,
-      parent_id,
-      username,
-      password,
-      vehicle,
-      weight,
-      type,
-      warning_speed,
-      quantity_channel,
-      service_package_id,
-      is_transmission_gps,
-      is_transmission_image,
-      note,
-      expired_on,
-      imei,
-      model_type_id,
-      is_use_gps,
-      phoneNumber,
-    } = body;
-
+  async handleCheckPackage(conn, service_package_id, ischeckAntiTheft = true) {
     const infoPackage = await this.select(
       conn,
       tableServicePackage,
@@ -445,7 +423,7 @@ class DeviceModel extends DatabaseModel {
       "id = ?",
       service_package_id
     );
-    if (infoPackage?.length <= 0)
+    if (infoPackage?.length <= 0) {
       throw {
         msg: ERROR,
         errors: [
@@ -456,8 +434,7 @@ class DeviceModel extends DatabaseModel {
           },
         ],
       };
-
-    if (service_package_id == 29)
+    } else if (service_package_id == 29 && ischeckAntiTheft)
       throw {
         msg: ERROR,
         errors: [
@@ -469,115 +446,10 @@ class DeviceModel extends DatabaseModel {
         ],
       };
 
-    await connPromise.beginTransaction();
-    const createdAt = Date.now();
-    const code = makeCode();
-    const res_ = await this.insert(conn, tableCustomers, {
-      code,
-      name,
-      phone: phoneNumber || null,
-      level_id: 6,
-      publish: 1,
-      is_deleted: 0,
-      created_at: createdAt,
-    });
+    return infoPackage;
+  }
 
-    const dataInsertUser = {
-      parent_id,
-      username,
-      password,
-      role_id: 3,
-      customer_id: res_,
-      is_actived: 1,
-    };
-
-    const user = await usersModel.register(
-      conn,
-      connPromise,
-      dataInsertUser,
-      -1,
-      false
-    );
-
-    const userId = user[0].id;
-
-    const { times } = infoPackage[0];
-    const date = new Date(createdAt);
-    const date_ = new Date(createdAt);
-    date.setFullYear(date.getFullYear() + 1);
-    date_.setMonth(date_.getMonth() + Number(times));
-
-    const vehicle_ = new VehicleSchema({
-      display_name: vehicle,
-      name: vehicle,
-      vehicle_type_id: type,
-      weight,
-      warning_speed: warning_speed || null,
-      note,
-      is_checked: 0,
-      is_deleted: 0,
-      created_at: createdAt,
-    });
-    delete vehicle_.updated_at;
-    const vehicleId = await this.insert(conn, tableVehicle, vehicle_);
-
-    const expiredOn = expired_on || date_.getTime();
-
-    const deviceVehicle = new DeviceVehicleSchema({
-      device_id,
-      vehicle_id: vehicleId,
-      service_package_id,
-      expired_on: expiredOn,
-      activation_date: createdAt,
-      warranty_expired_on: date.getTime(),
-      quantity_channel,
-      quantity_channel_lock: 0,
-      type: model_type_id,
-      is_use_gps,
-      is_deleted: 0,
-      is_transmission_gps:
-        !is_transmission_gps || is_transmission_gps == 0 ? 0 : 1,
-      is_transmission_image:
-        !is_transmission_image || is_transmission_image == 0 ? 0 : 1,
-      warning_speed: warning_speed || null,
-      created_at: createdAt,
-    });
-
-    delete deviceVehicle.updated_at;
-
-    await this.insert(conn, tableDeviceVehicle, deviceVehicle);
-
-    const dataUpdateDevice = {
-      device_status_id: 3,
-      warranty_expired_on: date.getTime(),
-      activation_date: createdAt,
-      expired_on: expiredOn,
-    };
-
-    if (expired_on) {
-      delete dataUpdateDevice.activation_date;
-      delete dataUpdateDevice.warranty_expired_on;
-    }
-
-    await this.update(conn, tableDevice, dataUpdateDevice, "id", device_id);
-
-    await this.update(
-      conn,
-      tableUsersDevices,
-      { is_moved: 1 },
-      "device_id",
-      device_id
-    );
-
-    const usersDevicesInsert = [[userId, device_id, 1, 0, 0, createdAt]];
-    await this.insertDuplicate(
-      conn,
-      tableUsersDevices,
-      "user_id,device_id,is_main,is_deleted,is_moved,created_at",
-      usersDevicesInsert,
-      `is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved)`
-    );
-
+  async handleCreateTable(conn, device_id) {
     const tableGps = getTableName(initialNameOfTableGps, device_id);
     const tableSpeed = getTableName(initialNameOfTableSpeed, device_id);
     const tableReportOneDay = getTableName(
@@ -616,6 +488,336 @@ class DeviceModel extends DatabaseModel {
     if (listTableCreate?.length > 0) {
       await Promise.all(listTableCreate);
     }
+  }
+
+  async handleCreateVehicle(
+    conn,
+    body,
+    infoPackage,
+    createdAt,
+    vehicle_id = null
+  ) {
+    const {
+      device_id,
+      vehicle,
+      weight,
+      chassis_number,
+      type,
+      warning_speed,
+      quantity_channel,
+      service_package_id,
+      is_transmission_gps,
+      is_transmission_image,
+      note,
+      imei,
+      expired_on,
+      model_type_id,
+      is_use_gps,
+    } = body;
+
+    let vehicleId = vehicle_id;
+
+    const { times } = infoPackage[0];
+    const date = new Date(createdAt);
+    const date_ = new Date(createdAt);
+    date.setFullYear(date.getFullYear() + 1);
+    date_.setMonth(date_.getMonth() + Number(times));
+
+    if (!vehicleId) {
+      const vehicle_ = new VehicleSchema({
+        display_name: vehicle,
+        name: vehicle,
+        vehicle_type_id: type,
+        weight,
+        chassis_number: chassis_number || null,
+        warning_speed: warning_speed || null,
+        note,
+        is_checked: 0,
+        is_deleted: 0,
+        created_at: createdAt,
+      });
+      delete vehicle_.updated_at;
+      vehicleId = await this.insert(conn, tableVehicle, vehicle_);
+    }
+
+    if (service_package_id == 29 && vehicleId) {
+      await this.handleGpsLinkAntiTheft(conn, vehicleId, imei);
+    }
+
+    const expiredOn = expired_on || date_.getTime();
+
+    const deviceVehicle = new DeviceVehicleSchema({
+      device_id,
+      vehicle_id: vehicleId,
+      service_package_id,
+      expired_on: expiredOn,
+      activation_date: createdAt,
+      warranty_expired_on: date.getTime(),
+      quantity_channel,
+      quantity_channel_lock: 0,
+      type: model_type_id,
+      is_use_gps,
+      is_deleted: 0,
+      is_transmission_gps:
+        !is_transmission_gps || is_transmission_gps == 0 ? 0 : 1,
+      is_transmission_image:
+        !is_transmission_image || is_transmission_image == 0 ? 0 : 1,
+      warning_speed: warning_speed || null,
+      created_at: createdAt,
+    });
+
+    delete deviceVehicle.updated_at;
+
+    await this.insert(conn, tableDeviceVehicle, deviceVehicle);
+
+    const dataUpdateDevice = {
+      device_status_id: 3,
+      warranty_expired_on: date.getTime(),
+      activation_date: createdAt,
+      expired_on: expiredOn,
+    };
+
+    if (expired_on) {
+      delete dataUpdateDevice.activation_date;
+      delete dataUpdateDevice.warranty_expired_on;
+    }
+
+    await this.update(conn, tableDevice, dataUpdateDevice, "id", device_id);
+  }
+
+  //activation
+  async activationOutside(conn, connPromise, body) {
+    const {
+      device_id,
+      vehicle,
+      weight,
+      type,
+      warning_speed,
+      quantity_channel,
+      service_package_id,
+      is_transmission_gps,
+      is_transmission_image,
+      note,
+      imei,
+      model_type_id,
+      is_use_gps,
+      expired_on,
+      name,
+      parent_id,
+      username,
+      password,
+      phoneNumber,
+      business_type_id,
+    } = body;
+
+    // const infoPackage = await this.select(
+    //   conn,
+    //   tableServicePackage,
+    //   "times",
+    //   "id = ?",
+    //   service_package_id
+    // );
+    // if (infoPackage?.length <= 0)
+    //   throw {
+    //     msg: ERROR,
+    //     errors: [
+    //       {
+    //         value: service_package_id,
+    //         msg: `Gói dịch vụ ${NOT_EXITS}`,
+    //         param: "service_package_id",
+    //       },
+    //     ],
+    //   };
+
+    // if (service_package_id == 29)
+    //   throw {
+    //     msg: ERROR,
+    //     errors: [
+    //       {
+    //         msg: "Thiết bị cống trộm chỉ có thể thêm vào phương tiện",
+    //         value: imei,
+    //         param: "imei",
+    //       },
+    //     ],
+    //   };
+
+    const infoPackage = await this.handleCheckPackage(conn, service_package_id);
+
+    await connPromise.beginTransaction();
+    const createdAt = Date.now();
+
+    const user = await customersModel.register(
+      conn,
+      connPromise,
+      {
+        level_id: 6,
+        name,
+        company: null,
+        email: null,
+        phone: phoneNumber,
+        address: null,
+        tax_code: null,
+        website: null,
+        parent_id,
+        username,
+        password,
+        role_id: 3,
+        publish: 1,
+        business_type_id,
+      },
+      false
+    );
+
+    // const code = makeCode();
+    // const res_ = await this.insert(conn, tableCustomers, {
+    //   code,
+    //   name,
+    //   phone: phoneNumber || null,
+    //   level_id: 6,
+    //   publish: 1,
+    //   is_deleted: 0,
+    //   created_at: createdAt,
+    // });
+
+    // const dataInsertUser = {
+    //   parent_id,
+    //   username,
+    //   password,
+    //   role_id: 3,
+    //   customer_id: res_,
+    //   is_actived: 1,
+    // };
+
+    // const user = await usersModel.register(
+    //   conn,
+    //   connPromise,
+    //   dataInsertUser,
+    //   -1,
+    //   false
+    // );
+
+    // const userId = user[0].id;
+    const userId = user.id;
+
+    // const { times } = infoPackage[0];
+    // const date = new Date(createdAt);
+    // const date_ = new Date(createdAt);
+    // date.setFullYear(date.getFullYear() + 1);
+    // date_.setMonth(date_.getMonth() + Number(times));
+
+    // const vehicle_ = new VehicleSchema({
+    //   display_name: vehicle,
+    //   name: vehicle,
+    //   vehicle_type_id: type,
+    //   weight,
+    //   warning_speed: warning_speed || null,
+    //   note,
+    //   is_checked: 0,
+    //   is_deleted: 0,
+    //   created_at: createdAt,
+    // });
+    // delete vehicle_.updated_at;
+    // const vehicleId = await this.insert(conn, tableVehicle, vehicle_);
+
+    // const expiredOn = expired_on || date_.getTime();
+
+    // const deviceVehicle = new DeviceVehicleSchema({
+    //   device_id,
+    //   vehicle_id: vehicleId,
+    //   service_package_id,
+    //   expired_on: expiredOn,
+    //   activation_date: createdAt,
+    //   warranty_expired_on: date.getTime(),
+    //   quantity_channel,
+    //   quantity_channel_lock: 0,
+    //   type: model_type_id,
+    //   is_use_gps,
+    //   is_deleted: 0,
+    //   is_transmission_gps:
+    //     !is_transmission_gps || is_transmission_gps == 0 ? 0 : 1,
+    //   is_transmission_image:
+    //     !is_transmission_image || is_transmission_image == 0 ? 0 : 1,
+    //   warning_speed: warning_speed || null,
+    //   created_at: createdAt,
+    // });
+
+    // delete deviceVehicle.updated_at;
+
+    // await this.insert(conn, tableDeviceVehicle, deviceVehicle);
+
+    // const dataUpdateDevice = {
+    //   device_status_id: 3,
+    //   warranty_expired_on: date.getTime(),
+    //   activation_date: createdAt,
+    //   expired_on: expiredOn,
+    // };
+
+    // if (expired_on) {
+    //   delete dataUpdateDevice.activation_date;
+    //   delete dataUpdateDevice.warranty_expired_on;
+    // }
+
+    // await this.update(conn, tableDevice, dataUpdateDevice, "id", device_id);
+
+    await this.handleCreateVehicle(conn, body, infoPackage, createdAt, false);
+
+    await this.update(
+      conn,
+      tableUsersDevices,
+      { is_moved: 1 },
+      "device_id",
+      device_id
+    );
+
+    const usersDevicesInsert = [[userId, device_id, 1, 0, 0, createdAt]];
+    await this.insertDuplicate(
+      conn,
+      tableUsersDevices,
+      "user_id,device_id,is_main,is_deleted,is_moved,created_at",
+      usersDevicesInsert,
+      `is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved)`
+    );
+
+    // const tableGps = getTableName(initialNameOfTableGps, device_id);
+    // const tableSpeed = getTableName(initialNameOfTableSpeed, device_id);
+    // const tableReportOneDay = getTableName(
+    //   initialNameOfTableReportOneDay,
+    //   device_id
+    // );
+    // const tableContinuous = getTableName(initialNameOfTableRunning, device_id);
+    // const tableReportRegion = getTableName(
+    //   initialNameOfTableReportRegion,
+    //   device_id
+    // );
+
+    // const listTable = await Promise.all([
+    //   this.checkTableExit(conn, tableGps),
+    //   this.checkTableExit(conn, tableSpeed),
+    //   this.checkTableExit(conn, tableReportOneDay),
+    //   this.checkTableExit(conn, tableContinuous),
+    //   this.checkTableExit(conn, tableReportRegion),
+    // ]);
+
+    // // console.log("listTable", listTable);
+
+    // const listTableCreate = listTable.map((item, i) => {
+    //   if (item && item.includes(initialNameOfTableGps))
+    //     return this.createTableDeviceGps(conn, item);
+    //   if (item && item.includes(initialNameOfTableSpeed))
+    //     return this.createTableDeviceSpeed(conn, item);
+    //   if (item && item.includes(initialNameOfTableReportOneDay))
+    //     return this.createTableReportOneDay(conn, item);
+    //   if (item && item.includes(initialNameOfTableRunning))
+    //     return this.createTableReportContinuous(conn, item);
+    //   if (item && item.includes(initialNameOfTableReportRegion))
+    //     return this.createTableReportRegion(conn, item);
+    // });
+
+    // if (listTableCreate?.length > 0) {
+    //   await Promise.all(listTableCreate);
+    // }
+
+    await this.handleCreateTable(conn, device_id);
 
     const inforDevice = await vehicleModel.getInfoDevice(conn, imei);
     // console.log("inforDevice", inforDevice);
@@ -650,9 +852,83 @@ class DeviceModel extends DatabaseModel {
 
     await connPromise.commit();
 
-    await Promise.all([delRedis(`${REDIS_KEY_DEVICE_SPAM}/${imei}`)]);
+    // await Promise.all([delRedis(`${REDIS_KEY_DEVICE_SPAM}/${imei}`)]);
 
     return [];
+  }
+
+  async handleGpsLinkAntiTheft(conn, vehicleId, imei) {
+    const joinTable = `${tableDeviceVehicle} dv INNER JOIN ${tableDevice} d ON dv.device_id = d.id`;
+
+    const select = "dv.device_id,d.imei";
+    const where =
+      "dv.vehicle_id = ? AND dv.is_deleted = ? AND d.is_deleted = ?";
+    const condition = [vehicleId, 0, 0];
+    const listDeviceOfVehicle = await this.select(
+      conn,
+      joinTable,
+      select,
+      where,
+      condition,
+      "dv.id",
+      "ASC"
+    );
+    if (!listDeviceOfVehicle?.length)
+      throw {
+        msg: ERROR,
+        errors: [{ msg: "Không liên kết được với thiết bị GPS" }],
+      };
+
+    const dataAntiTheftLinkGps = [];
+
+    const listPromiseGpsLinkAntiTheft = [];
+
+    for (let i = 0; i < listDeviceOfVehicle.length; i++) {
+      const imeiOfVehicle = listDeviceOfVehicle[i];
+      dataAntiTheftLinkGps.push(imeiOfVehicle.imei);
+      listPromiseGpsLinkAntiTheft.push(
+        hsetRedis(REDIS_KEY_GPS_LINK_ANTI_THEFT, imeiOfVehicle.imei, imei)
+      );
+    }
+
+    const dataInsert = {
+      imei_anti_theft: imei,
+      imei_link: JSON.stringify(dataAntiTheftLinkGps),
+      is_deleted: 0,
+      created_at: Date.now(),
+    };
+
+    await this.insert(conn, tableGpsLinkAntiTheft, dataInsert);
+
+    const listDataSetRedis = await Promise.all(listPromiseGpsLinkAntiTheft);
+
+    let isRollback = false;
+
+    for (let i = 0; i < listDataSetRedis.length; i++) {
+      const { result } = listDataSetRedis[i];
+
+      if (!result) {
+        isRollback = true;
+      }
+    }
+
+    if (isRollback)
+      throw {
+        msg: ERROR,
+        errors: [{ msg: "Không liên kết được với thiết bị GPS" }],
+      };
+
+    const { result } = await hsetRedis(
+      REDIS_KEY_ANTI_THEFT_LINK_GPS,
+      imei,
+      JSON.stringify(dataAntiTheftLinkGps)
+    );
+
+    if (!result)
+      throw {
+        msg: ERROR,
+        errors: [{ msg: "Không liên kết được với thiết bị GPS" }],
+      };
   }
 
   async activationInside(conn, connPromise, body, userId) {
@@ -673,176 +949,195 @@ class DeviceModel extends DatabaseModel {
       is_use_gps,
       expired_on,
     } = body;
-    // console.log({ imei });
 
-    const infoPackage = await this.select(
-      conn,
-      tableServicePackage,
-      "times",
-      "id = ?",
-      service_package_id
-    );
-    if (!infoPackage?.length)
-      throw {
-        msg: ERROR,
-        errors: [
-          {
-            value: service_package_id,
-            msg: `Gói dịch vụ ${NOT_EXITS}`,
-            param: "service_package_id",
-          },
-        ],
-      };
-    const createdAt = Date.now();
-    const { times } = infoPackage[0];
-    const date = new Date(createdAt);
-    const date_ = new Date(createdAt);
-    date.setFullYear(date.getFullYear() + 1);
-    date_.setMonth(date_.getMonth() + Number(times));
-    await connPromise.beginTransaction();
+    // console.log({ imei });
 
     let vehicleId = vehicle_id;
 
-    if (!vehicleId) {
-      if (service_package_id == 29)
-        throw {
-          msg: ERROR,
-          errors: [
-            {
-              msg: "Thiết bị cống trộm chỉ có thể thêm vào phương tiện",
-              value: imei,
-              param: "imei",
-            },
-          ],
-        };
-      const vehicle_ = new VehicleSchema({
-        display_name: vehicle,
-        name: vehicle,
-        vehicle_type_id: type,
-        weight,
-        warning_speed: warning_speed || null,
-        note,
-        is_checked: 0,
-        is_deleted: 0,
-        created_at: createdAt,
-      });
-      delete vehicle_.updated_at;
-
-      vehicleId = await this.insert(conn, tableVehicle, vehicle_);
-    }
-
-    if (service_package_id == 29 && vehicleId) {
-      const joinTable = `${tableDeviceVehicle} dv INNER JOIN ${tableDevice} d ON dv.device_id = d.id`;
-
-      const select = "dv.device_id,d.imei";
-      const where =
-        "dv.vehicle_id = ? AND dv.is_deleted = ? AND d.is_deleted = ?";
-      const condition = [vehicleId, 0, 0];
-      const listDeviceOfVehicle = await this.select(
-        conn,
-        joinTable,
-        select,
-        where,
-        condition,
-        "dv.id",
-        "ASC"
-      );
-      if (!listDeviceOfVehicle?.length)
-        throw {
-          msg: ERROR,
-          errors: [{ msg: "Không liên kết được với thiết bị GPS" }],
-        };
-
-      const dataAntiTheftLinkGps = [];
-
-      const listPromiseGpsLinkAntiTheft = [];
-
-      for (let i = 0; i < listDeviceOfVehicle.length; i++) {
-        const imeiOfVehicle = listDeviceOfVehicle[i];
-        dataAntiTheftLinkGps.push(imeiOfVehicle.imei);
-        listPromiseGpsLinkAntiTheft.push(
-          hsetRedis(REDIS_KEY_GPS_LINK_ANTI_THEFT, imeiOfVehicle.imei, imei)
-        );
-      }
-
-      const dataInsert = {
-        imei_anti_theft: imei,
-        imei_link: JSON.stringify(dataAntiTheftLinkGps),
-        is_deleted: 0,
-        created_at: Date.now(),
-      };
-
-      await this.insert(conn, tableGpsLinkAntiTheft, dataInsert);
-
-      const listDataSetRedis = await Promise.all(listPromiseGpsLinkAntiTheft);
-
-      let isRollback = false;
-
-      for (let i = 0; i < listDataSetRedis.length; i++) {
-        const { result } = listDataSetRedis[i];
-
-        if (!result) {
-          isRollback = true;
-        }
-      }
-
-      if (isRollback)
-        throw {
-          msg: ERROR,
-          errors: [{ msg: "Không liên kết được với thiết bị GPS" }],
-        };
-
-      const { result } = await hsetRedis(
-        REDIS_KEY_ANTI_THEFT_LINK_GPS,
-        imei,
-        JSON.stringify(dataAntiTheftLinkGps)
-      );
-
-      if (!result)
-        throw {
-          msg: ERROR,
-          errors: [{ msg: "Không liên kết được với thiết bị GPS" }],
-        };
-    }
-
-    const expiredOn = expired_on || date_.getTime();
-
-    const deviceVehicle = new DeviceVehicleSchema({
-      device_id,
-      vehicle_id: vehicleId,
+    const infoPackage = await this.handleCheckPackage(
+      conn,
       service_package_id,
-      expired_on: expiredOn,
-      // expired_on,
-      activation_date: createdAt,
-      warranty_expired_on: date.getTime(),
-      // warranty_expired_on,
-      quantity_channel,
-      quantity_channel_lock: 0,
-      type: model_type_id,
-      is_use_gps,
-      is_deleted: 0,
-      is_transmission_gps:
-        !is_transmission_gps || is_transmission_gps == 0 ? 0 : 1,
-      is_transmission_image:
-        !is_transmission_image || is_transmission_image == 0 ? 0 : 1,
-      warning_speed: warning_speed || null,
-      created_at: createdAt,
-    });
+      !vehicleId
+    );
 
-    delete deviceVehicle.updated_at;
-    await this.insert(conn, tableDeviceVehicle, deviceVehicle);
+    // const infoPackage = await this.select(
+    //   conn,
+    //   tableServicePackage,
+    //   "times",
+    //   "id = ?",
+    //   service_package_id
+    // );
+    // if (!infoPackage?.length)
+    //   throw {
+    //     msg: ERROR,
+    //     errors: [
+    //       {
+    //         value: service_package_id,
+    //         msg: `Gói dịch vụ ${NOT_EXITS}`,
+    //         param: "service_package_id",
+    //       },
+    //     ],
+    //   };
 
-    const dataUpdateDevice = {
-      device_status_id: 3,
-      warranty_expired_on: date.getTime(),
-      activation_date: createdAt,
-      expired_on: expiredOn,
-    };
-    if (expired_on) {
-      delete dataUpdateDevice.activation_date;
-      delete dataUpdateDevice.warranty_expired_on;
-    }
-    await this.update(conn, tableDevice, dataUpdateDevice, "id", device_id);
+    const createdAt = Date.now();
+    // const { times } = infoPackage[0];
+    // const date = new Date(createdAt);
+    // const date_ = new Date(createdAt);
+    // date.setFullYear(date.getFullYear() + 1);
+    // date_.setMonth(date_.getMonth() + Number(times));
+    await connPromise.beginTransaction();
+
+    await this.handleCreateVehicle(
+      conn,
+      body,
+      infoPackage,
+      createdAt,
+      vehicleId
+    );
+
+    // if (!vehicleId) {
+    //   // if (service_package_id == 29)
+    //   //   throw {
+    //   //     msg: ERROR,
+    //   //     errors: [
+    //   //       {
+    //   //         msg: "Thiết bị cống trộm chỉ có thể thêm vào phương tiện",
+    //   //         value: imei,
+    //   //         param: "imei",
+    //   //       },
+    //   //     ],
+    //   //   };
+    //   const vehicle_ = new VehicleSchema({
+    //     display_name: vehicle,
+    //     name: vehicle,
+    //     vehicle_type_id: type,
+    //     weight,
+    //     warning_speed: warning_speed || null,
+    //     note,
+    //     is_checked: 0,
+    //     is_deleted: 0,
+    //     created_at: createdAt,
+    //   });
+    //   delete vehicle_.updated_at;
+
+    //   vehicleId = await this.insert(conn, tableVehicle, vehicle_);
+    // }
+
+    // if (service_package_id == 29 && vehicleId) {
+    //   await this.handleGpsLinkAntiTheft(conn, vehicleId, imei);
+
+    // const joinTable = `${tableDeviceVehicle} dv INNER JOIN ${tableDevice} d ON dv.device_id = d.id`;
+
+    // const select = "dv.device_id,d.imei";
+    // const where =
+    //   "dv.vehicle_id = ? AND dv.is_deleted = ? AND d.is_deleted = ?";
+    // const condition = [vehicleId, 0, 0];
+    // const listDeviceOfVehicle = await this.select(
+    //   conn,
+    //   joinTable,
+    //   select,
+    //   where,
+    //   condition,
+    //   "dv.id",
+    //   "ASC"
+    // );
+    // if (!listDeviceOfVehicle?.length)
+    //   throw {
+    //     msg: ERROR,
+    //     errors: [{ msg: "Không liên kết được với thiết bị GPS" }],
+    //   };
+
+    // const dataAntiTheftLinkGps = [];
+
+    // const listPromiseGpsLinkAntiTheft = [];
+
+    // for (let i = 0; i < listDeviceOfVehicle.length; i++) {
+    //   const imeiOfVehicle = listDeviceOfVehicle[i];
+    //   dataAntiTheftLinkGps.push(imeiOfVehicle.imei);
+    //   listPromiseGpsLinkAntiTheft.push(
+    //     hsetRedis(REDIS_KEY_GPS_LINK_ANTI_THEFT, imeiOfVehicle.imei, imei)
+    //   );
+    // }
+
+    // const dataInsert = {
+    //   imei_anti_theft: imei,
+    //   imei_link: JSON.stringify(dataAntiTheftLinkGps),
+    //   is_deleted: 0,
+    //   created_at: Date.now(),
+    // };
+
+    // await this.insert(conn, tableGpsLinkAntiTheft, dataInsert);
+
+    // const listDataSetRedis = await Promise.all(listPromiseGpsLinkAntiTheft);
+
+    // let isRollback = false;
+
+    // for (let i = 0; i < listDataSetRedis.length; i++) {
+    //   const { result } = listDataSetRedis[i];
+
+    //   if (!result) {
+    //     isRollback = true;
+    //   }
+    // }
+
+    // if (isRollback)
+    //   throw {
+    //     msg: ERROR,
+    //     errors: [{ msg: "Không liên kết được với thiết bị GPS" }],
+    //   };
+
+    // const { result } = await hsetRedis(
+    //   REDIS_KEY_ANTI_THEFT_LINK_GPS,
+    //   imei,
+    //   JSON.stringify(dataAntiTheftLinkGps)
+    // );
+
+    // if (!result)
+    //   throw {
+    //     msg: ERROR,
+    //     errors: [{ msg: "Không liên kết được với thiết bị GPS" }],
+    //   };
+    // }
+
+    // const expiredOn = expired_on || date_.getTime();
+
+    // const deviceVehicle = new DeviceVehicleSchema({
+    //   device_id,
+    //   vehicle_id: vehicleId,
+    //   service_package_id,
+    //   expired_on: expiredOn,
+    //   // expired_on,
+    //   activation_date: createdAt,
+    //   warranty_expired_on: date.getTime(),
+    //   // warranty_expired_on,
+    //   quantity_channel,
+    //   quantity_channel_lock: 0,
+    //   type: model_type_id,
+    //   is_use_gps,
+    //   is_deleted: 0,
+    //   is_transmission_gps:
+    //     !is_transmission_gps || is_transmission_gps == 0 ? 0 : 1,
+    //   is_transmission_image:
+    //     !is_transmission_image || is_transmission_image == 0 ? 0 : 1,
+    //   warning_speed: warning_speed || null,
+    //   created_at: createdAt,
+    // });
+
+    // delete deviceVehicle.updated_at;
+    // await this.insert(conn, tableDeviceVehicle, deviceVehicle);
+
+    // const dataUpdateDevice = {
+    //   device_status_id: 3,
+    //   warranty_expired_on: date.getTime(),
+    //   activation_date: createdAt,
+    //   expired_on: expiredOn,
+    // };
+    // if (expired_on) {
+    //   delete dataUpdateDevice.activation_date;
+    //   delete dataUpdateDevice.warranty_expired_on;
+    // }
+    // await this.update(conn, tableDevice, dataUpdateDevice, "id", device_id);
+
     await this.update(
       conn,
       tableUsersDevices,
@@ -861,40 +1156,42 @@ class DeviceModel extends DatabaseModel {
       `is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved)`
     );
 
-    const tableGps = getTableName(initialNameOfTableGps, device_id);
-    const tableSpeed = getTableName(initialNameOfTableSpeed, device_id);
-    const tableReportOneDay = getTableName(
-      initialNameOfTableReportOneDay,
-      device_id
-    );
-    const tableContinuous = getTableName(initialNameOfTableRunning, device_id);
-    const tableReportRegion = getTableName(
-      initialNameOfTableReportRegion,
-      device_id
-    );
-    const listTable = await Promise.all([
-      this.checkTableExit(conn, tableGps),
-      this.checkTableExit(conn, tableSpeed),
-      this.checkTableExit(conn, tableReportOneDay),
-      this.checkTableExit(conn, tableContinuous),
-      this.checkTableExit(conn, tableReportRegion),
-    ]);
+    // const tableGps = getTableName(initialNameOfTableGps, device_id);
+    // const tableSpeed = getTableName(initialNameOfTableSpeed, device_id);
+    // const tableReportOneDay = getTableName(
+    //   initialNameOfTableReportOneDay,
+    //   device_id
+    // );
+    // const tableContinuous = getTableName(initialNameOfTableRunning, device_id);
+    // const tableReportRegion = getTableName(
+    //   initialNameOfTableReportRegion,
+    //   device_id
+    // );
+    // const listTable = await Promise.all([
+    //   this.checkTableExit(conn, tableGps),
+    //   this.checkTableExit(conn, tableSpeed),
+    //   this.checkTableExit(conn, tableReportOneDay),
+    //   this.checkTableExit(conn, tableContinuous),
+    //   this.checkTableExit(conn, tableReportRegion),
+    // ]);
 
-    const listTableCreate = listTable.map((item, i) => {
-      if (item && item.includes(initialNameOfTableGps))
-        return this.createTableDeviceGps(conn, item);
-      if (item && item.includes(initialNameOfTableSpeed))
-        return this.createTableDeviceSpeed(conn, item);
-      if (item && item.includes(initialNameOfTableReportOneDay))
-        return this.createTableReportOneDay(conn, item);
-      if (item && item.includes(initialNameOfTableRunning))
-        return this.createTableReportContinuous(conn, item);
-      if (item && item.includes(initialNameOfTableReportRegion))
-        return this.createTableReportRegion(conn, item);
-    });
-    if (listTableCreate?.length > 0) {
-      await Promise.all(listTableCreate);
-    }
+    // const listTableCreate = listTable.map((item, i) => {
+    //   if (item && item.includes(initialNameOfTableGps))
+    //     return this.createTableDeviceGps(conn, item);
+    //   if (item && item.includes(initialNameOfTableSpeed))
+    //     return this.createTableDeviceSpeed(conn, item);
+    //   if (item && item.includes(initialNameOfTableReportOneDay))
+    //     return this.createTableReportOneDay(conn, item);
+    //   if (item && item.includes(initialNameOfTableRunning))
+    //     return this.createTableReportContinuous(conn, item);
+    //   if (item && item.includes(initialNameOfTableReportRegion))
+    //     return this.createTableReportRegion(conn, item);
+    // });
+    // if (listTableCreate?.length > 0) {
+    //   await Promise.all(listTableCreate);
+    // }
+
+    await this.handleCreateTable(conn, device_id);
 
     const inforDevice = await vehicleModel.getInfoDevice(conn, imei);
 

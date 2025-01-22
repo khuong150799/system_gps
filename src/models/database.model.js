@@ -124,7 +124,14 @@ class DatabaseModel {
   }
 
   // insertDuplicate
-  async insertDuplicate(db, tableName, field, dataInsert, dataUpdate) {
+  async insertDuplicate(
+    db,
+    tableName,
+    field,
+    dataInsert,
+    dataUpdate,
+    isCheck = false
+  ) {
     return await new Promise((resolve, reject) => {
       const query = `INSERT INTO ${tableName} (${field}) VALUES ? ON DUPLICATE KEY UPDATE ${dataUpdate}`;
       // console.log(query);
@@ -135,7 +142,12 @@ class DatabaseModel {
           console.log(err);
           return reject({ msg: ERROR });
         }
+        // console.log("dataRes", JSON.stringify(dataRes, null, 2));
+
         // console.log('dataRes.insertId', dataRes.insertId);
+        if (isCheck) {
+          return resolve(dataRes);
+        }
         return resolve(dataRes.insertId);
       });
     });
