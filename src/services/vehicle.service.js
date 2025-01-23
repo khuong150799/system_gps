@@ -84,10 +84,11 @@ class vehicleService {
       ),
       dataBaseModel.select(
         conn,
-        tableUserDevice,
-        "id",
+        `${tableUserDevice} ud INNER JOIN ${tableDevice} d ON ud.device_id = d.id`,
+        "ud.id,d.imei",
         "user_id = 783 AND device_id = ?",
-        deviceId
+        deviceId,
+        "ud.id"
       ),
     ]);
     // console.log({ dataPlatform, dataDifferentPlatform });
@@ -97,6 +98,15 @@ class vehicleService {
     const userId = dataPlatform?.[0]?.user_id;
     if (userId == 1 && dataDifferentPlatform?.length)
       throw new SendMissingDataError(ERROR_RENEWAL_CODE);
+
+    if (dataDifferentPlatform?.length) {
+      const { imei } = dataDifferentPlatform[0];
+
+      if (Number(imei))
+        throw new SendMissingDataError(
+          "Mã chỉ được sử dụng cho thiết bị 5G-GPS"
+        );
+    }
   }
 
   async handleCheckLockAcc(userId) {
@@ -142,11 +152,16 @@ class vehicleService {
     const { created_at } = data[0];
 
     if (promo) {
-      const month = new Date(created_at).getMonth();
-      const currentMonth = new Date().getMonth();
+      // const month = new Date(created_at).getMonth();
+      // const currentMonth = new Date().getMonth();
 
-      if (month !== currentMonth)
+      const LIMIT = 90 * 24 * 60 * 60 * 1000;
+
+      if (Date.now() - created_at > LIMIT)
         throw new SendMissingDataError("Mã hết hạn sử dụng");
+
+      // if (month !== currentMonth)
+      //   throw new SendMissingDataError("Mã hết hạn sử dụng");
     }
 
     return data;
@@ -571,28 +586,12 @@ class vehicleService {
     const { user_id } = infoUser;
     try {
       const { conn, connPromise } = await db.getConnection();
-      // const { data: dataRedis } = await hGet(
-      //   REDIS_KEY_LOCK_ACC_WITH_EXTEND,
-      //   user_id.toString()
-      // );
 
       let idx = 0;
-      // console.log("dataRedis", dataRedis);
-
-      // if (dataRedis) {
-      //   const dataParse = JSON.parse(dataRedis);
-      //   const { index, time } = dataParse;
-      //   if (index >= 3) throw new SendMissingDataError(LOCK_PERMISSION_ACC);
-      //   if (Date.now() - Number(time) <= 60 * 1000) {
-      //     idx = index;
-      //   }
-      // }
 
       const checkLockAcc = await this.handleCheckLockAcc(user_id);
       idx = checkLockAcc;
       try {
-        // const { vehicle_id, device_id, code, key_time } = body;
-
         const { djson, promo } = body;
 
         const dataParse = await this.handleCheckSendMissingDataError(djson);
@@ -604,112 +603,6 @@ class vehicleService {
           dataKeyTimeFormat,
           listCode,
         } = await this.handleProcessData({ conn, dataParse, promo });
-
-        // let checkDataError = false;
-        // let checkPromoLimit = 0;
-        // const listCode = [];
-
-        // let dataFormat = {};
-
-        // const listVehicleId = [];
-
-        // const listDeviceId = [];
-
-        // for (let i = 0; i < dataParse.length; i++) {
-        //   const { vehicle_id, device_id, code, value_time } = dataParse[i];
-        //   // console.log("dataParse[i]", dataParse[i]);
-        //   if (promo) {
-        //     checkPromoLimit = await this.handleCheckRechargeCard(
-        //       conn,
-        //       device_id
-        //     );
-        //     if (checkPromoLimit >= 3) break;
-        //   }
-
-        //   if (!vehicle_id || !device_id || !code || (!value_time && !promo)) {
-        //     checkDataError = true;
-        //     break;
-        //   }
-
-        //   // console.log('code.split(";")', code.split(";"));
-
-        //   listCode.push(...code.split(";"));
-        //   listVehicleId.push(vehicle_id);
-        //   listDeviceId.push(device_id);
-        //   dataFormat[device_id] = {
-        //     vehicle_id,
-        //     device_id,
-        //     code,
-        //     value_time: promo ? 1 : value_time,
-        //   };
-        // }
-        // // console.log("checkDataError", checkDataError);
-
-        // if (checkDataError) throw new SendMissingDataError();
-
-        // if (promo && (listCode.length > 3 || checkPromoLimit >= 3))
-        //   throw new SendMissingDataError(ERROR_PROMO_RECHARGE_CARD_LIMIT);
-
-        // // console.log("listCode", listCode);
-
-        // const dataCheck = await validateModel.checkExitMultiValue(
-        //   conn,
-        //   tableRenewalCode,
-        //   "code",
-        //   [listCode],
-        //   !promo ? "Mã gia hạn" : "Mã khuyến mãi",
-        //   "code",
-        //   null,
-        //   false,
-        //   "id,code,platform_value,is_used",
-        //   true,
-        //   "",
-        //   promo
-        // );
-
-        // if (promo) {
-        //   await this.handleCheckPlatform(conn, listCode, listDeviceId[0]);
-        // }
-
-        // const dataCodeFormat = dataCheck.reduce((result, { id, code }) => {
-        //   result[code] = id;
-        //   return result;
-        // }, {});
-
-        // const joinTable = `${tableVehicle} v INNER JOIN ${tableDeviceVehicle} dv ON v.id = dv.vehicle_id
-        // INNER JOIN ${tableDevice} d ON dv.device_id = d.id`;
-
-        // const dataInfo = await dataBaseModel.select(
-        //   conn,
-        //   joinTable,
-        //   "d.id,d.imei,d.expired_on as expired_on_device,dv.expired_on,v.name as vehicle_name",
-        //   "v.id IN (?) AND dv.device_id IN (?) AND v.is_deleted = 0 AND d.is_deleted = 0 AND dv.is_deleted = 0",
-        //   [listVehicleId, listDeviceId],
-        //   "d.id",
-        //   "ASC",
-        //   0,
-        //   9999999
-        // );
-
-        // const dataKeyTime = await dataBaseModel.select(
-        //   conn,
-        //   tableKeyTime,
-        //   "id,value",
-        //   "1 = ?",
-        //   1,
-        //   "id",
-        //   "ASC",
-        //   0,
-        //   9999
-        // );
-
-        // const dataKeyTimeFormat = dataKeyTime.reduce(
-        //   (result, { id, value }) => {
-        //     result[value] = id;
-        //     return result;
-        //   },
-        //   {}
-        // );
 
         const data = await vehicleModel.updateExpiredOn(
           conn,
@@ -731,15 +624,6 @@ class vehicleService {
 
         if (isLockAcc) {
           try {
-            // await hSet(
-            //   REDIS_KEY_LOCK_ACC_WITH_EXTEND,
-            //   user_id.toString(),
-            //   JSON.stringify({ index: idx + 1, time: Date.now() })
-            // );
-
-            // if (idx + 1 >= 3)
-            //   throw new SendMissingDataError(LOCK_PERMISSION_ACC);
-
             await this.handleSetkLockAcc({ user_id, idx });
           } catch (error) {
             throw error;
@@ -751,7 +635,7 @@ class vehicleService {
       }
     } catch (error) {
       const { msg, errors, message } = error;
-      // console.log({ msg, errors });
+      console.log({ msg, errors });
 
       if (!msg) throw new SendMissingDataError(message);
       throw new BusinessLogicError(msg, errors);

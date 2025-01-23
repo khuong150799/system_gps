@@ -5,6 +5,7 @@ class TransmissionApi {
     this.module = "transmission";
   }
   async driver(data) {
+    return null;
     const url = `${this.module}/driver`;
 
     return await axiosTransmissionInfo({
@@ -15,8 +16,8 @@ class TransmissionApi {
   }
 
   async company(data) {
+    return null;
     const url = `${this.module}/company`;
-
     return await axiosTransmissionInfo({
       method: "POST",
       url,
@@ -25,6 +26,7 @@ class TransmissionApi {
   }
 
   async vehicle(data) {
+    return null;
     const url = `${this.module}/vehicle`;
 
     return await axiosTransmissionInfo({

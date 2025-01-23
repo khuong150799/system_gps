@@ -15,6 +15,8 @@ const pool = mysql.createPool(dbConfig);
 // const { hSet } = require("../models/redis.model");
 // const { REDIS_KEY_LIST_DRIVER } = require("../constants/redis.constant");
 
+const { readFileSync } = require("fs");
+
 class Datatbase {
   async getConnection() {
     return await new Promise((resolve, reject) => {
@@ -85,6 +87,10 @@ class Datatbase {
         // try {
         // Bắt đầu transaction
         console.log(`SUCCESS:: CONNECTED TO DATABASE >> ${dbConfig.host}`);
+
+        // const data = JSON.parse(readFileSync("transmission.json", "utf8"));
+
+        //  const dataUpdate = data.map(({ id, transmission }) => {})
 
         // await vehicleModel.getInfoDevice(conn, null, null, null);
 

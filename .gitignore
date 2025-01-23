@@ -19,6 +19,7 @@ db.sql/
 yarn.lock
 serverCluster.js
 addDevice.js
+transmission.json
 # Compiled Java class files
 *.class
 

@@ -47,7 +47,7 @@ module.exports = (app) => {
       query("end_activation_date").escape(),
     ],
     isAuth,
-    // checkPermission,
+    checkPermission,
     vehicleController.getTransmission
   );
 
