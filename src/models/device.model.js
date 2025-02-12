@@ -544,7 +544,10 @@ class DeviceModel extends DatabaseModel {
       await this.handleGpsLinkAntiTheft(conn, vehicleId, imei);
     }
 
-    const expiredOn = expired_on || date_.getTime();
+    const expiredOn =
+      expired_on && Number(expired_on) > createdAt
+        ? expired_on
+        : expired_on || date_.getTime();
 
     const deviceVehicle = new DeviceVehicleSchema({
       device_id,
