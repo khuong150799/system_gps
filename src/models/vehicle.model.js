@@ -771,11 +771,13 @@ class VehicleModel extends DatabaseModel {
       };
     // return [device_id];
 
-    await this.handleTransmission({
-      conn,
-      vehicleId: vehicle_id,
-      deviceId: device_id,
-    });
+    if (value == 1) {
+      await this.handleTransmission({
+        conn,
+        vehicleId: vehicle_id,
+        deviceId: device_id,
+      });
+    }
 
     await connPromise.commit();
     return [];
