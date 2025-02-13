@@ -49,6 +49,29 @@ class VehicleModel extends DatabaseModel {
     super();
   }
 
+  // async getVehicleTransmission(conn, listImei) {
+  //   let where = `d.imei IN (?) AND d.is_deleted = ? AND dv.is_deleted = ?`;
+  //   let conditions = [listImei, 0, 0];
+
+  //   const joinTable = `${tableDevice} d INNER JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id`;
+
+  //   const select = `dv.device_id,dv.vehicle_id`;
+
+  //   const data = await this.select(
+  //     conn,
+  //     joinTable,
+  //     select,
+  //     where,
+  //     conditions,
+  //     "dv.id",
+  //     "ASC",
+  //     0,
+  //     999999
+  //   );
+
+  //   return data;
+  // }
+
   async getTransmission(conn, query, userId) {
     const offset = query.offset || 0;
     const limit = query.limit || 10;
@@ -742,10 +765,11 @@ class VehicleModel extends DatabaseModel {
     const dataSaveRedis = await this.getInfoDevice(conn, null, device_id);
 
     if (!dataSaveRedis?.length)
-      throw {
-        msg: ERROR,
-        errors: [{ msg: NOT_UPDATE_REALTIME }],
-      };
+      // throw {
+      //   msg: ERROR,
+      //   errors: [{ msg: NOT_UPDATE_REALTIME }],
+      // };
+      return [device_id];
 
     await this.handleTransmission({
       conn,

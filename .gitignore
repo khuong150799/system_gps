@@ -20,6 +20,7 @@ yarn.lock
 serverCluster.js
 addDevice.js
 transmission.json
+deviceError.txt
 # Compiled Java class files
 *.class
 

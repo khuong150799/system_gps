@@ -15,7 +15,8 @@ const pool = mysql.createPool(dbConfig);
 // const { hSet } = require("../models/redis.model");
 // const { REDIS_KEY_LIST_DRIVER } = require("../constants/redis.constant");
 
-const { readFileSync } = require("fs");
+// const { readFileSync, appendFileSync } = require("fs");
+// const vehicleModel = require("../models/vehicle.model");
 
 class Datatbase {
   async getConnection() {
@@ -89,6 +90,66 @@ class Datatbase {
         console.log(`SUCCESS:: CONNECTED TO DATABASE >> ${dbConfig.host}`);
 
         // const data = JSON.parse(readFileSync("transmission.json", "utf8"));
+
+        // // const listImei = data.map(({ devId }) => devId);
+        // const listImei = [];
+
+        // for (let i = 0; i < data.length; i++) {
+        //   const { devId, isTTGPS } = data[i];
+
+        //   if (isTTGPS == 0) {
+        //     listImei.push(devId);
+        //   }
+        // }
+
+        // console.log("listImei.length", listImei.length);
+
+        // const dataDevice = await vehicleModel.getVehicleTransmission(
+        //   conn,
+        //   listImei
+        // );
+
+        // console.log("dataDevice.length", dataDevice.length);
+
+        // // const listDeviceId = dataDevice.map(({ id }) => id);
+
+        // const handleRecursive = async (data) => {
+        //   const dataBatch = data.splice(0, 1000);
+        //   const listPromise = dataBatch.map(({ device_id, vehicle_id }) => {
+        //     console.log("device_id", device_id);
+        //     return vehicleModel.updateTransmission(
+        //       conn,
+        //       conn.promise(),
+        //       { property: "is_transmission_gps", value: 0, device_id },
+        //       { id: vehicle_id }
+        //     );
+        //   });
+
+        //   const res = await Promise.all(listPromise);
+
+        //   for (let i = 0; i < res.length; i++) {
+        //     const item = res[i];
+
+        //     if (item?.length) {
+        //       appendFileSync("./deviceError.txt", `${item[0]} @ `, "utf8");
+        //     }
+        //   }
+        //   console.log("done", dataBatch.length);
+
+        //   if (data.length === 0) {
+        //     conn.release();
+        //     console.log("done all");
+
+        //     return;
+        //   }
+        //   setTimeout(() => {
+        //     handleRecursive(data)
+        //       .then(() => console.log("ok"))
+        //       .catch((err) => console.log(err));
+        //   }, 100);
+        // };
+
+        // await handleRecursive(dataDevice);
 
         //  const dataUpdate = data.map(({ id, transmission }) => {})
 

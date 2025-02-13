@@ -11,14 +11,16 @@ class VehicleController {
 
   updateTransmission = catchAsync(async (req, res) => {
     const { body, params } = req;
+
     const data = await vehicleService.updateTransmission(body, params);
     UPDATE(res, [data]);
   });
 
   getTransmission = catchAsync(async (req, res) => {
-    const { query, userId } = req;
+    const { query, userId, isMain, parentId } = req;
+    const chosseUserId = isMain == 1 ? userId : parentId;
     const { data, totalPage, totalRecord } =
-      await vehicleService.getTransmission(query, userId);
+      await vehicleService.getTransmission(query, chosseUserId);
 
     GET(res, data, totalPage, totalRecord);
   });
