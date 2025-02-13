@@ -765,11 +765,11 @@ class VehicleModel extends DatabaseModel {
     const dataSaveRedis = await this.getInfoDevice(conn, null, device_id);
 
     if (!dataSaveRedis?.length)
-      // throw {
-      //   msg: ERROR,
-      //   errors: [{ msg: NOT_UPDATE_REALTIME }],
-      // };
-      return [device_id];
+      throw {
+        msg: ERROR,
+        errors: [{ msg: NOT_UPDATE_REALTIME }],
+      };
+    // return [device_id];
 
     await this.handleTransmission({
       conn,

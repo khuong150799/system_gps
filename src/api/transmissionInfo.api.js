@@ -26,7 +26,7 @@ class TransmissionApi {
   }
 
   async vehicle(data) {
-    return null;
+    // return null;
     const url = `${this.module}/vehicle`;
 
     return await axiosTransmissionInfo({
