@@ -72,7 +72,11 @@ class VehicleModel extends DatabaseModel {
   //   return data;
   // }
 
-  async getTransmission(conn, query, userId) {
+  async getTransmission(
+    conn,
+    query
+    //  userId
+  ) {
     const offset = query.offset || 0;
     const limit = query.limit || 10;
 
@@ -85,8 +89,10 @@ class VehicleModel extends DatabaseModel {
     } = query;
 
     const isDeleted = is_deleted || 0;
-    let where = `ud.user_id = ? AND ud.is_deleted = ? AND ud.is_main = ? AND d.is_deleted = ?`;
-    let conditions = [userId, isDeleted, 1, isDeleted];
+    // let where = `ud.user_id = ? AND ud.is_deleted = ? AND ud.is_main = ? AND d.is_deleted = ?`;
+    let where = `d.is_deleted = ? AND m.is_deleted = ? AND dv.is_deleted = ? AND v.is_deleted = ?`;
+    // let conditions = [userId, isDeleted, 1, isDeleted];
+    let conditions = [isDeleted, isDeleted, isDeleted, isDeleted];
 
     if (keyword) {
       where = `(d.imei LIKE ? OR d.dev_id LIKE ? OR v.name LIKE ?) AND ${where}`;
@@ -98,16 +104,16 @@ class VehicleModel extends DatabaseModel {
       conditions.push(model_id);
     }
 
-    if (start_activation_date && end_activation_date && type == 1) {
+    if (start_activation_date && end_activation_date) {
       where += ` AND dv.activation_date BETWEEN ? AND ?`;
       conditions.push(start_activation_date, end_activation_date);
     }
 
-    const joinTable = `${tableDevice} d INNER JOIN ${tableUsersDevices} ud ON d.id = ud.device_id
-      INNER JOIN ${tableModel} m ON d.model_id = m.id
+    // const joinTable = `${tableDevice} d INNER JOIN ${tableUsersDevices} ud ON d.id = ud.device_id
+    const joinTable = `${tableDevice} d INNER JOIN ${tableModel} m ON d.model_id = m.id
       INNER JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id
       INNER JOIN ${tableVehicle} v ON dv.vehicle_id = v.id
-      LEFT JOIN ${tableTransmission} t ON v.id = t.vehicle_id
+      LEFT JOIN ${tableTransmission} t ON d.id = t.device_id
     `;
 
     const select = `d.id as device_id,d.dev_id,d.imei,dv.activation_date,dv.is_transmission_gps,dv.is_transmission_image,v.id as vehicle_id,
@@ -118,14 +124,15 @@ class VehicleModel extends DatabaseModel {
         conn,
         joinTable,
         select,
-        `${where} GROUP BY d.id`,
+        // `${where} GROUP BY d.id`,
+        where,
         conditions,
         "dv.activation_date",
         "DESC",
         offset,
         limit
       ),
-      this.count(conn, joinTable, "DISTINCT d.id", where, conditions),
+      this.count(conn, joinTable, "*", where, conditions),
     ]);
 
     const totalPage = Math.ceil(count?.[0]?.total / limit);
@@ -183,7 +190,7 @@ class VehicleModel extends DatabaseModel {
       99999
     );
 
-    // console.log("data", imei, data?.length);
+    // console.log("data", imei, data);
 
     if (data.length) {
       await Promise.all(

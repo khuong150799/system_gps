@@ -17,10 +17,16 @@ class VehicleController {
   });
 
   getTransmission = catchAsync(async (req, res) => {
-    const { query, userId, isMain, parentId } = req;
-    const chosseUserId = isMain == 1 ? userId : parentId;
+    const {
+      query,
+      //  userId, isMain, parentId
+    } = req;
+    // const chosseUserId = isMain == 1 ? userId : parentId;
     const { data, totalPage, totalRecord } =
-      await vehicleService.getTransmission(query, chosseUserId);
+      await vehicleService.getTransmission(
+        query
+        // chosseUserId
+      );
 
     GET(res, data, totalPage, totalRecord);
   });

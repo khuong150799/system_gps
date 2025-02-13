@@ -97,7 +97,7 @@ class Datatbase {
         // for (let i = 0; i < data.length; i++) {
         //   const { devId, isTTGPS } = data[i];
 
-        //   if (isTTGPS == 0) {
+        //   if (isTTGPS == 1) {
         //     listImei.push(devId);
         //   }
         // }
@@ -111,8 +111,6 @@ class Datatbase {
 
         // console.log("dataDevice.length", dataDevice.length);
 
-        // // const listDeviceId = dataDevice.map(({ id }) => id);
-
         // const handleRecursive = async (data) => {
         //   const dataBatch = data.splice(0, 1000);
         //   const listPromise = dataBatch.map(({ device_id, vehicle_id }) => {
@@ -120,7 +118,7 @@ class Datatbase {
         //     return vehicleModel.updateTransmission(
         //       conn,
         //       conn.promise(),
-        //       { property: "is_transmission_gps", value: 0, device_id },
+        //       { property: "is_transmission_gps", value: 1, device_id },
         //       { id: vehicle_id }
         //     );
         //   });

@@ -37,11 +37,18 @@ const {
 const dataBaseModel = new DatabaseModel();
 
 class vehicleService {
-  async getTransmission(query, userId) {
+  async getTransmission(
+    query
+    //  userId
+  ) {
     try {
       const { conn } = await db.getConnection();
       try {
-        const data = await vehicleModel.getTransmission(conn, query, userId);
+        const data = await vehicleModel.getTransmission(
+          conn,
+          query
+          //  userId
+        );
         return data;
       } catch (error) {
         throw error;
