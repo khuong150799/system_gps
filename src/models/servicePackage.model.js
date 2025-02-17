@@ -15,11 +15,11 @@ class ServicePackageModel extends DatabaseModel {
     const offset = query.offset || 0;
     const limit = query.limit || 10;
     const isDeleted = query.is_deleted || 0;
-    let where = `is_deleted = ?`;
+    let where = `sp.is_deleted = ?`;
     const conditions = [isDeleted];
 
     if (query.keyword) {
-      where += ` AND (name LIKE ? OR fees_to_customer LIKE ? OR fees_to_agency LIKE ? OR fees_to_distributor LIKE ?)`;
+      where += ` AND (sp.name LIKE ? OR sp.fees_to_customer LIKE ? OR sp.fees_to_agency LIKE ? OR sp.fees_to_distributor LIKE ?)`;
       conditions.push(
         `%${query.keyword}%`,
         `%${query.keyword}%`,
@@ -29,12 +29,12 @@ class ServicePackageModel extends DatabaseModel {
     }
 
     if (query.publish) {
-      where += ` AND publish = ?`;
+      where += ` AND sp.publish = ?`;
       conditions.push(query.publish);
     }
 
     if (query.model_type_id) {
-      where += ` AND model_type_id = ?`;
+      where += ` AND sp.model_type_id = ?`;
       conditions.push(query.model_type_id);
     }
 
@@ -50,12 +50,12 @@ class ServicePackageModel extends DatabaseModel {
         select,
         where,
         conditions,
-        "id",
+        "sp.id",
         "DESC",
         offset,
         limit
       ),
-      this.count(conn, tableServicePackage, "*", where, conditions),
+      this.count(conn, joinTable, "*", where, conditions),
     ]);
 
     const totalPage = Math.ceil(count?.[0]?.total / limit);
