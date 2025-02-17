@@ -10,6 +10,7 @@ class ServicePackageSchema {
     times,
     publish,
     note,
+    model_type_id,
     is_deleted,
     created_at,
     updated_at,
@@ -24,7 +25,8 @@ class ServicePackageSchema {
     this.times = times;
     this.publish = publish;
     this.note = note;
-    this.is_deleted = is_deleted;
+    this.note = note;
+    this.model_type_id = model_type_id;
     this.created_at = created_at;
     this.updated_at = updated_at;
   }

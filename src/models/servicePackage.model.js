@@ -1,4 +1,7 @@
-const { tableServicePackage } = require("../constants/tableName.constant");
+const {
+  tableServicePackage,
+  tableModelType,
+} = require("../constants/tableName.constant");
 const DatabaseModel = require("./database.model");
 const ServicePackageSchema = require("./schema/servicePackage.schema");
 
@@ -30,13 +33,20 @@ class ServicePackageModel extends DatabaseModel {
       conditions.push(query.publish);
     }
 
-    const select = `id, name,fees_to_customer,fees_to_agency,fees_to_distributor,one_month_fee_to_customer
-    ,one_month_fee_to_agency,one_month_fee_to_distributor,times,publish,note,created_at,updated_at`;
+    if (query.model_type_id) {
+      where += ` AND model_type_id = ?`;
+      conditions.push(query.model_type_id);
+    }
+
+    const select = `sp.id,sp.name,sp.fees_to_customer,sp.fees_to_agency,sp.fees_to_distributor,sp.one_month_fee_to_customer
+    ,sp.one_month_fee_to_agency,sp.one_month_fee_to_distributor,sp.times,sp.publish,sp.note,sp.created_at,sp.updated_at,mt.name as model_type_name`;
+
+    const joinTable = `${tableServicePackage} sp LEFT JOIN ${tableModelType} mt ON sp.model_type_id = mt.id`;
 
     const [res_, count] = await Promise.all([
       this.select(
         conn,
-        tableServicePackage,
+        joinTable,
         select,
         where,
         conditions,
@@ -60,7 +70,7 @@ class ServicePackageModel extends DatabaseModel {
     const where = `is_deleted = ? AND id = ?`;
     const conditions = [isDeleted, id];
     const selectData = `id, name,fees_to_customer,fees_to_agency,fees_to_distributor,one_month_fee_to_customer
-      ,one_month_fee_to_agency,one_month_fee_to_distributor,times,publish,note`;
+      ,one_month_fee_to_agency,one_month_fee_to_distributor,times,publish,note,model_type_id`;
 
     const res_ = await this.select(
       conn,
@@ -85,6 +95,7 @@ class ServicePackageModel extends DatabaseModel {
       times,
       publish,
       note,
+      model_type_id,
     } = body;
     const servicePackage = new ServicePackageSchema({
       name,
@@ -97,6 +108,7 @@ class ServicePackageModel extends DatabaseModel {
       times,
       publish,
       note,
+      model_type_id,
       is_deleted: 0,
       created_at: Date.now(),
     });
@@ -121,6 +133,7 @@ class ServicePackageModel extends DatabaseModel {
       times,
       publish,
       note,
+      model_type_id,
     } = body;
     const { id } = params;
 
@@ -135,6 +148,7 @@ class ServicePackageModel extends DatabaseModel {
       times,
       publish,
       note,
+      model_type_id,
       updated_at: Date.now(),
     });
     // console.log(id)
