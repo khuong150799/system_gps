@@ -18,4 +18,5 @@ module.exports = {
   REDIS_KEY_LIST_USER_INFO: "listUserInfo",
   REDIS_KEY_LIST_MENU: "listMenu",
   REDIS_KEY_LIST_INTERFACE: "listInterface",
+  REDIS_KEY_ENV: "environment",
 };

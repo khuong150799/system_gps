@@ -40,10 +40,6 @@ const { initDb, getActiveConnections } = require("./dbs/init.mysql");
 initDb();
 // getActiveConnections();
 
-//init redis
-const { initRedis } = require("./dbs/init.redis");
-initRedis();
-
 // import routes
 const route = require("./routes");
 route(app);

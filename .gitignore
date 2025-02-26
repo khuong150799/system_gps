@@ -21,6 +21,7 @@ serverCluster.js
 addDevice.js
 transmission.json
 deviceError.txt
+init.mysql_.js
 # Compiled Java class files
 *.class
 

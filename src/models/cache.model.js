@@ -5,8 +5,6 @@ class CacheModel {
   hgetRedis = async (key, feild) => {
     const { data } = await hGet(key, feild.toString());
     if (data) {
-      console.log(key);
-
       return safeJsonParse(data);
     }
   };

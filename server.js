@@ -1,20 +1,15 @@
-const app = require("./src/app");
 const os = require("os");
 const http = require("http");
 const cluster = require("cluster");
-const configureEnvironment = require("./src/config/dotenv.config");
-// const process = require("process");
 
-const { PORT: PORT_ENV, NODE_ENV, DOMAIN_NAME } = configureEnvironment();
-console.log("environment ::::", NODE_ENV);
-
-const PORT = PORT_ENV || 3055;
+const envService = require("./src/services/env.service");
+const { initRedis } = require("./src/dbs/init.redis");
 
 function init() {
   if (cluster.isMaster) {
     let numCPUs = os.cpus().length;
     // console.log(" Num of CPU ", numCPUs);
-    const condition = numCPUs > 4 ? 4 : numCPUs;
+    const condition = numCPUs > 2 ? 2 : numCPUs;
     for (let idx = 0; idx < condition; idx++) {
       cluster.fork();
       // let worker = cluster.fork();
@@ -34,11 +29,27 @@ function init() {
 }
 // start server nodejs
 // const task = require("./src/tasks/issure.task");
-function startHttpServer() {
-  process.on("message", function (msg) {
-    console.log(msg);
-  });
-  const server = http.createServer(app).listen(PORT, () => {
+async function startHttpServer() {
+  const server = http.createServer();
+
+  await initRedis();
+  const nodeEnv = process.env.NODE_ENV || "local";
+  await envService.init(nodeEnv);
+
+  const configureEnvironment = require("./src/config/dotenv.config");
+  const { PORT: PORT_ENV, DOMAIN_NAME } = configureEnvironment();
+  console.log("environment ::::", nodeEnv);
+
+  const PORT = PORT_ENV || 3055;
+
+  // process.on("message", function (msg) {
+  //   console.log(msg);
+  // });
+
+  const app = require("./src/app");
+  server.on("request", app);
+
+  server.listen(PORT, () => {
     console.log(`Domain server :::: ${DOMAIN_NAME}:${PORT}`);
   });
 

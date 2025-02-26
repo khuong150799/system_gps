@@ -66,7 +66,7 @@ class InterfaceService {
         REDIS_KEY_LIST_INTERFACE,
         keyword
       );
-      if (cache) return cache;
+      if (cache) return { data: cache, totalPage: 1, totalRecord: 0 };
 
       const { conn } = await db.getConnection();
       try {

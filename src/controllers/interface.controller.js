@@ -7,11 +7,9 @@ const { SV_ASSET_STORAGE_FE } = configureEnvironment();
 
 class InterfaceController {
   getAllRows = catchAsync(async (req, res) => {
-    const query = req.query;
-    const role = req.role;
+    const { query } = req;
     const { data, totalPage, totalRecord } = await interfaceService.getallrows(
-      query,
-      role
+      query
     );
 
     GET(res, data, totalPage, totalRecord, {

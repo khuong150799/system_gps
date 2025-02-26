@@ -2,6 +2,7 @@ const maintenanceMiddleware = require("../middlewares/maintenance.middleware");
 
 module.exports = (app) => {
   require("./maintenance.route")(app);
+  require("./env.route")(app);
   app.use(maintenanceMiddleware);
   require("./users.route")(app);
   require("./module.route")(app);
