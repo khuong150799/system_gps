@@ -15,4 +15,7 @@ module.exports = {
   REDIS_KEY_DATA_SLEEP_TIME: "dataSleepTime",
   REDIS_KEY_MAINTENANCE: "maintenance",
   REDIS_KEY_IS_MAINTENANCE: "isMaintenance",
+  REDIS_KEY_LIST_USER_INFO: "listUserInfo",
+  REDIS_KEY_LIST_MENU: "listMenu",
+  REDIS_KEY_LIST_INTERFACE: "listInterface",
 };

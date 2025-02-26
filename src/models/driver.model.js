@@ -345,12 +345,15 @@ class DriverModel extends DatabaseModel {
 
     await connPromise.beginTransaction();
 
+    const dataUpdate = `address=VALUES(address),phone=VALUES(phone),gender=VALUES(gender),citizen_identity_card=VALUES(citizen_identity_card),
+      birthday=VALUES(birthday),license_type_id=VALUES(license_type_id),place_of_issue=VALUES(place_of_issue),activation_date=VALUES(activation_date),
+      expired_on=VALUES(expired_on),is_deleted=VALUES(is_deleted),updated_at=VALUES(created_at)`;
     const res_ = await this.insertDuplicate(
       conn,
       tableDriver,
       Object.keys(driver).join(","),
       [Object.values(driver)],
-      `is_deleted=VALUES(is_deleted),updated_at=VALUES(created_at)`,
+      dataUpdate,
       true
     );
 

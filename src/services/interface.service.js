@@ -7,6 +7,8 @@ const interfaceAppModel = require("../models/interfaceApp.model");
 const imagesService = require("./images.service");
 const imageApi = require("../api/image.api");
 const { ERROR, VALIDATE_DATA } = require("../constants/msg.constant");
+const { REDIS_KEY_LIST_INTERFACE } = require("../constants/redis.constant");
+const cacheModel = require("../models/cache.model");
 
 class InterfaceService {
   async handleImg(
@@ -59,6 +61,13 @@ class InterfaceService {
   //getallrow
   async getallrows(query) {
     try {
+      const { keyword } = query;
+      const cache = await cacheModel.hgetRedis(
+        REDIS_KEY_LIST_INTERFACE,
+        keyword
+      );
+      if (cache) return cache;
+
       const { conn } = await db.getConnection();
       try {
         const data = await interfaceAppModel.getallrows(conn, query);

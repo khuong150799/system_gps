@@ -41,8 +41,8 @@ class ValidateModel extends DatabaseModel {
   }
 
   async checkOwnerDevice(conn, userId, devices = [], msg = NOT_ADD_DEVICE) {
-    const where = `ud.device_id IN (?) AND ud.user_id = ? AND d.device_status_id = ?`;
-    const conditions = [devices, userId, 3];
+    const where = `ud.user_id = ? AND ud.device_id IN (?) AND ud.is_main = ? AND ud.is_deleted = ? AND d.device_status_id = ? AND d.is_deleted = ? AND dv.is_deleted = ?`;
+    const conditions = [userId, devices, 1, 0, 3, 0, 0];
     const joinTable = `${tableDevice} d INNER JOIN ${tableUserDevice} ud ON d.id = ud.device_id
       INNER JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id`;
     const select = `d.id,d.imei,dv.vehicle_id`;

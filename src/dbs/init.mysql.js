@@ -19,6 +19,10 @@ const pool = mysql.createPool(dbConfig);
 // const vehicleModel = require("../models/vehicle.model");
 
 class Datatbase {
+  constructor() {
+    this.getActiveConnections = this.getActiveConnections.bind(this);
+    this.executeTransaction = this.executeTransaction.bind(this);
+  }
   async getConnection() {
     return await new Promise((resolve, reject) => {
       pool.getConnection((err, conn) => {
@@ -158,7 +162,7 @@ class Datatbase {
         //   await conn.promise().beginTransaction();
 
         //   // Xác định ID của root node
-        //   const rootId = 1; // Node gốc có parent_id là NULL
+        //   const rootId = 2; // Node gốc có parent_id là NULL
         //   let currentLeft = 1;
 
         //   // Cập nhật toàn bộ cây từ root
@@ -206,54 +210,70 @@ class Datatbase {
   }
   async getActiveConnections() {
     return await new Promise(async (resolve, reject) => {
-      const connection = await getConnection();
+      // console.log(this);
+
+      const { conn } = await this.getConnection();
       const query =
         "SELECT COUNT(*) AS connection_count FROM information_schema.PROCESSLIST";
 
-      connection.query(query, (err, results) => {
-        connection.release();
+      conn.query(query, (err, results) => {
+        conn.release();
         if (err) {
           console.error("Lỗi truy vấn SQL của count connect:", err);
           return reject(err);
         }
-        // console.log("result count connect", results);
+        console.log("result count connect", results);
         const connectionCount = results[0].connection_count;
         return resolve(connectionCount);
       });
     });
   }
+  async executeTransaction(callback) {
+    const { conn, connPromise } = await this.getConnection();
+    try {
+      await connPromise.beginTransaction();
+      const result = await callback(conn);
+      await connPromise.commit();
+      return result;
+    } catch (error) {
+      await connPromise.rollback();
+      throw error;
+    } finally {
+      conn.release();
+    }
+  }
 }
 
-// async function updateNode(connection, nodeId, currentLeft) {
-//   let newLeft = currentLeft;
+async function updateNode(connection, nodeId, currentLeft) {
+  let newLeft = currentLeft;
 
-//   // Cập nhật giá trị left cho node hiện tại
-//   await connection.execute("UPDATE tbl_users SET `left` = ? WHERE `id` = ?", [
-//     newLeft,
-//     nodeId,
-//   ]);
-//   currentLeft++;
+  // Cập nhật giá trị left cho node hiện tại
+  await connection.execute("UPDATE tbl_users SET `left` = ? WHERE `id` = ?", [
+    newLeft,
+    nodeId,
+  ]);
+  currentLeft++;
 
-//   // Lấy tất cả các node con
-//   const [children] = await connection.execute(
-//     "SELECT id FROM tbl_users WHERE parent_id = ? AND is_deleted = ?",
-//     [nodeId, 0]
-//   );
+  // Lấy tất cả các node con
+  const [children] = await connection.execute(
+    "SELECT id FROM tbl_users WHERE parent_id = ? AND is_deleted = ?",
+    [nodeId, 0]
+  );
 
-//   // Đệ quy cập nhật cho các node con
-//   for (let child of children) {
-//     currentLeft = await updateNode(connection, child.id, currentLeft);
-//   }
+  // Đệ quy cập nhật cho các node con
+  for (let child of children) {
+    currentLeft = await updateNode(connection, child.id, currentLeft);
+  }
 
-//   // Cập nhật giá trị right cho node hiện tại
-//   await connection.execute("UPDATE tbl_users SET `right` = ? WHERE `id` = ?", [
-//     currentLeft,
-//     nodeId,
-//   ]);
-//   currentLeft++;
+  // Cập nhật giá trị right cho node hiện tại
+  await connection.execute("UPDATE tbl_users SET `right` = ? WHERE `id` = ?", [
+    currentLeft,
+    nodeId,
+  ]);
+  currentLeft++;
 
-//   return currentLeft;
-// }
+  return currentLeft;
+}
 
 const { getConnection, init, getActiveConnections } = new Datatbase();
 

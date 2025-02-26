@@ -1,10 +1,20 @@
 const db = require("../dbs/init.mysql");
 const { BusinessLogicError } = require("../core/error.response");
 const moduleModel = require("../models/module.model");
+const { REDIS_KEY_LIST_MENU } = require("../constants/redis.constant");
+const cacheModel = require("../models/cache.model");
 
 class ModuleService {
   async getTree(query, level, userId) {
     try {
+      let keyLevel = level;
+      if (userId == -10) {
+        keyLevel = "generalCode";
+      }
+
+      const cache = await cacheModel.hgetRedis(REDIS_KEY_LIST_MENU, keyLevel);
+      if (cache) return cache;
+
       const { conn, connPromise } = await db.getConnection();
       try {
         const data = await moduleModel.getTree(
@@ -12,7 +22,8 @@ class ModuleService {
           connPromise,
           query,
           level,
-          userId
+          userId,
+          keyLevel
         );
         return data;
       } catch (error) {

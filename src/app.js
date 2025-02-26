@@ -36,8 +36,9 @@ app.use(bodyParser.json({ limit: "10kb" }));
 app.use(bodyParser.urlencoded({ limit: "10kb", extended: true }));
 
 //init db
-const { initDb } = require("./dbs/init.mysql");
+const { initDb, getActiveConnections } = require("./dbs/init.mysql");
 initDb();
+// getActiveConnections();
 
 //init redis
 const { initRedis } = require("./dbs/init.redis");

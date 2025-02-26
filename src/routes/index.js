@@ -41,4 +41,5 @@ module.exports = (app) => {
   require("./typeAiSafe.route")(app);
   require("./monitor.route")(app);
   require("./businessType.route")(app);
+  require("./camera.route")(app);
 };

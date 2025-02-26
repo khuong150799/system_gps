@@ -1,24 +1,3 @@
-// const handleDataAddVehicleCms = ({ vehiIDNO, devIDNO, chnCount }) => {
-//   return {
-//     vehiIDNO,
-//     company: { id: "1", name: "MIDVN" },
-//     chnCount,
-//     relations: [
-//       {
-//         device: {
-//           devIDNO,
-//           factoryType: "70",
-//           factoryDevType: "28",
-//           devType: "7",
-//         },
-//         module: 361,
-//       },
-//     ],
-//     simInfo: { cardNum: "" },
-//     allowLogin: 0,
-//   };
-// };
-
 const handleDataAddDeviceCms = ({ devIdno, chnCount }) => {
   return {
     devIdno,
@@ -40,4 +19,17 @@ const handleDataAddVehicleCms = ({ vehiIdno, devIdno }) => {
   };
 };
 
-module.exports = { handleDataAddVehicleCms, handleDataAddDeviceCms };
+const handleDataAddConfigCms = ({ data }) => {
+  return {
+    Flag: 9,
+    TextInfo: data,
+    TextType: 1,
+    utf8: 1,
+  };
+};
+
+module.exports = {
+  handleDataAddVehicleCms,
+  handleDataAddDeviceCms,
+  handleDataAddConfigCms,
+};

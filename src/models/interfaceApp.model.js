@@ -2,6 +2,8 @@ const DatabaseModel = require("./database.model");
 const { tableInterface } = require("../constants/tableName.constant");
 const InterfaceSchema = require("./schema/interface.schema");
 const { NOT_EXITS } = require("../constants/msg.constant");
+const { REDIS_KEY_LIST_INTERFACE } = require("../constants/redis.constant");
+const cacheModel = require("./cache.model");
 
 class InterfaceModel extends DatabaseModel {
   constructor() {
@@ -10,20 +12,21 @@ class InterfaceModel extends DatabaseModel {
 
   //getallrow
   async getallrows(conn, query) {
+    const { is_deleted, keyword, publish } = query;
     const offset = query.offset || 0;
     const limit = query.limit || 10;
-    const isDeleted = query.is_deleted || 0;
+    const isDeleted = is_deleted || 0;
     let where = `is_deleted = ?`;
     const conditions = [isDeleted];
 
-    if (query.keyword) {
+    if (keyword) {
       where += ` AND ( name LIKE ? OR keyword LIKE ?)`;
-      conditions.push(`%${query.keyword}%`, `%${query.keyword}%`);
+      conditions.push(`%${keyword}%`, `%${keyword}%`);
     }
 
-    if (query.publish) {
+    if (publish) {
       where += ` AND publish = ?`;
-      conditions.push(query.publish);
+      conditions.push(publish);
     }
 
     const select = "id,name,keyword,publish,content,created_at,updated_at";
@@ -41,6 +44,10 @@ class InterfaceModel extends DatabaseModel {
       ),
       this.count(conn, tableInterface, "*", where, conditions),
     ]);
+
+    if (keyword) {
+      await cacheModel.hsetRedis(REDIS_KEY_LIST_INTERFACE, keyword, res_);
+    }
 
     const totalPage = Math.ceil(count?.[0]?.total / limit);
 

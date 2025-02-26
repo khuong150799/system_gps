@@ -8,10 +8,18 @@ const {
   tableLevelModule,
   tableModule,
 } = require("../constants/tableName.constant");
+const { REDIS_KEY_LIST_MENU } = require("../constants/redis.constant");
+const { ERROR } = require("../constants/msg.constant");
+const cacheModel = require("./cache.model");
 
 class LevelModel extends DatabaseModel {
   constructor() {
     super();
+  }
+
+  async delCacheModule() {
+    const resultDelCache = await cacheModel.delRedis(REDIS_KEY_LIST_MENU);
+    if (!resultDelCache) throw { msg: ERROR };
   }
 
   //getallrow
@@ -204,6 +212,8 @@ class LevelModel extends DatabaseModel {
       "level_id=VALUES(level_id),is_deleted=VALUES(is_deleted),created_at=VALUES(created_at)"
     );
 
+    await this.delCacheModule();
+
     return [];
   }
 
@@ -270,6 +280,8 @@ class LevelModel extends DatabaseModel {
         listModuleId
       );
     }
+
+    await this.delCacheModule();
 
     return [];
   }

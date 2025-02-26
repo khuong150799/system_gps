@@ -1,16 +1,9 @@
-const {
-  // axiosCMS1,
-  // axiosCMS2,
-  axiosNoConfig,
-  axiosCMS,
-  axiosCMS1NoAuth,
-  // axiosCMS2NoAuth,
-} = require("../helper/axios.helper");
+const { axiosNoConfig, axiosCMS } = require("../helper/axios.helper");
 const {
   handleDataAddVehicleCms,
   handleDataAddDeviceCms,
+  handleDataAddConfigCms,
 } = require("../ultils/getDataSendCms");
-// const { Unix2String } = require("../ultils/getTime");
 
 const cameraApi = {
   login: async ({ account, password, baseUrl }) => {
@@ -25,7 +18,7 @@ const cameraApi = {
     return res;
   },
 
-  addVehicleCMS1: async ({ url, vehiIdno, devIdno }) => {
+  addVehicleCMS: async ({ url, vehiIdno, devIdno }) => {
     const url_ = `${url}/StandardApiAction_addVehicle.action`;
     const params = handleDataAddVehicleCms({ vehiIdno, devIdno });
     return await axiosCMS({
@@ -34,18 +27,8 @@ const cameraApi = {
       params: { ...params, baseUrl: url },
     });
   },
-  // addVehicleCMS2: async ({ vehiIdno, devIdno }) => {
-  //   const url = "StandardApiAction_addVehicle.action";
 
-  //   const params = handleDataAddVehicleCms({ vehiIdno, devIdno });
-  //   return await axiosCMS2({
-  //     method: "GET",
-  //     url,
-  //     params,
-  //   });
-  // },
-
-  addDeviceCMS1: async ({ url, devIdno, chnCount }) => {
+  addDeviceCMS: async ({ url, devIdno, chnCount }) => {
     const url_ = `${url}/StandardApiAction_addDevice.action`;
 
     const params = handleDataAddDeviceCms({ devIdno, chnCount });
@@ -55,16 +38,17 @@ const cameraApi = {
       params: { ...params, baseUrl: url },
     });
   },
-  // addDeviceCMS2: async ({ devIdno, chnCount }) => {
-  //   const url = "StandardApiAction_addDevice.action";
+  config: async ({ url, devidno, data }) => {
+    const url_ = `${url}/2/74?Command=33536&DevIDNO=${devidno}`;
 
-  //   const params = handleDataAddDeviceCms({ devIdno, chnCount });
-  //   return await axiosCMS2({
-  //     method: "GET",
-  //     url,
-  //     params,
-  //   });
-  // },
+    const bođy = handleDataAddConfigCms({ data });
+    return await axiosCMS({
+      method: "POST",
+      url: url_,
+      data: bođy,
+      params: { toMap: 1, baseUrl: url },
+    });
+  },
 };
 
 module.exports = cameraApi;

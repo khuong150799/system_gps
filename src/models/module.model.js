@@ -1,8 +1,11 @@
+const { ERROR } = require("../constants/msg.constant");
+const { REDIS_KEY_LIST_MENU } = require("../constants/redis.constant");
 const {
   tableModule,
   tableLevelModule,
   tableLevel,
 } = require("../constants/tableName.constant");
+const cacheModel = require("./cache.model");
 const DatabaseModel = require("./database.model");
 const ModuleSchema = require("./schema/module.schema");
 
@@ -10,7 +13,13 @@ class ModuleModel extends DatabaseModel {
   constructor() {
     super();
   }
-  async getTree(conn, connPromise, query, level, userId) {
+
+  async delCache() {
+    const resultDelCache = await cacheModel.delRedis(REDIS_KEY_LIST_MENU);
+    if (!resultDelCache) throw { msg: ERROR };
+  }
+
+  async getTree(conn, connPromise, query, level, userId, keyLevel) {
     const isDeleted = query.is_deleted || 0;
 
     const joinTable = `${tableModule} m INNER JOIN ${tableLevelModule} lm ON m.id = lm.module_id 
@@ -47,6 +56,11 @@ class ModuleModel extends DatabaseModel {
       `m.sort`,
       "ASC"
     );
+
+    if (res_?.length) {
+      await cacheModel.hsetRedis(REDIS_KEY_LIST_MENU, keyLevel, res_);
+    }
+
     return res_;
   }
 
@@ -138,6 +152,9 @@ class ModuleModel extends DatabaseModel {
     delete module.is_deleted;
 
     await this.update(conn, tableModule, module, "id", id);
+
+    await this.delCache();
+
     module.id = id;
     return module;
   }
@@ -146,6 +163,9 @@ class ModuleModel extends DatabaseModel {
   async deleteById(conn, params) {
     const { id } = params;
     await this.update(conn, tableModule, { is_deleted: 1 }, "id", id);
+
+    await this.delCache();
+
     return [];
   }
 
@@ -154,6 +174,8 @@ class ModuleModel extends DatabaseModel {
     const { id } = params;
     const { publish } = body;
     await this.update(conn, tableModule, { publish }, "id", id);
+
+    await this.delCache();
     return [];
   }
 
@@ -163,6 +185,8 @@ class ModuleModel extends DatabaseModel {
     const { sort } = body;
 
     await this.update(conn, tableModule, { sort }, "id", id);
+
+    await this.delCache();
     return [];
   }
 }

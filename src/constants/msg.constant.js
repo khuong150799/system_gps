@@ -90,6 +90,7 @@ const constants = {
     "Chỉ sử dụng tối đa 3 mã cho 1 thiết bị trên 1 phương tiện",
   ERROR_RENEWAL_CODE: "Mã không hợp lệ",
   NOT_UPDATE_REALTIME: "Không thể cập nhật data trên realtime",
+  CONFIG_SUCCESS: "Cấu hình thành công",
 };
 
 module.exports = constants;

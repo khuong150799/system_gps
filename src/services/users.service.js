@@ -34,6 +34,8 @@ const {
   tableUserDevice,
   tableApiKey,
 } = require("../constants/tableName.constant");
+const { REDIS_KEY_LIST_USER_INFO } = require("../constants/redis.constant");
+const cacheModel = require("../models/cache.model");
 
 const databaseModel = new DatabaseModel();
 
@@ -84,25 +86,6 @@ class UsersService {
       const { conn } = await db.getConnection();
       try {
         const data = await usersModel.getallrows(conn, query);
-        return data;
-      } catch (error) {
-        throw error;
-      } finally {
-        conn.release();
-      }
-    } catch (error) {
-      throw new BusinessLogicError(error.msg);
-    }
-  }
-
-  async getallrowsSiteCustomerService(query) {
-    try {
-      const { conn } = await db.getConnection();
-      try {
-        const data = await usersModel.getallrowsSiteCustomerService(
-          conn,
-          query
-        );
         return data;
       } catch (error) {
         throw error;
@@ -196,6 +179,12 @@ class UsersService {
 
   async getInfo(userId) {
     try {
+      const cache = await cacheModel.hgetRedis(
+        REDIS_KEY_LIST_USER_INFO,
+        userId
+      );
+      if (cache) return cache;
+
       const { conn } = await db.getConnection();
       try {
         const data = await usersModel.getInfo(conn, userId);
@@ -206,6 +195,8 @@ class UsersService {
         conn.release();
       }
     } catch (error) {
+      console.log(error);
+
       throw new BusinessLogicError(error.msg);
     }
   }

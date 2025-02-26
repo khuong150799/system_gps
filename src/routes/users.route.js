@@ -23,14 +23,6 @@ module.exports = (app) => {
   );
 
   router.get(
-    "/cskh-rows",
-
-    isAuth,
-    // checkPermission,
-    usersController.getallrowsSiteCustomerService
-  );
-
-  router.get(
     "/lock-extend",
     isAuth,
     checkPermission,
@@ -76,6 +68,8 @@ module.exports = (app) => {
     usersController.getbyid
   );
 
+  router.get("/info", isAuth, checkPermission, usersController.getInfo);
+
   router.get(
     "/detail-not-auth/:id",
     [param("id", VALIDATE_DATA).isNumeric()],
@@ -84,7 +78,6 @@ module.exports = (app) => {
     usersController.getbyid
   );
 
-  router.get("/info", isAuth, checkPermission, usersController.getInfo);
   router.get(
     "/device-add",
     isAuth,

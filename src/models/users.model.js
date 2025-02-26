@@ -4,7 +4,6 @@ const UsersRoleSchema = require("./schema/usersRole.schema");
 const UsersCustomersSchema = require("./schema/usersCustomers.schema");
 const { v4: uuidv4 } = require("uuid");
 const md5 = require("md5");
-const keyTokenModel = require("./keyToken.model");
 
 const {
   PASSWORD_DEFAULT,
@@ -41,21 +40,16 @@ const vehicleModel = require("./vehicle.model");
 const deviceLoggingModel = require("./deviceLogging.model");
 const writeLogModel = require("./writeLog.model");
 const { users } = require("../constants/module.constant");
-const {
-  hSet,
-  del: delRedis,
-  hGet,
-  hScan,
-  hdelOneKey,
-  hGetAll,
-} = require("./redis.model");
+const { hSet, hScan, hdelOneKey, hGetAll } = require("./redis.model");
 const {
   REDIS_KEY_TOKEN,
   REDIS_KEY_LOCK_ACC_WITH_EXTEND,
+  REDIS_KEY_LIST_USER_INFO,
 } = require("../constants/redis.constant");
 const ordersModel = require("./orders.model");
 const tokenFirebaseModel = require("./tokenFirebase.model");
 const { BusinessLogicError } = require("../core/error.response");
+const cacheModel = require("./cache.model");
 
 class UsersModel extends DatabaseModel {
   constructor() {
@@ -196,36 +190,6 @@ class UsersModel extends DatabaseModel {
         limit
       ),
       this.count(conn, joinTable, "*", where, conditions),
-    ]);
-
-    const totalPage = Math.ceil(count?.[0]?.total / limit);
-
-    return { data: res_, totalPage, totalRecord: count?.[0]?.total };
-  }
-
-  async getallrowsSiteCustomerService(conn, query) {
-    const offset = query.offset || 0;
-    const limit = query.limit || 10;
-    const isDeleted = query.is_deleted || 0;
-
-    let where = `parent_id = ? AND is_deleted = ? AND is_main = ?`;
-    const conditions = [1, isDeleted, 0];
-
-    const select = `id,username,depatment_id`;
-
-    const [res_, count] = await Promise.all([
-      this.select(
-        conn,
-        tableUsers,
-        select,
-        where,
-        conditions,
-        `id`,
-        "ASC",
-        offset,
-        limit
-      ),
-      this.count(conn, tableUsers, "*", where, conditions),
     ]);
 
     const totalPage = Math.ceil(count?.[0]?.total / limit);
@@ -381,19 +345,19 @@ class UsersModel extends DatabaseModel {
   }
 
   async getInfo(conn, userId, isGetPass = false) {
-    const where = `${tableUsers}.is_deleted = ? AND ${tableUsers}.id = ?`;
+    const where = `u.is_deleted = ? AND u.id = ?`;
     const conditions = [0, userId];
-    const joinTable = `${tableUsers} INNER JOIN ${tableUsersRole} ON ${tableUsers}.id = ${tableUsersRole}.user_id 
-      INNER JOIN ${tableRole} ON ${tableUsersRole}.role_id = ${tableRole}.id  
-      INNER JOIN ${tableUsersCustomers} ON ${tableUsers}.id = ${tableUsersCustomers}.user_id 
-      INNER JOIN ${tableCustomers} ON ${tableUsersCustomers}.customer_id = ${tableCustomers}.id 
-      INNER JOIN ${tableLevel} ON ${tableCustomers}.level_id = ${tableLevel}.id`;
+    const joinTable = `${tableUsers} u INNER JOIN ${tableUsersRole} ur ON u.id = ur.user_id 
+      INNER JOIN ${tableRole} r ON ur.role_id = r.id  
+      INNER JOIN ${tableUsersCustomers} uc ON u.id = uc.user_id 
+      INNER JOIN ${tableCustomers} c ON uc.customer_id = c.id 
+      INNER JOIN ${tableLevel} l ON c.level_id = l.id`;
 
-    let selectData = `${tableUsers}.id,${tableUsers}.username,${tableUsers}.parent_id,${tableUsers}.is_actived,
-      ${tableUsersRole}.role_id,${tableRole}.name as role_name,${tableCustomers}.level_id,${tableLevel}.name as level_name,${tableCustomers}.name as customer_name,${tableCustomers}.email,${tableCustomers}.phone,
-      ${tableCustomers}.company,${tableCustomers}.address,${tableCustomers}.tax_code,${tableCustomers}.website,${tableCustomers}.id as customer_id`;
+    let selectData = `u.id,u.username,u.parent_id,u.is_actived,
+      ur.role_id,r.name as role_name,c.level_id,l.name as level_name,c.name as customer_name,c.email,c.phone,
+      c.company,c.address,c.tax_code,c.website,c.id as customer_id`;
     if (isGetPass) {
-      selectData += ` ,${tableUsers}.text_pass`;
+      selectData += ` ,u.text_pass`;
     }
     const res_ = await this.select(
       conn,
@@ -401,138 +365,13 @@ class UsersModel extends DatabaseModel {
       selectData,
       where,
       conditions,
-      `${tableUsers}.id`
+      `u.id`
     );
+    if (!isGetPass && res_?.length) {
+      await cacheModel.hsetRedis(REDIS_KEY_LIST_USER_INFO, userId, res_);
+    }
     return res_;
   }
-  //Register
-  // async register(conn, connPromise, body, customerId, isCommit = true) {
-  //   const {
-  //     parent_id,
-  //     username,
-  //     password,
-  //     role_id,
-  //     customer_id,
-  //     is_actived,
-  //     is_child,
-  //   } = body;
-  //   const createdAt = Date.now();
-
-  //   const salt = await bcrypt.genSalt(12);
-  //   const hashPass = await bcrypt.hash(password, salt);
-  //   const user = new UsersSchema({
-  //     parent_id: parent_id || null,
-  //     username,
-  //     password: hashPass,
-  //     text_pass: password,
-  //     is_actived,
-  //     is_deleted: 0,
-  //     is_main: is_child ? 0 : 1,
-  //     is_team: 0,
-  //     created_at: createdAt,
-  //   });
-  //   delete user.expired_on;
-  //   delete user.updated_at;
-  //   if (isCommit) {
-  //     await connPromise.beginTransaction();
-  //   }
-  //   const res_ = await this.insert(conn, tableUsers, user);
-
-  //   const usersRole = new UsersRoleSchema({
-  //     user_id: res_,
-  //     role_id,
-  //     created_at: createdAt,
-  //   });
-
-  //   delete usersRole.updated_at;
-  //   await this.insert(conn, tableUsersRole, usersRole);
-
-  //   const usersCustomers = new UsersCustomersSchema({
-  //     user_id: res_,
-  //     customer_id,
-  //     created_at: createdAt,
-  //   });
-
-  //   delete usersCustomers.updated_at;
-  //   await this.insert(conn, tableUsersCustomers, usersCustomers);
-
-  //   if (isCommit) {
-  //     await connPromise.commit();
-  //   }
-  //   user.id = res_;
-  //   delete user.is_deleted;
-  //   delete user.password;
-  //   delete user.text_pass;
-  //   return [user];
-  // }
-
-  // async registerTeam(conn, username, password, connPromise, body) {
-  //   const { parent_id, name } = body;
-  //   const createdAt = Date.now();
-
-  //   const salt = await bcrypt.genSalt(12);
-  //   const hashPass = await bcrypt.hash(password, salt);
-  //   const user = new UsersSchema({
-  //     parent_id,
-  //     username,
-  //     password: hashPass,
-  //     text_pass: password,
-  //     is_actived: 1,
-  //     is_deleted: 0,
-  //     is_main: 0,
-  //     is_team: 1,
-  //     created_at: createdAt,
-  //   });
-  //   delete user.expired_on;
-  //   delete user.updated_at;
-
-  //   await connPromise.beginTransaction();
-  //   const res_ = await this.insert(conn, tableUsers, user);
-
-  //   const usersRole = new UsersRoleSchema({
-  //     user_id: res_,
-  //     role_id: 1,
-  //     created_at: createdAt,
-  //   });
-
-  //   delete usersRole.updated_at;
-  //   await this.insert(conn, tableUsersRole, usersRole);
-
-  //   const code = makeCode();
-  //   const customer = new CustomersSchema({
-  //     level_id: 6,
-  //     code,
-  //     name,
-  //     company: null,
-  //     email: null,
-  //     phone: null,
-  //     address: null,
-  //     tax_code: null,
-  //     website: null,
-  //     publish: 1,
-  //     is_deleted: 0,
-  //     created_at: Date.now(),
-  //   });
-  //   delete customer.updated_at;
-
-  //   const customerId = await this.insert(conn, tableCustomers, customer);
-
-  //   const usersCustomers = new UsersCustomersSchema({
-  //     user_id: res_,
-  //     customer_id: customerId,
-  //     created_at: createdAt,
-  //   });
-
-  //   delete usersCustomers.updated_at;
-  //   await this.insert(conn, tableUsersCustomers, usersCustomers);
-
-  //   await connPromise.commit();
-  //   user.id = res_;
-  //   delete user.is_deleted;
-  //   delete user.password;
-  //   delete user.text_pass;
-  //   return [user];
-  // }
 
   async register(conn, connPromise, body, customerId, isCommit = true) {
     const {
@@ -1072,6 +911,8 @@ class UsersModel extends DatabaseModel {
     //   [customer_id]
     // );
 
+    await this.getInfo(conn, id);
+
     await connPromise.commit();
     user.id = id;
     user.role_id = role_id;
@@ -1080,13 +921,6 @@ class UsersModel extends DatabaseModel {
     delete user.is_deleted;
     return user;
   }
-
-  //delete
-  // async deleteById(conn, params) {
-  //   const { id } = params;
-  //   await this.update(conn, tableUsers, { is_deleted: Date.now() }, "id", id);
-  //   return [];
-  // }
 
   async deleteById(conn, connPromise, params) {
     const { id } = params;
@@ -1140,6 +974,13 @@ class UsersModel extends DatabaseModel {
 
     await this.delToken(id);
 
+    const resultDelCache = await cacheModel.hdelOneKeyRedis(
+      REDIS_KEY_LIST_USER_INFO,
+      userId
+    );
+
+    if (!resultDelCache) throw { msg: ERROR };
+
     await connPromise.commit();
     return [];
   }
@@ -1178,6 +1019,7 @@ class UsersModel extends DatabaseModel {
       createdAt: Date.now(),
     };
     await deviceLoggingModel.postOrDelete(conn, dataSaveLog);
+
     await connPromise.commit();
     return [];
   }
@@ -1459,6 +1301,8 @@ class UsersModel extends DatabaseModel {
     await this.update(conn, tableUsers, { username }, "id", userId);
 
     await this.delToken(userId);
+
+    await this.getInfo(conn, userId);
 
     return [];
   }
