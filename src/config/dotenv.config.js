@@ -9,7 +9,7 @@ function configureEnvironment() {
   dotenv.config({ path: envPath });
   // console.log(global.env);
 
-  return { ...global.env, ...process.env };
+  return { ...process.env, ...global.env };
 }
 
 module.exports = configureEnvironment;
