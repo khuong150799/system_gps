@@ -6,9 +6,9 @@ const cameraModel = require("../models/camera.model");
 
 class CMSService {
   async configCamera(imei, data) {
-    const { serCam } = await cameraModel.getServerCam(db, imei);
+    const { host } = await cameraModel.getServerCam(db, imei);
     const res_ = await cameraApi.config({
-      url: serCam,
+      url: `${host}:16603`,
       imei,
       data,
     });

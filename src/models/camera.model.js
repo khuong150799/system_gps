@@ -45,7 +45,7 @@ class CameraModel extends DatabaseModel {
 
     const { host, port } = dataServerCam[0];
 
-    return { serCam: `${host}:${port}` };
+    return { serCam: `${host}:${port}`, host };
   }
 }
 
