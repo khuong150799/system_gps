@@ -33,6 +33,7 @@ async function startHttpServer() {
   const server = http.createServer();
 
   await initRedis();
+
   const nodeEnv = process.env.NODE_ENV || "local";
   await envService.init(nodeEnv);
 

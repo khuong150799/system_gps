@@ -91,13 +91,13 @@ class InterfaceModel extends DatabaseModel {
     return ui;
   }
 
-  async uploadImage(conn, body, img) {
+  async uploadImage(conn, connPromise, body, img) {
     const { id } = body;
 
     const dataOld = await this.select(
       conn,
       tableInterface,
-      "content",
+      "keyword,content",
       "id = ?",
       [id]
     );
@@ -105,9 +105,10 @@ class InterfaceModel extends DatabaseModel {
     if (!dataOld?.length) throw { msg: `ID ${NOT_EXITS}` };
 
     const contentOld = JSON.parse(dataOld[0]?.content);
+    const keyword = dataOld[0]?.keyword;
 
     const content = { ...contentOld, ...img };
-
+    await connPromise.beginTransaction();
     await this.update(
       conn,
       tableInterface,
@@ -115,11 +116,15 @@ class InterfaceModel extends DatabaseModel {
       "id",
       id
     );
+
+    await this.getallrows(conn, { is_deleted: 0, keyword, publish: 1 });
+
+    await connPromise.commit();
     return content;
   }
 
   //update
-  async updateById(conn, body, params) {
+  async updateById(conn, connPromise, body, params) {
     const { keyword, name, content, publish } = body;
     const { id } = params;
 
@@ -133,8 +138,14 @@ class InterfaceModel extends DatabaseModel {
     // console.log(id)
     delete ui.created_at;
     delete ui.is_deleted;
+    await connPromise.beginTransaction();
 
     await this.update(conn, tableInterface, ui, "id", id);
+
+    await this.getallrows(conn, { is_deleted: 0, keyword, publish: 1 });
+
+    await connPromise.commit();
+
     ui.id = id;
     return ui;
   }
@@ -142,6 +153,7 @@ class InterfaceModel extends DatabaseModel {
   //delete
   async deleteById(conn, params) {
     const { id } = params;
+
     await this.update(conn, tableInterface, { is_deleted: 1 }, "id", id);
     return [];
   }
@@ -153,13 +165,14 @@ class InterfaceModel extends DatabaseModel {
     const dataOld = await this.select(
       conn,
       tableInterface,
-      "content",
+      "keyword,content",
       "id = ?",
       id
     );
     if (!dataOld?.length) throw { msg: `ID ${NOT_EXITS}` };
 
     const contentOld = JSON.parse(dataOld[0]?.content);
+    const keyword = dataOld[0]?.keyword;
 
     delete contentOld[property];
 
@@ -170,6 +183,8 @@ class InterfaceModel extends DatabaseModel {
       "id",
       id
     );
+
+    await this.getallrows(conn, { is_deleted: 0, keyword, publish: 1 });
     return [];
   }
 

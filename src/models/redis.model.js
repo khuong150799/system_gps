@@ -4,6 +4,7 @@ class RedisModel {
   constructor() {
     this.redis = getRedis();
     this.get = this.get.bind(this);
+    this.scan = this.scan.bind(this);
     this.hGet = this.hGet.bind(this);
     this.hGetAll = this.hGetAll.bind(this);
     this.set = this.set.bind(this);
@@ -21,6 +22,20 @@ class RedisModel {
     try {
       const { instanceConnect: client } = this.redis;
       const data = await client.get(key);
+      return { result: true, data };
+    } catch (error) {
+      return { result: false, error };
+    }
+  }
+
+  async scan(cursor, pattern, count) {
+    try {
+      const { instanceConnect: client } = this.redis;
+      const data = await client.scan(cursor, {
+        MATCH: `${pattern}/*`,
+        COUNT: count,
+      });
+
       return { result: true, data };
     } catch (error) {
       return { result: false, error };

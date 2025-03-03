@@ -162,7 +162,7 @@ class InterfaceService {
   //uploadImage
   async uploadImage(body, logoFile, faviconFile, bannerFiles) {
     try {
-      const { conn } = await db.getConnection();
+      const { conn, connPromise } = await db.getConnection();
       let img = {};
       try {
         const { property } = body;
@@ -182,9 +182,15 @@ class InterfaceService {
           contentProperty
         );
 
-        const data = await interfaceAppModel.uploadImage(conn, body, img);
+        const data = await interfaceAppModel.uploadImage(
+          conn,
+          connPromise,
+          body,
+          img
+        );
         return data;
       } catch (error) {
+        await connPromise.rollback();
         if (Object.keys(img).length) {
           const listPath = Object.values(img);
           await imageApi.delete({ path: JSON.stringify(listPath) });
@@ -203,7 +209,7 @@ class InterfaceService {
   //update
   async updateById(body, params) {
     try {
-      const { conn } = await db.getConnection();
+      const { conn, connPromise } = await db.getConnection();
       try {
         const { id } = params;
 
@@ -229,9 +235,15 @@ class InterfaceService {
           id
         );
 
-        const data = await interfaceAppModel.updateById(conn, body, params);
+        const data = await interfaceAppModel.updateById(
+          conn,
+          connPromise,
+          body,
+          params
+        );
         return data;
       } catch (error) {
+        await connPromise.rollback();
         throw error;
       } finally {
         conn.release();
