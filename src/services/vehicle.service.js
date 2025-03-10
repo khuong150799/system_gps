@@ -133,7 +133,7 @@ class vehicleService {
     }
   }
 
-  async handleCheckSendMissingDataError(data) {
+  handleCheckSendMissingDataError(data) {
     const dataParse = JSON.parse(data || "[]");
     if (!dataParse?.length) throw new SendMissingDataError();
 
@@ -601,7 +601,7 @@ class vehicleService {
       try {
         const { djson, promo } = body;
 
-        const dataParse = await this.handleCheckSendMissingDataError(djson);
+        const dataParse = this.handleCheckSendMissingDataError(djson);
 
         const {
           dataCodeFormat,

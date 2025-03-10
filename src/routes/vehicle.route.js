@@ -59,14 +59,24 @@ module.exports = (app) => {
         .notEmpty()
         .isNumeric()
         .withMessage(VALIDATE_DATA),
-      body("is_lock", NOT_EMPTY)
+    ],
+    isAuth,
+    checkPermission,
+    vehicleController.updateLock
+  );
+
+  router.patch(
+    "/update-unlock/:id",
+    [
+      param("id", VALIDATE_DATA).isNumeric(),
+      body("device_id", NOT_EMPTY)
         .notEmpty()
         .isNumeric()
         .withMessage(VALIDATE_DATA),
     ],
     isAuth,
     checkPermission,
-    vehicleController.updateLock
+    vehicleController.updateUnlock
   );
 
   router.patch(

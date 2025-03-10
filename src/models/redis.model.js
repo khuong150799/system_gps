@@ -157,9 +157,11 @@ class RedisModel {
   async hdelOneKey(key, field) {
     try {
       const { instanceConnect: client } = this.redis;
-      await client.hDel(key, field);
+      await client.hDel(key, field.toString());
       return { result: true, data: [] };
     } catch (error) {
+      console.log(error);
+
       return { result: false, error };
     }
   }

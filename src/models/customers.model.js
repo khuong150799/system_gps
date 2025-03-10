@@ -19,6 +19,8 @@ const {
   DELETE_TYPE,
 } = require("../constants/global.constant");
 const handleShufflePhoneNumber = require("../ultils/shufflePhoneNumber");
+const cacheModel = require("./cache.model");
+const { REDIS_KEY_LIST_USER_INFO } = require("../constants/redis.constant");
 
 class CustomersModel extends DatabaseSchema {
   constructor() {
@@ -255,6 +257,12 @@ class CustomersModel extends DatabaseSchema {
         type: UPDATE_TYPE,
       });
     }
+
+    const resultDelCache = await cacheModel.hdelOneKeyRedis(
+      REDIS_KEY_LIST_USER_INFO,
+      userId
+    );
+    if (!resultDelCache) throw { msg: ERROR };
 
     await connPromise.commit();
     customer.id = id;

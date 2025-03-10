@@ -910,8 +910,13 @@ class UsersModel extends DatabaseModel {
     //   "id = ?",
     //   [customer_id]
     // );
+    // console.log(id);
 
-    await this.getInfo(conn, id);
+    const resultDelCache = await cacheModel.hdelOneKeyRedis(
+      REDIS_KEY_LIST_USER_INFO,
+      id
+    );
+    if (!resultDelCache) throw { msg: ERROR };
 
     await connPromise.commit();
     user.id = id;
@@ -1302,7 +1307,12 @@ class UsersModel extends DatabaseModel {
 
     await this.delToken(userId);
 
-    await this.getInfo(conn, userId);
+    const resultDelCache = await cacheModel.hdelOneKeyRedis(
+      REDIS_KEY_LIST_USER_INFO,
+      userId
+    );
+
+    if (!resultDelCache) throw { msg: ERROR };
 
     return [];
   }

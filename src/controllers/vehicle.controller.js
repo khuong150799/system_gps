@@ -49,7 +49,22 @@ class VehicleController {
   updateLock = catchAsync(async (req, res) => {
     const { body, params, userId } = req;
     const infoUser = { user_id: userId, ip: null, os: null, gps: null };
-    const data = await vehicleService.updateLock(body, params, infoUser);
+    const data = await vehicleService.updateLock(
+      { ...body, is_lock: 1 },
+      params,
+      infoUser
+    );
+    UPDATE(res, [data]);
+  });
+
+  updateUnlock = catchAsync(async (req, res) => {
+    const { body, params, userId } = req;
+    const infoUser = { user_id: userId, ip: null, os: null, gps: null };
+    const data = await vehicleService.updateLock(
+      { ...body, is_lock: 0 },
+      params,
+      infoUser
+    );
     UPDATE(res, [data]);
   });
   //systemUpdateLock
