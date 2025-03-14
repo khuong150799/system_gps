@@ -52,7 +52,7 @@ class DeviceLoggingModel extends DatabaseModel {
     let whereClause = `d.imei LIKE ? OR v.name LIKE ? OR dl.des LIKE ?`;
     const conditions = [`%${keyword}%`, `%${keyword}%`, `%${keyword}%`];
 
-    const select = `d.dev_id, d.imei, dl.des, dl.action, u.username, COALESCE(c.name, c.company) AS name, v.name as vehicle_name`;
+    const select = `d.dev_id, d.imei, dl.des, dl.action, u.username, COALESCE(c.name, c.company) AS name, v.name as vehicle_name,dl.created_at`;
     const res_ = await this.select(
       conn,
       joinTable,

@@ -560,6 +560,7 @@ class DeviceModel extends DatabaseModel {
     }
 
     await this.update(conn, tableDevice, dataUpdateDevice, "id", device_id);
+    return { vehicleId };
   }
 
   //activation
@@ -608,7 +609,13 @@ class DeviceModel extends DatabaseModel {
 
     const userId = user.id;
 
-    await this.handleCreateVehicle(conn, body, infoPackage, createdAt, false);
+    const { vehicleId } = await this.handleCreateVehicle(
+      conn,
+      body,
+      infoPackage,
+      createdAt,
+      false
+    );
 
     await this.update(
       conn,
@@ -639,6 +646,7 @@ class DeviceModel extends DatabaseModel {
     await deviceLoggingModel.postOrDelete(conn, {
       user_id: userId,
       device_id,
+      vehicle_id: vehicleId,
       ip: null,
       os: null,
       gps: null,
@@ -749,24 +757,22 @@ class DeviceModel extends DatabaseModel {
 
     // console.log({ imei });
 
-    let vehicleId = vehicle_id;
-
     const infoPackage = await this.handleCheckPackage(
       conn,
       service_package_id,
-      !vehicleId
+      !vehicle_id
     );
 
     const createdAt = Date.now();
 
     await connPromise.beginTransaction();
 
-    await this.handleCreateVehicle(
+    const { vehicleId } = await this.handleCreateVehicle(
       conn,
       body,
       infoPackage,
       createdAt,
-      vehicleId
+      vehicle_id
     );
 
     await this.update(
@@ -803,6 +809,7 @@ class DeviceModel extends DatabaseModel {
     await deviceLoggingModel.postOrDelete(conn, {
       user_id: userId,
       device_id,
+      vehicle_id: vehicleId,
       ip: null,
       os: null,
       gps: null,
