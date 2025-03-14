@@ -1,6 +1,6 @@
 {
   "name": "sv_system_api",
-  "version": "1.8.6",
+  "version": "1.8.7",
   "description": "",
   "main": "server.js",
   "scripts": {
@@ -9,6 +9,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "createMigrate": "node node_modules/db-migrate/bin/db-migrate create",
     "upMigrate": "node node_modules/db-migrate/bin/db-migrate up",
+    "downMigrate": "node node_modules/db-migrate/bin/db-migrate down",
     "common": "ncc build server.js",
     "build": "pkg dist/index.js --out-path build"
   },
@@ -23,7 +24,7 @@
     "compression": "^1.7.4",
     "cors": "^2.8.5",
     "db-migrate": "^0.11.14",
-    "db-migrate-mysql": "^2.3.2",
+    "db-migrate-mysql": "^3.0.0",
     "discord.js": "^14.15.2",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",

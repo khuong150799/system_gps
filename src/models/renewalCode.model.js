@@ -12,7 +12,7 @@ const {
   tableKeyTime,
   tablePlatForm,
 } = require("../constants/tableName.constant");
-const generateRandomNumber = require("../ultils/randomCode");
+const generateRandomNumber = require("../helper/randomCode.helper");
 
 class RenewalCodeModel extends DatabaseModel {
   constructor() {

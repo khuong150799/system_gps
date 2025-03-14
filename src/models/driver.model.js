@@ -22,9 +22,9 @@ const {
 const DatabaseModel = require("./database.model");
 const { hSet, hdelOneKey, hGet } = require("./redis.model");
 const DriverSchema = require("./schema/driver.schema");
-const handleReplaceData = require("../ultils/replaceData");
+const handleReplaceData = require("../helper/replaceData.helper");
 const transmissionInfoApi = require("../api/transmissionInfo.api");
-const { date, String2Unit } = require("../ultils/getTime");
+const { date, String2Unit } = require("../utils/time.util");
 const {
   CREATE_TYPE,
   UPDATE_TYPE,

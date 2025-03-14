@@ -113,6 +113,8 @@ class LevelService {
       }
     } catch (error) {
       const { msg, errors } = error;
+      console.log(error);
+
       throw new BusinessLogicError(msg, errors);
     }
   }

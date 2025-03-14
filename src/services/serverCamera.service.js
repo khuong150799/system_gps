@@ -97,7 +97,7 @@ class ServerCameraService {
   //Register
   async register(body) {
     try {
-      const { conn } = await db.getConnection();
+      const { conn, connPromise } = await db.getConnection();
       try {
         const { ip } = body;
 
@@ -110,9 +110,10 @@ class ServerCameraService {
           "ip"
         );
 
-        const data = await serverCameraModel.register(conn, body);
+        const data = await serverCameraModel.register(conn, connPromise, body);
         return data;
       } catch (error) {
+        await connPromise.rollback();
         throw error;
       } finally {
         conn.release();
@@ -126,7 +127,7 @@ class ServerCameraService {
   //update
   async updateById(body, params) {
     try {
-      const { conn } = await db.getConnection();
+      const { conn, connPromise } = await db.getConnection();
       try {
         const { ip } = body;
         const { id } = params;
@@ -141,9 +142,15 @@ class ServerCameraService {
           id
         );
 
-        const data = await serverCameraModel.updateById(conn, body, params);
+        const data = await serverCameraModel.updateById(
+          conn,
+          connPromise,
+          body,
+          params
+        );
         return data;
       } catch (error) {
+        await connPromise.rollback();
         throw error;
       } finally {
         conn.release();
@@ -159,11 +166,12 @@ class ServerCameraService {
   //delete
   async deleteById(params) {
     try {
-      const { conn } = await db.getConnection();
+      const { conn, connPromise } = await db.getConnection();
       try {
-        await serverCameraModel.deleteById(conn, params);
+        await serverCameraModel.deleteById(conn, connPromise, params);
         return [];
       } catch (error) {
+        await connPromise.rollback();
         throw error;
       } finally {
         conn.release();

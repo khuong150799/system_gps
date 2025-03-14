@@ -28,27 +28,31 @@ const {
   tableServerCamera,
   tableGpsLinkAntiTheft,
   tableDeviceInfo,
+  tableDeviceGpsSample,
+  tableDeviceSpeedSample,
 } = require("../constants/tableName.constant");
 const { hSet: hsetRedis } = require("./redis.model");
 const {
   REDIS_KEY_ANTI_THEFT_LINK_GPS,
   REDIS_KEY_GPS_LINK_ANTI_THEFT,
 } = require("../constants/redis.constant");
-const getTableName = require("../ultils/getTableName");
+const handleGenerateTableName = require("../utils/generateTableName.util");
 const {
   initialNameOfTableGps,
   initialNameOfTableSpeed,
-  initialNameOfTableReportOneDay,
-  initialNameOfTableRunning,
-  initialNameOfTableReportRegion,
 } = require("../constants/setting.constant");
 
 const vehicleModel = require("./vehicle.model");
 const deviceLoggingModel = require("./deviceLogging.model");
 const DeviceVehicleSchema = require("./schema/deviceVehicle.schema");
 const cameraApi = require("../api/camera.api");
-const { date } = require("../ultils/getTime");
+const { date } = require("../utils/time.util");
 const customersModel = require("./customers.model");
+const {
+  ADD_ACTION,
+  DEL_ACTION,
+  ACTIVE_ACTION,
+} = require("../constants/action.constant");
 
 class DeviceModel extends DatabaseModel {
   constructor() {
@@ -309,7 +313,7 @@ class DeviceModel extends DatabaseModel {
   }
 
   async getById(conn, params, userId) {
-    const { id } = params;
+    const { id, imei } = params || {};
 
     const joinTable = `${tableDevice} d LEFT JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id AND dv.is_deleted = 0
     LEFT JOIN ${tableVehicle} v ON dv.vehicle_id = v.id AND v.is_deleted = 0
@@ -332,15 +336,22 @@ class DeviceModel extends DatabaseModel {
       c0.name) as customer_name,COALESCE(c.company, c.name) as agency_name,c.phone as agency_phone,vi.name as vehicle_icon_name,
       c0.id as customer_id,c.id as agency_id,d.sv_cam_id`;
 
-    let where = `d.id = ? AND ud.user_id = ? AND d.is_deleted = 0 AND c0.is_deleted = 0 AND u.is_deleted = 0 AND ud.is_deleted = 0`;
-    const condition = [id, userId];
+    let where = `AND ud.user_id = ? AND d.is_deleted = 0 AND c0.is_deleted = 0 AND u.is_deleted = 0 AND ud.is_deleted = 0`;
+    const conditions = [];
+    if (id) {
+      where = `d.id = ? ${where}`;
+      conditions.push(id, userId);
+    } else if (imei) {
+      where = `d.imei = ? ${where}`;
+      conditions.push(imei, userId);
+    }
 
     const data = await this.select(
       conn,
       joinTable,
       select,
       where,
-      condition,
+      conditions,
       `d.id`
     );
 
@@ -445,44 +456,16 @@ class DeviceModel extends DatabaseModel {
   }
 
   async handleCreateTable(conn, device_id) {
-    const tableGps = getTableName(initialNameOfTableGps, device_id);
-    const tableSpeed = getTableName(initialNameOfTableSpeed, device_id);
-    const tableReportOneDay = getTableName(
-      initialNameOfTableReportOneDay,
-      device_id
-    );
-    const tableContinuous = getTableName(initialNameOfTableRunning, device_id);
-    const tableReportRegion = getTableName(
-      initialNameOfTableReportRegion,
+    const tableGps = handleGenerateTableName(initialNameOfTableGps, device_id);
+    const tableSpeed = handleGenerateTableName(
+      initialNameOfTableSpeed,
       device_id
     );
 
-    const listTable = await Promise.all([
-      this.checkTableExit(conn, tableGps),
-      this.checkTableExit(conn, tableSpeed),
-      this.checkTableExit(conn, tableReportOneDay),
-      this.checkTableExit(conn, tableContinuous),
-      this.checkTableExit(conn, tableReportRegion),
+    await Promise.all([
+      this.createTableLike(conn, tableGps, tableDeviceGpsSample),
+      this.createTableLike(conn, tableSpeed, tableDeviceSpeedSample),
     ]);
-
-    // console.log("listTable", listTable);
-
-    const listTableCreate = listTable.map((item, i) => {
-      if (item && item.includes(initialNameOfTableGps))
-        return this.createTableDeviceGps(conn, item);
-      if (item && item.includes(initialNameOfTableSpeed))
-        return this.createTableDeviceSpeed(conn, item);
-      if (item && item.includes(initialNameOfTableReportOneDay))
-        return this.createTableReportOneDay(conn, item);
-      if (item && item.includes(initialNameOfTableRunning))
-        return this.createTableReportContinuous(conn, item);
-      if (item && item.includes(initialNameOfTableReportRegion))
-        return this.createTableReportRegion(conn, item);
-    });
-
-    if (listTableCreate?.length > 0) {
-      await Promise.all(listTableCreate);
-    }
   }
 
   async handleCreateVehicle(
@@ -501,8 +484,6 @@ class DeviceModel extends DatabaseModel {
       warning_speed,
       quantity_channel,
       service_package_id,
-      is_transmission_gps,
-      is_transmission_image,
       note,
       imei,
       expired_on,
@@ -556,10 +537,8 @@ class DeviceModel extends DatabaseModel {
       type: model_type_id,
       is_use_gps,
       is_deleted: 0,
-      is_transmission_gps:
-        !is_transmission_gps || is_transmission_gps == 0 ? 0 : 1,
-      is_transmission_image:
-        !is_transmission_image || is_transmission_image == 0 ? 0 : 1,
+      is_transmission_gps: 0,
+      is_transmission_image: 0,
       warning_speed: warning_speed || null,
       created_at: createdAt,
     });
@@ -664,7 +643,7 @@ class DeviceModel extends DatabaseModel {
       os: null,
       gps: null,
       des: null,
-      action: "Kích hoạt",
+      action: ACTIVE_ACTION,
       createdAt,
     });
 
@@ -828,7 +807,7 @@ class DeviceModel extends DatabaseModel {
       os: null,
       gps: null,
       des: null,
-      action: "Kích hoạt",
+      action: ACTIVE_ACTION,
       createdAt,
     });
 
@@ -951,7 +930,7 @@ class DeviceModel extends DatabaseModel {
         os,
         gps,
         res_ + i,
-        "Thêm",
+        ADD_ACTION,
         "[]",
         0,
         createdAt + i,
@@ -1064,7 +1043,7 @@ class DeviceModel extends DatabaseModel {
     const dataSaveLog = {
       ...infoUser,
       device_id: id,
-      action: "Xoá",
+      action: DEL_ACTION,
       createdAt: Date.now(),
     };
 

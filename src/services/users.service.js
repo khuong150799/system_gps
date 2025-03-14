@@ -19,7 +19,7 @@ const {
   Api401Error,
   Api403Error,
 } = require("../core/error.response");
-const makeUsername = require("../ultils/makeUsername");
+const makeUsername = require("../helper/makeUsername.helper");
 
 const DatabaseModel = require("../models/database.model");
 const usersModel = require("../models/users.model");

@@ -32,7 +32,7 @@ const {
   regexEmail,
   regexPhoneNumber,
   regexLicense,
-} = require("../ultils/regex");
+} = require("../utils/regex.util");
 const DatabaseModel = require("./database.model");
 
 class ValidateModel extends DatabaseModel {
@@ -40,9 +40,24 @@ class ValidateModel extends DatabaseModel {
     super();
   }
 
-  async checkOwnerDevice(conn, userId, devices = [], msg = NOT_ADD_DEVICE) {
-    const where = `ud.user_id = ? AND ud.device_id IN (?) AND ud.is_main = ? AND ud.is_deleted = ? AND d.device_status_id = ? AND d.is_deleted = ? AND dv.is_deleted = ?`;
-    const conditions = [userId, devices, 1, 0, 3, 0, 0];
+  async checkOwnerDevice(
+    conn,
+    userId,
+    devices = [],
+    msg = NOT_ADD_DEVICE,
+    param = "devices",
+    imei = []
+  ) {
+    let where = `AND d.device_status_id = ? AND d.is_deleted = ? AND ud.user_id = ? AND ud.is_main = ? AND ud.is_deleted = ? AND dv.is_deleted = ?`;
+    const conditions = [3, 0, userId, 1, 0, 0];
+    if (devices?.length) {
+      where = `d.id IN (?) ${where}`;
+      conditions.unshift(devices);
+    } else if (imei?.length) {
+      where = `d.imei IN (?) ${where}`;
+      conditions.unshift(imei);
+    }
+
     const joinTable = `${tableDevice} d INNER JOIN ${tableUserDevice} ud ON d.id = ud.device_id
       INNER JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id`;
     const select = `d.id,d.imei,dv.vehicle_id`;
@@ -62,7 +77,7 @@ class ValidateModel extends DatabaseModel {
     if (dataDevices.length <= 0)
       throw {
         msg: ERROR,
-        errors: [{ value: devices, msg, param: "devices" }],
+        errors: [{ value: devices, msg, param }],
       };
 
     const dataId = new Set(dataDevices.map((item) => Number(item.id)));
@@ -72,7 +87,7 @@ class ValidateModel extends DatabaseModel {
     if (idNotExit.length)
       throw {
         msg: ERROR,
-        errors: [{ value: idNotExit, msg, param: "devices" }],
+        errors: [{ value: idNotExit, msg, param }],
       };
 
     return dataDevices;

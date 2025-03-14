@@ -1,5 +1,6 @@
 const { hGet, hSet, del, hdelOneKey } = require("./redis.model");
-const safeJsonParse = require("../ultils/json.util");
+const safeJsonParse = require("../utils/json.util");
+const { ERROR } = require("../constants/msg.constant");
 
 class CacheModel {
   hgetRedis = async (key, feild) => {
@@ -9,16 +10,19 @@ class CacheModel {
     }
   };
 
-  hsetRedis = async (key, feild, value) => {
-    await hSet(key, feild.toString(), JSON.stringify(value));
+  hsetRedis = async (key, feild, value, ischeckCache = false) => {
+    const { result } = await hSet(key, feild.toString(), JSON.stringify(value));
+    if (ischeckCache && !result) throw { msg: ERROR, error: [{ code: 1 }] };
+    return result;
   };
   delRedis = async (key) => {
     const { result } = await del(key);
     return result;
   };
 
-  hdelOneKeyRedis = async (key, field) => {
-    const { result } = await hdelOneKey(key, field);
+  hdelOneKeyRedis = async (key, field, ischeckCache = false) => {
+    const { result } = await hdelOneKey(key, field.toString());
+    if (ischeckCache && !result) throw { msg: ERROR, error: [{ code: 1 }] };
     return result;
   };
 }

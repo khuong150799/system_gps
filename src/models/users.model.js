@@ -20,7 +20,7 @@ const {
 } = require("../helper/auth.helper");
 
 const CustomersSchema = require("./schema/customers.schema");
-const { makeCode } = require("../ultils/makeCode");
+const { makeCode } = require("../helper/makeCode.helper");
 const {
   tableUsersDevices,
   tableUsers,
@@ -981,7 +981,7 @@ class UsersModel extends DatabaseModel {
 
     const resultDelCache = await cacheModel.hdelOneKeyRedis(
       REDIS_KEY_LIST_USER_INFO,
-      userId
+      id
     );
 
     if (!resultDelCache) throw { msg: ERROR };

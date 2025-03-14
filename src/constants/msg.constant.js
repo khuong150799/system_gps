@@ -91,6 +91,8 @@ const constants = {
   ERROR_RENEWAL_CODE: "Mã không hợp lệ",
   NOT_UPDATE_REALTIME: "Không thể cập nhật data trên realtime",
   CONFIG_SUCCESS: "Cấu hình thành công",
+  SEND_COMMAND_SUSS: "Gửi lệnh thành công",
+  SEND_COMMAND_FAIL: "Gửi lệnh thất bại",
 };
 
 module.exports = constants;

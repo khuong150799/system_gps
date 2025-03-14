@@ -30,8 +30,8 @@ const {
   tableServicePackage,
   tableTransmission,
 } = require("../constants/tableName.constant");
-const { date, String2Unit } = require("../ultils/getTime");
-const { makeCode } = require("../ultils/makeCode");
+const { date, String2Unit } = require("../utils/time.util");
+const { makeCode } = require("../helper/makeCode.helper");
 const DatabaseModel = require("./database.model");
 const deviceLoggingModel = require("./deviceLogging.model");
 const ordersModel = require("./orders.model");
@@ -41,6 +41,13 @@ const { fork } = require("child_process");
 const deviceApi = require("../api/device.api");
 const { UPDATE_TYPE } = require("../constants/global.constant");
 const transmissionInfoApi = require("../api/transmissionInfo.api");
+const {
+  EDIT_ACTION,
+  DEL_ACTION,
+  LOCK_ACTION,
+  UN_LOCK_ACTION,
+  GUARANTEE_ACTION,
+} = require("../constants/action.constant");
 
 const { SV_NOTIFY } = configureEnvironment();
 
@@ -530,7 +537,7 @@ class VehicleModel extends DatabaseModel {
             deviceLoggingModel.lockVehicle(
               conn,
               des ? [des] : [],
-              is_lock == 0 ? "Mở khoá" : "Khoá",
+              is_lock == 0 ? UN_LOCK_ACTION : LOCK_ACTION,
               {
                 user_id,
                 device_id,
@@ -1012,7 +1019,7 @@ class VehicleModel extends DatabaseModel {
       os,
       gps,
       des,
-      action: "Sửa",
+      action: EDIT_ACTION,
       createdAt: Date.now(),
     });
 
@@ -1199,7 +1206,7 @@ class VehicleModel extends DatabaseModel {
               ip,
               os,
               gps,
-              action: "Sửa",
+              action: EDIT_ACTION,
             })
           );
 
@@ -1321,7 +1328,7 @@ class VehicleModel extends DatabaseModel {
               ip,
               os,
               gps,
-              action: "Sửa",
+              action: EDIT_ACTION,
             })
           );
 
@@ -1462,7 +1469,7 @@ class VehicleModel extends DatabaseModel {
       ...infoUser,
       device_id,
       vehicle_id: id,
-      action: "Xoá",
+      action: DEL_ACTION,
       des: JSON.stringify([`Xoá phương tiện ${vehicle_name}`]),
       createdAt: Date.now(),
     };
@@ -1696,7 +1703,7 @@ class VehicleModel extends DatabaseModel {
       ...infoUser,
       device_id: device_id_old,
       vehicle_id: id,
-      action: "Sửa",
+      action: GUARANTEE_ACTION,
       des: JSON.stringify(
         `Bảo hành phương tiện ${vehicle_name}: ${imeiOld} ===> ${imeiNew}`
       ),

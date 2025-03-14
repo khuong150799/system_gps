@@ -1,11 +1,14 @@
+const { EDIT_ACTION, LOCK_ACTION } = require("../constants/action.constant");
 const propertyConstant = require("../constants/property.constant");
 const {
   tableDeviceLogging,
   tableUsers,
   tableDevice,
   tableVehicle,
+  tableUsersCustomers,
+  tableCustomers,
 } = require("../constants/tableName.constant");
-const { date } = require("../ultils/getTime");
+const handleCreateJoinTable = require("../helper/createJoinTable.helper");
 const DatabaseModel = require("./database.model");
 const DeviceLoggingSchema = require("./schema/deviceLogging.schema");
 
@@ -18,36 +21,51 @@ class DeviceLoggingModel extends DatabaseModel {
     const offset = query.offset || 0;
     const limit = query.limit || 10;
     const { keyword } = query;
-    let where = "1 = ?";
-    const conditions = [1];
-    const select =
-      "u.username,d.imei,v.name as vehicle_name,dl.ip,dl.os,dl.gps,dl.des,dl.action,dl.created_at";
 
-    if (keyword) {
-      where += ` AND (d.imei like ? OR v.name LIKE ?)`;
-      conditions.push(`%${query.keyword}%`, `%${query.keyword}%`);
-    }
-
-    const joinTable = `${tableDeviceLogging} dl INNER JOIN ${tableUsers} u ON dl.user_id = u.id 
-      INNER JOIN ${tableDevice} d ON dl.device_id = d.id 
-      LEFT JOIN ${tableVehicle} v ON dl.device_id = v.device_id`;
-
-    const [res_, count] = await Promise.all([
-      this.select(
-        conn,
-        joinTable,
-        select,
-        where,
-        conditions,
-        "dl.id",
-        "DESC",
-        offset,
-        limit
-      ),
-      this.count(conn, joinTable, "*", where, conditions),
+    const joinTable = handleCreateJoinTable(`${tableDeviceLogging} dl`, [
+      {
+        table: `${tableDevice} d`,
+        on: `d.id = dl.device_id`,
+        type: "INNER",
+      },
+      {
+        table: `${tableUsers} u`,
+        on: `u.id = dl.user_id`,
+        type: "INNER",
+      },
+      {
+        table: `${tableUsersCustomers} uc`,
+        on: `dl.user_id = uc.user_id`,
+        type: "INNER",
+      },
+      {
+        table: `${tableCustomers} c`,
+        on: `c.id = uc.customer_id`,
+        type: "INNER",
+      },
+      {
+        table: `${tableVehicle} v`,
+        on: `dl.vehicle_id = v.id`,
+        type: "LEFT",
+      },
     ]);
-    const totalPage = Math.ceil(count?.[0]?.total / limit);
-    return { data: res_, totalPage, totalRecord: count?.[0]?.total };
+    let whereClause = `d.imei LIKE ? OR v.name LIKE ? OR dl.des LIKE ?`;
+    const conditions = [`%${keyword}%`, `%${keyword}%`, `%${keyword}%`];
+
+    const select = `d.dev_id, d.imei, dl.des, dl.action, u.username, COALESCE(c.name, c.company) AS name, v.name as vehicle_name`;
+    const res_ = await this.select(
+      conn,
+      joinTable,
+      select,
+      whereClause,
+      conditions,
+      `d.id`,
+      "DESC",
+      offset,
+      limit
+    );
+
+    return { data: res_, totalPage: 0, totalRecord: res_?.length };
   }
 
   async postOrDelete(conn, data) {
@@ -149,7 +167,7 @@ class DeviceLoggingModel extends DatabaseModel {
       ip: ip || null,
       os: os || null,
       des: JSON.stringify(arrChange),
-      action: "Sửa",
+      action: EDIT_ACTION,
       gps,
       is_deleted: 0,
       created_at: Date.now(),
@@ -198,7 +216,7 @@ class DeviceLoggingModel extends DatabaseModel {
   async lockVehicle(
     conn,
     des,
-    action = "Khoá",
+    action = LOCK_ACTION,
     { user_id, device_id, vehicle_id, ip, os, gps }
   ) {
     const logs = new DeviceLoggingSchema({
@@ -228,7 +246,7 @@ class DeviceLoggingModel extends DatabaseModel {
       ip: ip || null,
       os: os || null,
       des: JSON.stringify([des]),
-      action: "Sửa",
+      action: EDIT_ACTION,
       gps,
       is_deleted: 0,
       created_at: Date.now(),
@@ -247,7 +265,7 @@ class DeviceLoggingModel extends DatabaseModel {
       ip: ip || null,
       os: os || null,
       des: JSON.stringify([des]),
-      action: "Sửa",
+      action: EDIT_ACTION,
       gps,
       is_deleted: 0,
       created_at: Date.now(),

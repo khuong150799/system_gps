@@ -1,7 +1,7 @@
 const DatabaseSchema = require("./database.model");
 const CustomersSchema = require("./schema/customers.schema");
 
-const { makeCode } = require("../ultils/makeCode");
+const { makeCode } = require("../helper/makeCode.helper");
 const usersModel = require("./users.model");
 const {
   tableCustomers,
@@ -12,13 +12,13 @@ const {
 const vehicleModel = require("./vehicle.model");
 const { DELETED_CUSTOMER, ERROR } = require("../constants/msg.constant");
 const transmissionInfoApi = require("../api/transmissionInfo.api");
-const { String2Unit } = require("../ultils/getTime");
+const { String2Unit } = require("../utils/time.util");
 const {
   CREATE_TYPE,
   UPDATE_TYPE,
   DELETE_TYPE,
 } = require("../constants/global.constant");
-const handleShufflePhoneNumber = require("../ultils/shufflePhoneNumber");
+const handleShufflePhoneNumber = require("../helper/shufflePhoneNumber");
 const cacheModel = require("./cache.model");
 const { REDIS_KEY_LIST_USER_INFO } = require("../constants/redis.constant");
 

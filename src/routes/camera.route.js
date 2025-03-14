@@ -2,7 +2,12 @@ const router = require("express").Router();
 const { VALIDATE_DATA, NOT_EMPTY } = require("../constants/msg.constant");
 const { body, param } = require("express-validator");
 const cameraController = require("../controllers/camera.controller");
+const {
+  checkPermission,
+} = require("../middlewares/checkPermission.middleware");
+const { isAuth } = require("../middlewares/jwt.middleware");
 module.exports = (app) => {
+  router.get("/config/rows", cameraController.getVehicleInfo);
   // config-vehicle-info
   router.post(
     "/config-vehicle-info/:imei",
@@ -53,6 +58,8 @@ module.exports = (app) => {
         .withMessage(VALIDATE_DATA)
         .escape(),
     ],
+    isAuth,
+    // checkPermission,
     cameraController.configVehicleInfo
   );
   // config-acc
@@ -85,6 +92,8 @@ module.exports = (app) => {
         .withMessage(VALIDATE_DATA)
         .escape(),
     ],
+    isAuth,
+    // checkPermission,
     cameraController.configACC
   );
   //  fatigue-mode
@@ -137,6 +146,8 @@ module.exports = (app) => {
         .withMessage(VALIDATE_DATA)
         .escape(),
     ],
+    isAuth,
+    // checkPermission,
     cameraController.fatigueMode
   );
   //  over-speed
@@ -189,10 +200,17 @@ module.exports = (app) => {
         .withMessage(VALIDATE_DATA)
         .escape(),
     ],
+    isAuth,
+    // checkPermission,
     cameraController.overSpeed
   );
   //   config-mirror
-  router.post("/config-mirror/:imei", cameraController.configMirror);
+  router.post(
+    "/config-mirror/:imei",
+    isAuth,
+    // checkPermission,
+    cameraController.configMirror
+  );
 
   app.use("/api/v1/camera", router);
 };

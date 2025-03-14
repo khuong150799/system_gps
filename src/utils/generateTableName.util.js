@@ -1,4 +1,8 @@
-const getTableName = (tableDefault, deviceId = 1, time = Date.now()) => {
+const handleGenerateTableName = (
+  tableDefault,
+  deviceId = 1,
+  time = Date.now()
+) => {
   const newDate = new Date(time);
   const currentMonth = newDate.getMonth() + 1;
 
@@ -9,4 +13,4 @@ const getTableName = (tableDefault, deviceId = 1, time = Date.now()) => {
   }_${currentMonth == 12 ? newDate.getFullYear() + 1 : newDate.getFullYear()}`;
 };
 
-module.exports = getTableName;
+module.exports = handleGenerateTableName;

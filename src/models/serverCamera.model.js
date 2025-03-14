@@ -3,8 +3,8 @@ const { tableServerCamera } = require("../constants/tableName.constant");
 const ServerCameraSchema = require("./schema/serverCamera.schema");
 const { login } = require("../api/camera.api");
 const configureEnvironment = require("../config/dotenv.config");
-const { hSet } = require("./redis.model");
 const { REDIS_KEY_SV_CAM } = require("../constants/redis.constant");
+const cacheModel = require("./cache.model");
 const { ACCOUNT_CMS, PASSWORD_CMS } = configureEnvironment();
 
 class ServerCameraModel extends DatabaseModel {
@@ -104,7 +104,7 @@ class ServerCameraModel extends DatabaseModel {
   }
 
   //Register
-  async register(conn, body) {
+  async register(conn, connPromise, body) {
     const { ip, host, port, publish } = body;
     const serverCamera = new ServerCameraSchema({
       ip,
@@ -116,19 +116,25 @@ class ServerCameraModel extends DatabaseModel {
     });
     delete serverCamera.updated_at;
 
+    await connPromise.beginTransaction();
+
     const res_ = await this.insert(conn, tableServerCamera, serverCamera);
-    await hSet(
+    await cacheModel.hsetRedis(
       REDIS_KEY_SV_CAM,
-      res_.toString(),
-      JSON.stringify({ ip, host, port })
+      res_,
+      { ip, host, port },
+      true
     );
+
+    await connPromise.commit();
+
     serverCamera.id = res_;
     delete serverCamera.is_deleted;
     return serverCamera;
   }
 
   //update
-  async updateById(conn, body, params) {
+  async updateById(conn, connPromise, body, params) {
     const { ip, host, port, publish } = body;
     const { id } = params;
 
@@ -143,20 +149,27 @@ class ServerCameraModel extends DatabaseModel {
     delete serverCamera.created_at;
     delete serverCamera.is_deleted;
 
+    await connPromise.beginTransaction();
+
     await this.update(conn, tableServerCamera, serverCamera, "id", id);
-    await hSet(
-      REDIS_KEY_SV_CAM,
-      id.toString(),
-      JSON.stringify({ ip, host, port })
-    );
+    await cacheModel.hsetRedis(REDIS_KEY_SV_CAM, id, { ip, host, port }, true);
+
+    await connPromise.commit();
     serverCamera.id = id;
     return serverCamera;
   }
 
   //delete
-  async deleteById(conn, params) {
+  async deleteById(conn, connPromise, params) {
     const { id } = params;
+
+    await connPromise.beginTransaction();
+
     await this.update(conn, tableServerCamera, { is_deleted: 1 }, "id", id);
+    await cacheModel.hdelOneKeyRedis(REDIS_KEY_SV_CAM, id, true);
+
+    await connPromise.commit();
+
     return [];
   }
 

@@ -43,4 +43,5 @@ module.exports = (app) => {
   require("./monitor.route")(app);
   require("./businessType.route")(app);
   require("./camera.route")(app);
+  require("./command.route")(app);
 };

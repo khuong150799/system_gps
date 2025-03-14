@@ -3,7 +3,7 @@ const {
   handleDataAddVehicleCms,
   handleDataAddDeviceCms,
   handleDataAddConfigCms,
-} = require("../ultils/getDataSendCms");
+} = require("../helper/formatDataCms.helper");
 
 const cameraApi = {
   login: async ({ account, password, baseUrl }) => {
@@ -38,14 +38,16 @@ const cameraApi = {
       params: { ...params, baseUrl: url },
     });
   },
-  config: async ({ url, devidno, data }) => {
-    const url_ = `${url}/2/74?Command=33536&DevIDNO=${devidno}`;
+  config: async ({ url, urlCommand, devidno, data }) => {
+    const url_ = `${urlCommand}/2/74?Command=33536&DevIDNO=${devidno}`;
 
-    const bođy = handleDataAddConfigCms({ data });
+    const body = handleDataAddConfigCms({ data });
+    // console.log("body", body);
+
     return await axiosCMS({
       method: "POST",
       url: url_,
-      data: bođy,
+      data: body,
       params: { toMap: 1, baseUrl: url },
     });
   },

@@ -1,6 +1,6 @@
 const { BusinessLogicError } = require("../core/error.response");
 const envModel = require("../models/env.model");
-const safeJsonParse = require("../ultils/json.util");
+const safeJsonParse = require("../utils/json.util");
 
 class EnvService {
   async init(env) {

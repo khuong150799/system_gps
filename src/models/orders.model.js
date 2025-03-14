@@ -1,7 +1,7 @@
 const DatabaseModel = require("./database.model");
 const OrdersSchema = require("./schema/orders.schema");
 const { ERROR } = require("../constants/msg.constant");
-const { makeCode } = require("../ultils/makeCode");
+const { makeCode } = require("../helper/makeCode.helper");
 const {
   tableOrders,
   tableOrdersDevice,
