@@ -53,9 +53,12 @@ class Datatbase {
   async executeTransaction(callback) {
     const { conn, connPromise } = await this.getConnection();
     try {
+      await connPromise.query("SET AUTOCOMMIT = 0");
       await connPromise.beginTransaction();
       const result = await callback(conn);
+
       await connPromise.commit();
+
       return result;
     } catch (error) {
       await connPromise.rollback();
@@ -66,11 +69,13 @@ class Datatbase {
   }
 }
 
-const { getConnection, init, getActiveConnections } = new Datatbase();
+const { getConnection, init, getActiveConnections, executeTransaction } =
+  new Datatbase();
 
 module.exports = {
   getConnection,
   initDb: init,
   getActiveConnections,
+  executeTransaction,
   db: pool,
 };

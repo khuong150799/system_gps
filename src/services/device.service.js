@@ -230,9 +230,9 @@ class DeviceService {
   //activation
   async activationOutside(body) {
     try {
-      const { conn, connPromise } = await db.getConnection();
-      try {
-        const { username, password, imei, vehicle } = body;
+      const { username, password, imei, vehicle } = body;
+
+      const data = await db.executeTransaction(async (conn) => {
         const dataInfoDevice = await deviceModel.checkOutside(conn, { imei });
 
         await validateModel.checkRegexUsername(username);
@@ -282,21 +282,11 @@ class DeviceService {
           model_type_id,
           imei: imeiDb,
         };
+        return await deviceModel.activationOutside(conn, dataBody);
+      });
 
-        const data = await deviceModel.activationOutside(
-          conn,
-          connPromise,
-          dataBody
-        );
-        return data;
-      } catch (error) {
-        await connPromise.rollback();
-        throw error;
-      } finally {
-        conn.release();
-      }
+      return data;
     } catch (error) {
-      console.log("error", error);
       const { msg, errors } = error;
       throw new BusinessLogicError(msg, errors);
     }

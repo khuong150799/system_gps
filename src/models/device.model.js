@@ -456,16 +456,23 @@ class DeviceModel extends DatabaseModel {
   }
 
   async handleCreateTable(conn, device_id) {
-    const tableGps = handleGenerateTableName(initialNameOfTableGps, device_id);
-    const tableSpeed = handleGenerateTableName(
-      initialNameOfTableSpeed,
-      device_id
-    );
+    try {
+      const tableGps = handleGenerateTableName(
+        initialNameOfTableGps,
+        device_id
+      );
+      const tableSpeed = handleGenerateTableName(
+        initialNameOfTableSpeed,
+        device_id
+      );
 
-    await Promise.all([
-      this.createTableLike(conn, tableGps, tableDeviceGpsSample),
-      this.createTableLike(conn, tableSpeed, tableDeviceSpeedSample),
-    ]);
+      await Promise.all([
+        this.createTableLike(conn, tableGps, tableDeviceGpsSample),
+        this.createTableLike(conn, tableSpeed, tableDeviceSpeedSample),
+      ]);
+    } catch (error) {
+      console.log("create table device gps fail", error);
+    }
   }
 
   async handleCreateVehicle(
@@ -564,7 +571,8 @@ class DeviceModel extends DatabaseModel {
   }
 
   //activation
-  async activationOutside(conn, connPromise, body) {
+  // async activationOutside(conn, connPromise, body) {
+  async activationOutside(conn, body) {
     const {
       device_id,
       vehicle,
@@ -582,12 +590,13 @@ class DeviceModel extends DatabaseModel {
 
     const infoPackage = await this.handleCheckPackage(conn, service_package_id);
 
-    await connPromise.beginTransaction();
+    // await connPromise.beginTransaction();
     const createdAt = Date.now();
 
     const user = await customersModel.register(
       conn,
-      connPromise,
+      // connPromise,
+      null,
       {
         level_id: 6,
         name,
@@ -634,8 +643,6 @@ class DeviceModel extends DatabaseModel {
       `is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved)`
     );
 
-    await this.handleCreateTable(conn, device_id);
-
     const inforDevice = await vehicleModel.getInfoDevice(conn, imei);
     // console.log("inforDevice", inforDevice);
 
@@ -666,7 +673,9 @@ class DeviceModel extends DatabaseModel {
       );
     }
 
-    await connPromise.commit();
+    await this.handleCreateTable(conn, device_id);
+
+    // await connPromise.commit();
 
     return [];
   }
@@ -792,8 +801,6 @@ class DeviceModel extends DatabaseModel {
       `is_deleted=VALUES(is_deleted),is_moved=VALUES(is_moved)`
     );
 
-    await this.handleCreateTable(conn, device_id);
-
     const inforDevice = await vehicleModel.getInfoDevice(conn, imei);
 
     // console.log("inforDevice", inforDevice);
@@ -828,6 +835,8 @@ class DeviceModel extends DatabaseModel {
         quantity_channel
       );
     }
+
+    await this.handleCreateTable(conn, device_id);
 
     await connPromise.commit();
     return [];
