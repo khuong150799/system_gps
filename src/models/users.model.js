@@ -44,7 +44,7 @@ const { hSet, hScan, hdelOneKey, hGetAll } = require("./redis.model");
 const {
   REDIS_KEY_TOKEN,
   REDIS_KEY_LOCK_ACC_WITH_EXTEND,
-  REDIS_KEY_LIST_USER_INFO,
+  // REDIS_KEY_LIST_USER_INFO,
 } = require("../constants/redis.constant");
 const ordersModel = require("./orders.model");
 const tokenFirebaseModel = require("./tokenFirebase.model");
@@ -367,9 +367,11 @@ class UsersModel extends DatabaseModel {
       conditions,
       `u.id`
     );
-    if (!isGetPass && res_?.length) {
-      await cacheModel.hsetRedis(REDIS_KEY_LIST_USER_INFO, userId, res_);
-    }
+    // console.log("!isGetPass && res_?.length", !isGetPass && res_?.length, res_);
+
+    // if (!isGetPass && res_?.length) {
+    //   await cacheModel.hsetRedis(REDIS_KEY_LIST_USER_INFO, userId, res_);
+    // }
     return res_;
   }
 
@@ -912,11 +914,11 @@ class UsersModel extends DatabaseModel {
     // );
     // console.log(id);
 
-    const resultDelCache = await cacheModel.hdelOneKeyRedis(
-      REDIS_KEY_LIST_USER_INFO,
-      id
-    );
-    if (!resultDelCache) throw { msg: ERROR };
+    // const resultDelCache = await cacheModel.hdelOneKeyRedis(
+    //   REDIS_KEY_LIST_USER_INFO,
+    //   id
+    // );
+    // if (!resultDelCache) throw { msg: ERROR };
 
     await connPromise.commit();
     user.id = id;
@@ -979,12 +981,12 @@ class UsersModel extends DatabaseModel {
 
     await this.delToken(id);
 
-    const resultDelCache = await cacheModel.hdelOneKeyRedis(
-      REDIS_KEY_LIST_USER_INFO,
-      id
-    );
+    // const resultDelCache = await cacheModel.hdelOneKeyRedis(
+    //   REDIS_KEY_LIST_USER_INFO,
+    //   id
+    // );
 
-    if (!resultDelCache) throw { msg: ERROR };
+    // if (!resultDelCache) throw { msg: ERROR };
 
     await connPromise.commit();
     return [];
@@ -1307,12 +1309,12 @@ class UsersModel extends DatabaseModel {
 
     await this.delToken(userId);
 
-    const resultDelCache = await cacheModel.hdelOneKeyRedis(
-      REDIS_KEY_LIST_USER_INFO,
-      userId
-    );
+    // const resultDelCache = await cacheModel.hdelOneKeyRedis(
+    //   REDIS_KEY_LIST_USER_INFO,
+    //   userId
+    // );
 
-    if (!resultDelCache) throw { msg: ERROR };
+    // if (!resultDelCache) throw { msg: ERROR };
 
     return [];
   }

@@ -20,7 +20,7 @@ const {
 } = require("../constants/global.constant");
 const handleShufflePhoneNumber = require("../helper/shufflePhoneNumber");
 const cacheModel = require("./cache.model");
-const { REDIS_KEY_LIST_USER_INFO } = require("../constants/redis.constant");
+// const { REDIS_KEY_LIST_USER_INFO } = require("../constants/redis.constant");
 
 class CustomersModel extends DatabaseSchema {
   constructor() {
@@ -258,11 +258,11 @@ class CustomersModel extends DatabaseSchema {
       });
     }
 
-    const resultDelCache = await cacheModel.hdelOneKeyRedis(
-      REDIS_KEY_LIST_USER_INFO,
-      userId
-    );
-    if (!resultDelCache) throw { msg: ERROR };
+    // const resultDelCache = await cacheModel.hdelOneKeyRedis(
+    //   REDIS_KEY_LIST_USER_INFO,
+    //   userId
+    // );
+    // if (!resultDelCache) throw { msg: ERROR };
 
     await connPromise.commit();
     customer.id = id;
