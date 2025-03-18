@@ -62,6 +62,31 @@ class vehicleService {
     }
   }
 
+  async getInfoTransmission(params, query) {
+    try {
+      const { conn } = await db.getConnection();
+      try {
+        const { id: vehicleId } = params;
+        const { device_id: deviceId } = query;
+        const data = await vehicleModel.getInfoTransmission({
+          conn,
+          vehicleId,
+          deviceId,
+          isCheck: false,
+        });
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      console.log(error);
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
+    }
+  }
+
   async handleCheckRechargeCard(conn, deviceId) {
     const joinTable = `${tableRenewalCodeDevice} rnd INNER JOIN ${tableRenewalCode} rn ON rnd.renewal_code_id = rn.id`;
     const data = await dataBaseModel.select(

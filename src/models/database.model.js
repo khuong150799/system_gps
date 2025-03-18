@@ -1,8 +1,6 @@
 const configureEnvironment = require("../config/dotenv.config");
 const { ERROR, NOT_EXITS } = require("../constants/msg.constant");
 
-const { DB_NAME } = configureEnvironment();
-
 class DatabaseModel {
   async select_(db, tableName, fields = "*", where = "", conditions = []) {
     return await new Promise((resolve, reject) => {

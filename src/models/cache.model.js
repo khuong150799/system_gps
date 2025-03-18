@@ -8,6 +8,7 @@ class CacheModel {
     if (data) {
       return safeJsonParse(data);
     }
+    return null;
   };
 
   hsetRedis = async (key, feild, value, ischeckCache = false) => {

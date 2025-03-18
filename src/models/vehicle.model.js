@@ -10,6 +10,7 @@ const {
   REDIS_KEY_LIST_DEVICE,
   REDIS_KEY_LOCK_ACC_WITH_EXTEND,
   REDIS_KEY_DATA_SLEEP_TIME,
+  REDIS_KEY_REALTIME_SOCKET,
 } = require("../constants/redis.constant");
 const {
   tableDevice,
@@ -29,6 +30,7 @@ const {
   tableRenewalCodeDevice,
   tableServicePackage,
   tableTransmission,
+  tableBusinessType,
 } = require("../constants/tableName.constant");
 const { date, String2Unit } = require("../utils/time.util");
 const { makeCode } = require("../helper/makeCode.helper");
@@ -48,6 +50,8 @@ const {
   UN_LOCK_ACTION,
   GUARANTEE_ACTION,
 } = require("../constants/action.constant");
+const cacheModel = require("./cache.model");
+const VehicleSchema = require("./schema/vehicle.schema");
 
 const { SV_NOTIFY } = configureEnvironment();
 
@@ -97,9 +101,9 @@ class VehicleModel extends DatabaseModel {
 
     const isDeleted = is_deleted || 0;
     // let where = `ud.user_id = ? AND ud.is_deleted = ? AND ud.is_main = ? AND d.is_deleted = ?`;
-    let where = `d.is_deleted = ? AND m.is_deleted = ? AND dv.is_deleted = ? AND v.is_deleted = ?`;
+    let where = `d.is_deleted = ? AND m.is_deleted = ? AND dv.is_deleted = ? AND v.is_deleted = ? AND sp.is_deleted = ?`;
     // let conditions = [userId, isDeleted, 1, isDeleted];
-    let conditions = [isDeleted, isDeleted, isDeleted, isDeleted];
+    let conditions = [isDeleted, isDeleted, isDeleted, isDeleted, isDeleted];
 
     if (keyword) {
       where = `(d.imei LIKE ? OR d.dev_id LIKE ? OR v.name LIKE ?) AND ${where}`;
@@ -120,11 +124,12 @@ class VehicleModel extends DatabaseModel {
     const joinTable = `${tableDevice} d INNER JOIN ${tableModel} m ON d.model_id = m.id
       INNER JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id
       INNER JOIN ${tableVehicle} v ON dv.vehicle_id = v.id
+      INNER JOIN ${tableServicePackage} sp ON dv.service_package_id = sp.id
       LEFT JOIN ${tableTransmission} t ON d.id = t.device_id
     `;
 
     const select = `d.id as device_id,d.dev_id,d.imei,dv.activation_date,dv.is_transmission_gps,dv.is_transmission_image,v.id as vehicle_id,
-      v.name as vehicle_name,m.name as model_name,t.first_time,t.last_time,t.location,t.quantity,t.time,t.note`;
+      v.name as vehicle_name,m.name as model_name,sp.name as service_package_name,t.first_time,t.last_time,t.location,t.quantity,t.time,t.note`;
 
     const [res_, count] = await Promise.all([
       this.select(
@@ -145,6 +150,42 @@ class VehicleModel extends DatabaseModel {
     const totalPage = Math.ceil(count?.[0]?.total / limit);
 
     return { data: res_, totalPage, totalRecord: count?.[0]?.total };
+  }
+  async getInfoTransmission({ conn, vehicleId, deviceId, isCheck }) {
+    const joinTable = `${tableVehicle} v INNER JOIN ${tableDeviceVehicle} dv ON v.id = dv.vehicle_id
+    INNER JOIN ${tableDevice} d ON dv.device_id = d.id
+    INNER JOIN ${tableUsersDevices} ud ON d.id = ud.device_id
+    INNER JOIN ${tableUsersCustomers} uc ON ud.user_id = uc.user_id
+    INNER JOIN ${tableCustomers} c ON uc.customer_id = c.id
+    INNER JOIN ${tableModel} m ON d.model_id = m.id
+    LEFT JOIN ${tableBusinessType} bt ON v.business_type_id = bt.id AND bt.is_deleted = 0`;
+    let select = `v.id as vehicle_id,v.name as vehicle_name,v.business_type_id,bt.title as business_type_name,c.tax_code,
+    d.imei,d.serial as sim,v.created_at,v.updated_at,v.chassis_number,v.weight`;
+
+    if (isCheck) {
+      select +=
+        ",m.compliance_device_number,m.compliance_device_type as model_name";
+    }
+
+    const where = `v.id = ? AND v.is_deleted = ? AND d.id = ? AND d.is_deleted = ?
+       AND ud.device_id = ? AND ud.is_main = ? AND ud.is_deleted = ? AND ud.is_moved = ?
+       AND c.is_deleted = ? AND m.is_deleted = ?`;
+
+    const conditions = [vehicleId, 0, deviceId, 0, deviceId, 1, 0, 0, 0, 0];
+
+    const vehicle = await this.select(
+      conn,
+      joinTable,
+      select,
+      where,
+      conditions,
+      "v.id",
+      "ASC",
+      0,
+      1
+    );
+
+    return vehicle;
   }
 
   async getInfoDevice(conn, imei, device_id, user_id) {
@@ -622,6 +663,8 @@ class VehicleModel extends DatabaseModel {
       quantity_channel,
       quantity_channel_lock,
       device_id,
+      chassis_number,
+      business_type_id,
     } = body;
     const { id } = params;
 
@@ -630,6 +673,8 @@ class VehicleModel extends DatabaseModel {
       vehicle_type_id,
       weight,
       warning_speed,
+      chassis_number: chassis_number || null,
+      business_type_id: business_type_id || null,
     };
     // console.log(id)
 
@@ -693,35 +738,12 @@ class VehicleModel extends DatabaseModel {
   }
 
   async handleTransmission({ conn, vehicleId, deviceId }) {
-    const joinTable = `${tableVehicle} v INNER JOIN ${tableDeviceVehicle} dv ON v.id = dv.vehicle_id
-    INNER JOIN ${tableDevice} d ON dv.device_id = d.id
-    INNER JOIN ${tableUsersDevices} ud ON d.id = ud.device_id
-    INNER JOIN ${tableUsersCustomers} uc ON ud.user_id = uc.user_id
-    INNER JOIN ${tableCustomers} c ON uc.customer_id = c.id
-    INNER JOIN ${tableModel} m ON d.model_id = m.id`;
-
-    const select = `v.id as vehicle_id,v.name as vehicle_name,c.business_type_id,c.tax_code,
-    m.compliance_device_number,m.compliance_device_type as model_name,
-    d.imei,d.serial as sim,v.created_at,v.updated_at,v.chassis_number,v.weight`;
-
-    const where = `v.id = ? AND v.is_deleted = ? AND d.id = ? AND d.is_deleted = ?
-       AND ud.device_id = ? AND ud.is_main = ? AND ud.is_deleted = ? AND ud.is_moved = ?
-       AND c.is_deleted = ? AND m.is_deleted = ?`;
-
-    const conditions = [vehicleId, 0, deviceId, 0, deviceId, 1, 0, 0, 0, 0];
-
-    const vehicle = await this.select(
+    const vehicle = await this.getInfoTransmission({
       conn,
-      joinTable,
-      select,
-      where,
-      conditions,
-      "v.id",
-      "ASC",
-      0,
-      1
-    );
-
+      vehicleId,
+      deviceId,
+      isCheck: true,
+    });
     if (!vehicle?.length)
       throw { msg: ERROR, errors: [{ msg: "Vehicle not found" }] };
 
@@ -739,10 +761,31 @@ class VehicleModel extends DatabaseModel {
       weight,
     } = vehicle[0];
 
+    if (!business_type_id || !chassis_number || !tax_code || !weight)
+      throw {
+        msg: ERROR,
+        errors: [
+          { msg: "Thông tin tích truyền không đầy đủ, vui lòng kiểm tra lại" },
+        ],
+      };
+
+    const driverInfo = await cacheModel.hgetRedis(
+      REDIS_KEY_REALTIME_SOCKET,
+      imei
+    );
+
+    // console.log("driverInfo", driverInfo);
+    const license_number = driverInfo?.license_number;
+    if (!license_number)
+      throw {
+        msg: ERROR,
+        errors: [{ msg: "Vui lòng đăng nhập thông tin tài xế" }],
+      };
+
     const body = {
       vehicle_name,
       business_type: business_type_id,
-      license_number: null,
+      license_number,
       tax_code,
       compliance_device_number,
       model: model_name,
@@ -752,10 +795,13 @@ class VehicleModel extends DatabaseModel {
         ? date(updated_at)
         : date(created_at),
       chassis_number,
-      weight: weight ? weight / 1000 : 0,
+      weight: weight ? Math.floor(weight / 1000) : 0,
       time: String2Unit(Date.now()),
       type: UPDATE_TYPE,
     };
+
+    // console.log("body", body);
+
     await transmissionInfoApi.vehicle(body);
   }
 

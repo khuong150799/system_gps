@@ -31,6 +31,14 @@ class VehicleController {
     GET(res, data, totalPage, totalRecord);
   });
 
+  getInfoTransmission = catchAsync(async (req, res) => {
+    const { query, params } = req;
+
+    const data = await vehicleService.getInfoTransmission(params, query);
+
+    GET(res, data);
+  });
+
   remote = catchAsync(async (req, res) => {
     const { body, userId, isMain, parentId } = req;
     const infoUser = { user_id: userId, ip: null, os: null, gps: null };

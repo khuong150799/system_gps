@@ -101,7 +101,7 @@ class CustomersModel extends DatabaseSchema {
     const where = `${tableCustomers}.is_deleted = ? AND ${tableCustomers}.id = ?`;
     const conditions = [isDeleted, id];
 
-    const selectData = `${tableCustomers}.id,${tableCustomers}.name,${tableCustomers}.company,${tableCustomers}.email,${tableCustomers}.phone,${tableCustomers}.address,${tableCustomers}.tax_code,${tableCustomers}.website,${tableCustomers}.level_id,${tableCustomers}.business_type_id`;
+    const selectData = `${tableCustomers}.id,${tableCustomers}.name,${tableCustomers}.company,${tableCustomers}.email,${tableCustomers}.phone,${tableCustomers}.address,${tableCustomers}.tax_code,${tableCustomers}.website,${tableCustomers}.level_id`;
 
     const res_ = await this.select(
       conn,
@@ -124,7 +124,7 @@ class CustomersModel extends DatabaseSchema {
       address,
       tax_code,
       website,
-      business_type_id,
+      // business_type_id,
       parent_id,
       username,
       password,
@@ -140,7 +140,7 @@ class CustomersModel extends DatabaseSchema {
       email: email || null,
       phone: phone || null,
       address: address || null,
-      business_type_id: business_type_id || null,
+      // business_type_id: business_type_id || null,
       tax_code: tax_code || null,
       website: website || null,
       publish,
@@ -201,7 +201,7 @@ class CustomersModel extends DatabaseSchema {
       email,
       phone,
       address,
-      business_type_id,
+      // business_type_id,
       tax_code,
       website,
       publish,
@@ -213,7 +213,7 @@ class CustomersModel extends DatabaseSchema {
       email: email || null,
       phone: phone || null,
       address: address || null,
-      business_type_id: business_type_id || null,
+      // business_type_id: business_type_id || null,
       tax_code: tax_code || null,
       website: website || null,
       publish,

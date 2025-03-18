@@ -331,7 +331,7 @@ class DeviceModel extends DatabaseModel {
 
     const select = `
       d.id as device_id,d.dev_id,d.serial,d.imei,dv.expired_on,dv.activation_date,dv.warranty_expired_on,dv.is_use_gps,dv.sleep_time,dv.quantity_channel,dv.quantity_channel_lock,dv.is_lock,dv.is_transmission_gps,dv.is_transmission_image,
-      v.display_name,v.name as vehicle_name,v.id as vehicle_id,v.vehicle_type_id,vt.name as vehicle_type_name,dv.service_package_id,vt.vehicle_icon_id,vt.max_speed,v.weight,v.warning_speed,m.id as model_id,
+      v.display_name,v.name as vehicle_name,v.id as vehicle_id,v.vehicle_type_id,v.chassis_number,v.business_type_id,vt.name as vehicle_type_name,dv.service_package_id,vt.vehicle_icon_id,vt.max_speed,v.weight,v.warning_speed,m.id as model_id,
       m.name as model_name,m.model_type_id,ds.id as device_status_id,ds.title as device_status_name,COALESCE(c0.company,
       c0.name) as customer_name,COALESCE(c.company, c.name) as agency_name,c.phone as agency_phone,vi.name as vehicle_icon_name,
       c0.id as customer_id,c.id as agency_id,d.sv_cam_id`;
@@ -496,6 +496,7 @@ class DeviceModel extends DatabaseModel {
       expired_on,
       model_type_id,
       is_use_gps,
+      business_type_id,
     } = body;
 
     let vehicleId = vehicle_id;
@@ -513,6 +514,7 @@ class DeviceModel extends DatabaseModel {
         vehicle_type_id: type,
         weight,
         chassis_number: chassis_number || null,
+        business_type_id: business_type_id || null,
         warning_speed: warning_speed || null,
         note,
         is_checked: 0,
@@ -585,7 +587,7 @@ class DeviceModel extends DatabaseModel {
       username,
       password,
       phoneNumber,
-      business_type_id,
+      // business_type_id,
     } = body;
 
     const infoPackage = await this.handleCheckPackage(conn, service_package_id);
@@ -611,7 +613,7 @@ class DeviceModel extends DatabaseModel {
         password,
         role_id: 3,
         publish: 1,
-        business_type_id,
+        // business_type_id,
       },
       false
     );

@@ -60,6 +60,6 @@ module.exports = {
   tableTransmission: "tbl_transmission",
   tableBusinessType: "tbl_business_type",
   tableCommandConfigurations: "tbl_command_configurations",
-  tableDeviceGpsSample: "tbl_device_gps_sample1",
+  tableDeviceGpsSample: "tbl_device_gps_sample",
   tableDeviceSpeedSample: "tbl_device_speed_sample",
 };

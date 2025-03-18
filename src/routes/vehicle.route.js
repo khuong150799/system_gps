@@ -38,6 +38,18 @@ module.exports = (app) => {
   );
 
   router.get(
+    "/transmission-info/:id",
+    [
+      query("device_id", NOT_EMPTY)
+        .notEmpty()
+        .isString()
+        .withMessage(VALIDATE_DATA),
+    ],
+    isAuth,
+    checkPermission,
+    vehicleController.getInfoTransmission
+  );
+  router.get(
     "/transmission",
     [
       query("keyword", VALIDATE_DATA).isString().escape(),

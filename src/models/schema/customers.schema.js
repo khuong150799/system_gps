@@ -7,7 +7,7 @@ class CustomersSchema {
     email,
     phone,
     address,
-    business_type_id,
+    // business_type_id,
     tax_code,
     website,
     publish,
@@ -23,7 +23,7 @@ class CustomersSchema {
     this.phone = phone;
     this.address = address;
     this.tax_code = tax_code;
-    this.business_type_id = business_type_id;
+    // this.business_type_id = business_type_id;
     this.website = website;
     this.publish = publish;
     this.is_deleted = is_deleted;
