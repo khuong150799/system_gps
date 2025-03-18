@@ -507,7 +507,7 @@ class vehicleService {
     }
   }
 
-  async updateTransmission(body, params) {
+  async updateTransmission(body, params, infoUser) {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
@@ -515,7 +515,8 @@ class vehicleService {
           conn,
           connPromise,
           body,
-          params
+          params,
+          infoUser
         );
         return data;
       } catch (error) {

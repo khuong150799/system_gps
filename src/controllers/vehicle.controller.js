@@ -10,9 +10,14 @@ class VehicleController {
   });
 
   updateTransmission = catchAsync(async (req, res) => {
-    const { body, params } = req;
+    const { body, userId, params } = req;
+    const infoUser = { user_id: userId, ip: null, os: null, gps: null };
 
-    const data = await vehicleService.updateTransmission(body, params);
+    const data = await vehicleService.updateTransmission(
+      body,
+      params,
+      infoUser
+    );
     UPDATE(res, [data]);
   });
 

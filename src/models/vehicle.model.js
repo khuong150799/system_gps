@@ -49,15 +49,21 @@ const {
   LOCK_ACTION,
   UN_LOCK_ACTION,
   GUARANTEE_ACTION,
+  AFTER_UPDATE_PACKAGE,
 } = require("../constants/action.constant");
 const cacheModel = require("./cache.model");
-const VehicleSchema = require("./schema/vehicle.schema");
+const {
+  is_transmission_gps,
+  is_transmission_image,
+} = require("../constants/property.constant");
 
 const { SV_NOTIFY } = configureEnvironment();
 
 class VehicleModel extends DatabaseModel {
   constructor() {
     super();
+    this.transmission = { is_transmission_gps, is_transmission_image };
+    this.valueTransmission = { 0: "Tắt", 1: "Mở" };
   }
 
   // async getVehicleTransmission(conn, listImei) {
@@ -111,22 +117,20 @@ class VehicleModel extends DatabaseModel {
     }
 
     if (model_id) {
-      where += ` AND d.model_id = ?`;
-      conditions.push(model_id);
+      where = `d.model_id = ? AND ${where}`;
+      conditions.unshift(model_id);
     }
 
     if (start_activation_date && end_activation_date) {
-      where += ` AND dv.activation_date BETWEEN ? AND ?`;
-      conditions.push(start_activation_date, end_activation_date);
+      where = `dv.activation_date BETWEEN ? AND ? AND ${where}`;
+      conditions.unshift(start_activation_date, end_activation_date);
     }
 
-    // const joinTable = `${tableDevice} d INNER JOIN ${tableUsersDevices} ud ON d.id = ud.device_id
-    const joinTable = `${tableDevice} d INNER JOIN ${tableModel} m ON d.model_id = m.id
-      INNER JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id
-      INNER JOIN ${tableVehicle} v ON dv.vehicle_id = v.id
-      INNER JOIN ${tableServicePackage} sp ON dv.service_package_id = sp.id
-      LEFT JOIN ${tableTransmission} t ON d.id = t.device_id
-    `;
+    const joinTable = `${tableDevice} d INNER JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id
+    INNER JOIN ${tableVehicle} v ON dv.vehicle_id = v.id
+    INNER JOIN ${tableServicePackage} sp ON dv.service_package_id = sp.id
+    INNER JOIN ${tableModel} m ON d.model_id = m.id
+    LEFT JOIN ${tableTransmission} t ON v.id = t.vehicle_id AND d.id = t.device_id `;
 
     const select = `d.id as device_id,d.dev_id,d.imei,dv.activation_date,dv.is_transmission_gps,dv.is_transmission_image,v.id as vehicle_id,
       v.name as vehicle_name,m.name as model_name,sp.name as service_package_name,t.first_time,t.last_time,t.location,t.quantity,t.time,t.note`;
@@ -427,7 +431,7 @@ class VehicleModel extends DatabaseModel {
       os,
       gps,
       des,
-      action: "Sửa sau kích hoạt",
+      action: AFTER_UPDATE_PACKAGE,
       createdAt: Date.now(),
     });
     await connPromise.commit();
@@ -805,7 +809,13 @@ class VehicleModel extends DatabaseModel {
     await transmissionInfoApi.vehicle(body);
   }
 
-  async updateTransmission(conn, connPromise, body, params) {
+  async updateTransmission(
+    conn,
+    connPromise,
+    body,
+    params,
+    { user_id, ip, os, gps }
+  ) {
     const { property, value, device_id } = body;
     const { id: vehicle_id } = params;
     const dataTranmission = {
@@ -829,7 +839,6 @@ class VehicleModel extends DatabaseModel {
         msg: ERROR,
         errors: [{ msg: NOT_UPDATE_REALTIME }],
       };
-    // return [device_id];
 
     if (value == 1) {
       await this.handleTransmission({
@@ -838,6 +847,19 @@ class VehicleModel extends DatabaseModel {
         deviceId: device_id,
       });
     }
+
+    const des = `[Trạng thái ${this.transmission[property]} ===> ${this.valueTransmission[value]}]`;
+    await deviceLoggingModel.postOrDelete(conn, {
+      user_id,
+      device_id,
+      vehicle_id,
+      ip,
+      os,
+      gps,
+      des,
+      action: EDIT_ACTION,
+      createdAt: Date.now(),
+    });
 
     await connPromise.commit();
     return [];

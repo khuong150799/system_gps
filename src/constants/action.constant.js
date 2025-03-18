@@ -6,4 +6,5 @@ module.exports = {
   GUARANTEE_ACTION: "Bảo hành",
   LOCK_ACTION: "Khoá",
   UN_LOCK_ACTION: "Mở khoá",
+  AFTER_UPDATE_PACKAGE: "Sửa sau kích hoạt",
 };
