@@ -1149,34 +1149,15 @@ class UsersModel extends DatabaseModel {
     );
     // console.log(98765432);
 
-    const deviceToken = body?.device_token;
+    // const deviceToken = body?.device_token;
 
-    if (deviceToken) {
-      await tokenFirebaseModel.register(conn, {
-        user_id: id,
-        client_id: clientId,
-        token: body?.device_token,
-      });
-    }
-
-    // await keyTokenModel.register(conn, {
-    //   user_id: id,
-    //   client_id: clientId,
-    //   publish_key_token: keyToken,
-    //   publish_key_refresh_token: keyRefreshToken,
-    // });
-
-    // console.log(1234567);
-
-    // await hSet(
-    //   REDIS_KEY_TOKEN,
-    //   clientId,
-    //   JSON.stringify({
+    // if (deviceToken) {
+    //   await tokenFirebaseModel.register(conn, {
     //     user_id: id,
-    //     publish_key_token: keyToken,
-    //     publish_key_refresh_token: keyRefreshToken,
-    //   })
-    // );
+    //     client_id: clientId,
+    //     token: body?.device_token,
+    //   });
+    // }
 
     await hSet(
       REDIS_KEY_TOKEN,
