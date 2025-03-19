@@ -44,7 +44,7 @@ const { hSet, hScan, hdelOneKey, hGetAll } = require("./redis.model");
 const {
   REDIS_KEY_TOKEN,
   REDIS_KEY_LOCK_ACC_WITH_EXTEND,
-  // REDIS_KEY_LIST_USER_INFO,
+  REDIS_KEY_LIST_USER_INFO,
 } = require("../constants/redis.constant");
 const ordersModel = require("./orders.model");
 const tokenFirebaseModel = require("./tokenFirebase.model");
@@ -344,21 +344,21 @@ class UsersModel extends DatabaseModel {
     return res_;
   }
 
-  async getInfo(conn, userId, isGetPass = false) {
-    const where = `u.is_deleted = ? AND u.id = ?`;
-    const conditions = [0, userId];
+  async getInfo({ conn, userId, left, right }) {
+    const where = `u.id = ? AND u.left >= ? AND u.right <= ? AND u.is_deleted = ?`;
+    const conditions = [userId, left, right, 0];
     const joinTable = `${tableUsers} u INNER JOIN ${tableUsersRole} ur ON u.id = ur.user_id 
       INNER JOIN ${tableRole} r ON ur.role_id = r.id  
       INNER JOIN ${tableUsersCustomers} uc ON u.id = uc.user_id 
       INNER JOIN ${tableCustomers} c ON uc.customer_id = c.id 
-      INNER JOIN ${tableLevel} l ON c.level_id = l.id`;
+      INNER JOIN ${tableLevel} l ON c.level_id = l.id
+      LEFT JOIN ${tableUsersCustomers} ucp ON u.parent_id = ucp.user_id 
+      LEFT JOIN ${tableCustomers} cp ON ucp.customer_id = cp.id`;
 
-    let selectData = `u.id,u.username,u.parent_id,u.is_actived,
-      ur.role_id,r.name as role_name,c.level_id,l.name as level_name,c.name as customer_name,c.email,c.phone,
+    let selectData = `u.id,u.username,u.parent_id,u.is_actived,u.text_pass,
+      ur.role_id,r.name as role_name,c.level_id,l.name as level_name,c.name as customer_name,c.email,c.phone,cp.phone as parent_phone,cp.name as parent_name,
       c.company,c.address,c.tax_code,c.website,c.id as customer_id`;
-    if (isGetPass) {
-      selectData += ` ,u.text_pass`;
-    }
+
     const res_ = await this.select(
       conn,
       joinTable,
@@ -369,9 +369,9 @@ class UsersModel extends DatabaseModel {
     );
     // console.log("!isGetPass && res_?.length", !isGetPass && res_?.length, res_);
 
-    // if (!isGetPass && res_?.length) {
-    //   await cacheModel.hsetRedis(REDIS_KEY_LIST_USER_INFO, userId, res_);
-    // }
+    if (res_?.length) {
+      await cacheModel.hsetRedis(REDIS_KEY_LIST_USER_INFO, userId, res_);
+    }
     return res_;
   }
 
@@ -914,11 +914,11 @@ class UsersModel extends DatabaseModel {
     // );
     // console.log(id);
 
-    // const resultDelCache = await cacheModel.hdelOneKeyRedis(
-    //   REDIS_KEY_LIST_USER_INFO,
-    //   id
-    // );
-    // if (!resultDelCache) throw { msg: ERROR };
+    const resultDelCache = await cacheModel.hdelOneKeyRedis(
+      REDIS_KEY_LIST_USER_INFO,
+      id
+    );
+    if (!resultDelCache) throw { msg: ERROR, errors: [{ code: 1 }] };
 
     await connPromise.commit();
     user.id = id;
@@ -981,12 +981,12 @@ class UsersModel extends DatabaseModel {
 
     await this.delToken(id);
 
-    // const resultDelCache = await cacheModel.hdelOneKeyRedis(
-    //   REDIS_KEY_LIST_USER_INFO,
-    //   id
-    // );
+    const resultDelCache = await cacheModel.hdelOneKeyRedis(
+      REDIS_KEY_LIST_USER_INFO,
+      id
+    );
 
-    // if (!resultDelCache) throw { msg: ERROR };
+    if (!resultDelCache) throw { msg: ERROR, errors: [{ code: 1 }] };
 
     await connPromise.commit();
     return [];
@@ -1309,12 +1309,12 @@ class UsersModel extends DatabaseModel {
 
     await this.delToken(userId);
 
-    // const resultDelCache = await cacheModel.hdelOneKeyRedis(
-    //   REDIS_KEY_LIST_USER_INFO,
-    //   userId
-    // );
+    const resultDelCache = await cacheModel.hdelOneKeyRedis(
+      REDIS_KEY_LIST_USER_INFO,
+      userId
+    );
 
-    // if (!resultDelCache) throw { msg: ERROR };
+    if (!resultDelCache) throw { msg: ERROR, errors: [{ code: 1 }] };
 
     return [];
   }

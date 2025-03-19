@@ -20,7 +20,7 @@ const {
 } = require("../constants/global.constant");
 const handleShufflePhoneNumber = require("../helper/shufflePhoneNumber");
 const cacheModel = require("./cache.model");
-// const { REDIS_KEY_LIST_USER_INFO } = require("../constants/redis.constant");
+const { REDIS_KEY_LIST_USER_INFO } = require("../constants/redis.constant");
 
 class CustomersModel extends DatabaseSchema {
   constructor() {
@@ -223,25 +223,43 @@ class CustomersModel extends DatabaseSchema {
     delete customer.is_deleted;
     delete customer.created_at;
 
-    const joinTable = `${tableCustomers} c INNER JOIN ${tableUsersCustomers} uc ON c.id = uc.customer_id`;
+    const joinTable = `${tableCustomers} c INNER JOIN ${tableUsersCustomers} uc ON c.id = uc.customer_id 
+      INNER JOIN ${tableUsers} u ON uc.user_id = u.id`;
     const infoUser = await this.select(
       conn,
       joinTable,
-      "uc.user_id,c.name,c.company",
+      "uc.user_id,c.name,c.company,u.is_main",
       "uc.customer_id = ? AND c.is_deleted = ?",
       [id, 0],
       "c.id"
     );
 
     if (!infoUser?.length) throw { msg: DELETED_CUSTOMER };
+
     const {
-      user_id: userId,
+      // user_id: userId,
       name: nameCustomer,
       company: companyCustomer,
     } = infoUser[0];
     await connPromise.beginTransaction();
 
     await this.update(conn, tableCustomers, customer, "id", id);
+
+    let userMain = {};
+    const listPromise = [];
+    for (let i = 0; i < infoUser.length; i++) {
+      const { is_main, user_id } = infoUser[i];
+      if (is_main == 1) {
+        userMain = infoUser[i];
+      }
+      listPromise.push(
+        cacheModel.hdelOneKeyRedis(REDIS_KEY_LIST_USER_INFO, user_id, true)
+      );
+    }
+
+    await Promise.all(listPromise);
+
+    const { user_id: userId } = userMain;
 
     if (name != nameCustomer || company != companyCustomer) {
       await vehicleModel.getInfoDevice(conn, null, null, userId);
@@ -257,12 +275,6 @@ class CustomersModel extends DatabaseSchema {
         type: UPDATE_TYPE,
       });
     }
-
-    // const resultDelCache = await cacheModel.hdelOneKeyRedis(
-    //   REDIS_KEY_LIST_USER_INFO,
-    //   userId
-    // );
-    // if (!resultDelCache) throw { msg: ERROR };
 
     await connPromise.commit();
     customer.id = id;

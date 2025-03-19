@@ -177,17 +177,61 @@ class UsersService {
     }
   }
 
-  async getInfo(userId) {
+  async getInfoCache({ userId, chooseUserId, isGetPass }) {
+    const [userInfo, userCheck] = await Promise.all([
+      cacheModel.hgetRedis(REDIS_KEY_LIST_USER_INFO, chooseUserId),
+      cacheModel.hgetRedis(REDIS_KEY_LIST_USER_INFO, userId),
+    ]);
+    // console.log("userInfo", userInfo, userCheck);
+
+    if (!userInfo?.length || !userCheck?.length) return [];
+
+    const { left: leftInfo, right: rightInfo } = userInfo[0];
+    const { left: leftCheck, right: rightCheck } = userCheck[0];
+    if (leftCheck > leftInfo || rightCheck < rightInfo)
+      throw { msg: ERROR, errors: [{ msg: "User not fount" }] };
+
+    if (!isGetPass) {
+      delete userInfo[0].text_pass;
+    }
+
+    userInfo[0].cache = 1;
+
+    return [...userInfo];
+  }
+
+  async getInfo({ chooseUserId, userId, isGetPass, customerId }) {
     try {
-      const cache = await cacheModel.hgetRedis(
-        REDIS_KEY_LIST_USER_INFO,
-        userId
-      );
-      if (cache) return cache;
+      const cache = await this.getInfoCache({
+        userId,
+        chooseUserId,
+        isGetPass,
+      });
+
+      // console.log("cache", cache);
+
+      if (cache.length) return cache;
 
       const { conn } = await db.getConnection();
       try {
-        const data = await usersModel.getInfo(conn, userId);
+        const parentInfo = await usersModel.getInfoParent(
+          conn,
+          userId,
+          customerId
+        );
+
+        if (!parentInfo?.length)
+          throw { msg: ERROR, errors: [{ msg: "User not fount" }] };
+
+        const { left, right } = parentInfo[0];
+
+        const data = await usersModel.getInfo({
+          conn,
+          userId: chooseUserId,
+          left,
+          right,
+          isGetPass,
+        });
         return data;
       } catch (error) {
         throw error;
@@ -197,23 +241,6 @@ class UsersService {
     } catch (error) {
       console.log(error);
 
-      throw new BusinessLogicError(error.msg);
-    }
-  }
-
-  // getbyid
-  async getbyid(userId) {
-    try {
-      const { conn } = await db.getConnection();
-      try {
-        const data = await usersModel.getInfo(conn, userId, true);
-        return data;
-      } catch (error) {
-        throw error;
-      } finally {
-        conn.release();
-      }
-    } catch (error) {
       throw new BusinessLogicError(error.msg);
     }
   }

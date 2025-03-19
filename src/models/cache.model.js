@@ -13,7 +13,7 @@ class CacheModel {
 
   hsetRedis = async (key, feild, value, ischeckCache = false) => {
     const { result } = await hSet(key, feild.toString(), JSON.stringify(value));
-    if (ischeckCache && !result) throw { msg: ERROR, error: [{ code: 1 }] };
+    if (ischeckCache && !result) throw { msg: ERROR, errors: [{ code: 1 }] };
     return result;
   };
   delRedis = async (key) => {
@@ -23,7 +23,7 @@ class CacheModel {
 
   hdelOneKeyRedis = async (key, field, ischeckCache = false) => {
     const { result } = await hdelOneKey(key, field.toString());
-    if (ischeckCache && !result) throw { msg: ERROR, error: [{ code: 1 }] };
+    if (ischeckCache && !result) throw { msg: ERROR, errors: [{ code: 1 }] };
     return result;
   };
 }

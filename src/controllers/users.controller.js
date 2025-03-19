@@ -76,21 +76,35 @@ class CustomersController {
   });
 
   getInfo = catchAsync(async (req, res) => {
-    const userId = req.userId;
+    const { userId, customerId } = req;
 
-    const chooseUserId = userId;
-
-    const data = await usersSrevice.getInfo(chooseUserId);
+    const data = await usersSrevice.getInfo({
+      chooseUserId: userId,
+      userId,
+      isGetPass: false,
+      customerId,
+    });
     GET(res, data);
   });
 
   //getbyid
   getbyid = catchAsync(async (req, res) => {
-    const { id } = req.params;
+    const {
+      params: { id },
+      userId,
+      isMain,
+      parentId,
+      customerId,
+    } = req;
 
-    const chooseUserId = id;
+    const checkUserId = isMain == 1 ? userId : parentId;
 
-    const data = await usersSrevice.getbyid(chooseUserId);
+    const data = await usersSrevice.getInfo({
+      chooseUserId: id,
+      userId: checkUserId,
+      isGetPass: true,
+      customerId,
+    });
     GET(res, data);
   });
 

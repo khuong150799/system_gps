@@ -832,14 +832,6 @@ class VehicleModel extends DatabaseModel {
 
     await this.handleUpdate({ conn, dataUpdate, device_id, vehicle_id });
 
-    const dataSaveRedis = await this.getInfoDevice(conn, null, device_id);
-
-    if (!dataSaveRedis?.length)
-      throw {
-        msg: ERROR,
-        errors: [{ msg: NOT_UPDATE_REALTIME }],
-      };
-
     if (value == 1) {
       await this.handleTransmission({
         conn,
@@ -860,6 +852,14 @@ class VehicleModel extends DatabaseModel {
       action: EDIT_ACTION,
       createdAt: Date.now(),
     });
+
+    const dataSaveRedis = await this.getInfoDevice(conn, null, device_id);
+
+    if (!dataSaveRedis?.length)
+      throw {
+        msg: ERROR,
+        errors: [{ msg: NOT_UPDATE_REALTIME }],
+      };
 
     await connPromise.commit();
     return [];
