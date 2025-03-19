@@ -1149,15 +1149,17 @@ class UsersModel extends DatabaseModel {
     );
     // console.log(98765432);
 
-    // const deviceToken = body?.device_token;
+    const deviceToken = body?.device_token;
 
-    // if (deviceToken) {
-    //   await tokenFirebaseModel.register(conn, {
-    //     user_id: id,
-    //     client_id: clientId,
-    //     token: body?.device_token,
-    //   });
-    // }
+    // console.log("deviceToken", deviceToken);
+
+    if (deviceToken) {
+      await tokenFirebaseModel.register(conn, {
+        user_id: id,
+        client_id: clientId,
+        token: body?.device_token,
+      });
+    }
 
     await hSet(
       REDIS_KEY_TOKEN,
@@ -1260,10 +1262,6 @@ class UsersModel extends DatabaseModel {
 
   //logout
   async logout(conn, clientId, usersId) {
-    // await keyTokenModel.deleteById(conn, {
-    //   client_id: clientId,
-    // });
-
     await tokenFirebaseModel.deleteById(conn, {
       client_id: clientId,
       user_id: usersId,

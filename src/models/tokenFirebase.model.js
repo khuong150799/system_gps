@@ -1,7 +1,4 @@
-const {
-  tableKeyToken,
-  tableTokenFirebase,
-} = require("../constants/tableName.constant");
+const { tableTokenFirebase } = require("../constants/tableName.constant");
 const DatabaseModel = require("./database.model");
 const TokenFirebaseSchema = require("./schema/tokenFirebase.schema");
 
