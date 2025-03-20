@@ -30,7 +30,8 @@ class DriverService {
           null,
           customer_id
         );
-        if (!dataInfo?.length) return [];
+        if (!dataInfo?.length)
+          return { data: [], totalPage: 0, totalRecord: 0 };
 
         const { right: rightRes, left: leftRes } = dataInfo[0];
         const chosseRight = rightRes;

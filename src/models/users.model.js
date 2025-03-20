@@ -78,7 +78,7 @@ class UsersModel extends DatabaseModel {
       where = `u.id = ? ${where}`;
       conditions.unshift(parentId);
     } else {
-      where = `uc.customer_id = ? ${where}`;
+      where = `uc.customer_id = ? AND u.is_main = 1 ${where}`;
       conditions.unshift(customerId);
     }
 
