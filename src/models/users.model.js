@@ -72,7 +72,7 @@ class UsersModel extends DatabaseModel {
 
   async getInfoParent(conn, parentId, customerId) {
     const joinTable = `${tableUsers} u INNER JOIN ${tableUsersCustomers} uc ON u.id = uc.user_id`;
-    let where = "AND u.is_deleted = ? AND u.is_main = 1";
+    let where = "AND u.is_deleted = ?";
     const conditions = [0];
     if (parentId) {
       where = `u.id = ? ${where}`;
@@ -1149,17 +1149,17 @@ class UsersModel extends DatabaseModel {
     );
     // console.log(98765432);
 
-    const deviceToken = body?.device_token;
+    // const deviceToken = body?.device_token;
 
-    // console.log("deviceToken", deviceToken);
+    // // console.log("deviceToken", deviceToken);
 
-    if (deviceToken) {
-      await tokenFirebaseModel.register(conn, {
-        user_id: id,
-        client_id: clientId,
-        token: body?.device_token,
-      });
-    }
+    // if (deviceToken) {
+    //   await tokenFirebaseModel.register(conn, {
+    //     user_id: id,
+    //     client_id: clientId,
+    //     token: body?.device_token,
+    //   });
+    // }
 
     await hSet(
       REDIS_KEY_TOKEN,

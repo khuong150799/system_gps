@@ -220,6 +220,8 @@ class UsersService {
           customerId
         );
 
+        // console.log("parentInfo", parentInfo);
+
         if (!parentInfo?.length)
           throw { msg: ERROR, errors: [{ msg: "User not fount" }] };
 
