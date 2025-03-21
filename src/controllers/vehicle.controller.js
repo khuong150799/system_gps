@@ -9,6 +9,12 @@ class VehicleController {
     UPDATE(res, [data]);
   });
 
+  updateChnCapture = catchAsync(async (req, res) => {
+    const { body, params } = req;
+    const data = await vehicleService.updateChnCapture(body, params);
+    UPDATE(res, [data]);
+  });
+
   updateTransmission = catchAsync(async (req, res) => {
     const { body, userId, params } = req;
     const infoUser = { user_id: userId, ip: null, os: null, gps: null };
@@ -22,16 +28,10 @@ class VehicleController {
   });
 
   getTransmission = catchAsync(async (req, res) => {
-    const {
-      query,
-      //  userId, isMain, parentId
-    } = req;
-    // const chosseUserId = isMain == 1 ? userId : parentId;
+    const { query, userId, isMain, parentId } = req;
+    const chosseUserId = isMain == 1 ? userId : parentId;
     const { data, totalPage, totalRecord } =
-      await vehicleService.getTransmission(
-        query
-        // chosseUserId
-      );
+      await vehicleService.getTransmission(query, chosseUserId);
 
     GET(res, data, totalPage, totalRecord);
   });

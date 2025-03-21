@@ -37,18 +37,11 @@ const {
 const dataBaseModel = new DatabaseModel();
 
 class vehicleService {
-  async getTransmission(
-    query
-    //  userId
-  ) {
+  async getTransmission(query, userId) {
     try {
       const { conn } = await db.getConnection();
       try {
-        const data = await vehicleModel.getTransmission(
-          conn,
-          query
-          //  userId
-        );
+        const data = await vehicleModel.getTransmission(conn, query, userId);
         return data;
       } catch (error) {
         throw error;
@@ -487,6 +480,31 @@ class vehicleService {
           "d.id"
         );
         const data = await vehicleModel.updateById(
+          conn,
+          connPromise,
+          body,
+          params,
+          dataInfo
+        );
+        return data;
+      } catch (error) {
+        await connPromise.rollback();
+        throw error;
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      console.log(error);
+      const { msg, errors } = error;
+      throw new BusinessLogicError(msg, errors);
+    }
+  }
+
+  async updateChnCapture(body, params) {
+    try {
+      const { conn, connPromise } = await db.getConnection();
+      try {
+        const data = await vehicleModel.updateChnCapture(
           conn,
           connPromise,
           body,

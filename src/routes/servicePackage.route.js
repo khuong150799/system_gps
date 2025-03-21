@@ -54,6 +54,11 @@ module.exports = (app) => {
         .isNumeric()
         .withMessage(VALIDATE_DATA)
         .escape(),
+      body("is_require_transmission", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
     ],
 
     isAuth,
@@ -86,6 +91,11 @@ module.exports = (app) => {
         .withMessage(VALIDATE_DATA)
         .escape(),
       body("times", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA)
+        .escape(),
+      body("is_require_transmission", NOT_EMPTY)
         .notEmpty()
         .isNumeric()
         .withMessage(VALIDATE_DATA)

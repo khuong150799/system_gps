@@ -13,6 +13,7 @@ class DeviceVehicleSchema {
     is_deleted,
     is_transmission_gps,
     is_transmission_image,
+    chn_capture,
     created_at,
     updated_at,
   }) {
@@ -29,6 +30,7 @@ class DeviceVehicleSchema {
     this.is_deleted = is_deleted;
     this.is_transmission_gps = is_transmission_gps;
     this.is_transmission_image = is_transmission_image;
+    this.chn_capture = chn_capture;
     this.created_at = created_at;
     this.updated_at = updated_at;
   }

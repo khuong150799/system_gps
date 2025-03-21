@@ -39,7 +39,7 @@ class ServicePackageModel extends DatabaseModel {
     }
 
     const select = `sp.id,sp.name,sp.fees_to_customer,sp.fees_to_agency,sp.fees_to_distributor,sp.one_month_fee_to_customer
-    ,sp.one_month_fee_to_agency,sp.one_month_fee_to_distributor,sp.times,sp.publish,sp.note,sp.created_at,sp.updated_at,mt.name as model_type_name`;
+    ,sp.one_month_fee_to_agency,sp.one_month_fee_to_distributor,sp.times,sp.publish,sp.is_require_transmission,sp.note,sp.created_at,sp.updated_at,mt.name as model_type_name`;
 
     const joinTable = `${tableServicePackage} sp LEFT JOIN ${tableModelType} mt ON sp.model_type_id = mt.id`;
 
@@ -70,7 +70,7 @@ class ServicePackageModel extends DatabaseModel {
     const where = `is_deleted = ? AND id = ?`;
     const conditions = [isDeleted, id];
     const selectData = `id, name,fees_to_customer,fees_to_agency,fees_to_distributor,one_month_fee_to_customer
-      ,one_month_fee_to_agency,one_month_fee_to_distributor,times,publish,note,model_type_id`;
+      ,one_month_fee_to_agency,one_month_fee_to_distributor,times,publish,note,model_type_id,is_require_transmission`;
 
     const res_ = await this.select(
       conn,
@@ -96,6 +96,7 @@ class ServicePackageModel extends DatabaseModel {
       publish,
       note,
       model_type_id,
+      is_require_transmission,
     } = body;
     const servicePackage = new ServicePackageSchema({
       name,
@@ -109,6 +110,7 @@ class ServicePackageModel extends DatabaseModel {
       publish,
       note,
       model_type_id,
+      is_require_transmission,
       is_deleted: 0,
       created_at: Date.now(),
     });
@@ -134,6 +136,7 @@ class ServicePackageModel extends DatabaseModel {
       publish,
       note,
       model_type_id,
+      is_require_transmission,
     } = body;
     const { id } = params;
 
@@ -149,6 +152,7 @@ class ServicePackageModel extends DatabaseModel {
       publish,
       note,
       model_type_id,
+      is_require_transmission,
       updated_at: Date.now(),
     });
     // console.log(id)

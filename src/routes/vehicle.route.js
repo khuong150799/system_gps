@@ -37,6 +37,24 @@ module.exports = (app) => {
     vehicleController.updateTransmission
   );
 
+  router.patch(
+    "/update-req-transmission/:id",
+    [
+      param("id", VALIDATE_DATA).isNumeric(),
+      body("property", NOT_EMPTY)
+        .notEmpty()
+        .isString()
+        .withMessage(VALIDATE_DATA),
+      body("value", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA),
+    ],
+    isAuth,
+    checkPermission,
+    vehicleController.updateTransmission
+  );
+
   router.get(
     "/transmission-info/:id",
     [
@@ -223,6 +241,24 @@ module.exports = (app) => {
     checkPermission,
     vehicleController.updateWarrantyExpiredOn
   );
+
+  // router.put(
+  //   "/update-chn-capture/:id",
+  //   [
+  //     param("id", VALIDATE_DATA).isNumeric(),
+  //     body("device_id", NOT_EMPTY)
+  //       .notEmpty()
+  //       .isNumeric()
+  //       .withMessage(VALIDATE_DATA),
+  //     body("chn-capture", NOT_EMPTY)
+  //       .notEmpty()
+  //       .isNumeric()
+  //       .withMessage(VALIDATE_DATA),
+  //   ],
+  //   isAuth,
+  //   checkPermission,
+  //   vehicleController.updateChnCapture
+  // );
 
   router.put(
     "/update/:id",

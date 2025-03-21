@@ -11,6 +11,7 @@ class ServicePackageSchema {
     publish,
     note,
     model_type_id,
+    is_require_transmission,
     is_deleted,
     created_at,
     updated_at,
@@ -27,6 +28,8 @@ class ServicePackageSchema {
     this.note = note;
     this.note = note;
     this.model_type_id = model_type_id;
+    this.is_require_transmission = is_require_transmission;
+    this.is_deleted = is_deleted;
     this.created_at = created_at;
     this.updated_at = updated_at;
   }

@@ -10,7 +10,7 @@ const {
   REDIS_KEY_LIST_DEVICE,
   REDIS_KEY_LOCK_ACC_WITH_EXTEND,
   REDIS_KEY_DATA_SLEEP_TIME,
-  REDIS_KEY_REALTIME_SOCKET,
+  // REDIS_KEY_REALTIME_SOCKET,
 } = require("../constants/redis.constant");
 const {
   tableDevice,
@@ -51,7 +51,7 @@ const {
   GUARANTEE_ACTION,
   AFTER_UPDATE_PACKAGE,
 } = require("../constants/action.constant");
-const cacheModel = require("./cache.model");
+// const cacheModel = require("./cache.model");
 const {
   is_transmission_gps,
   is_transmission_image,
@@ -89,11 +89,7 @@ class VehicleModel extends DatabaseModel {
   //   return data;
   // }
 
-  async getTransmission(
-    conn,
-    query
-    //  userId
-  ) {
+  async getTransmission(conn, query, userId) {
     const offset = query.offset || 0;
     const limit = query.limit || 10;
 
@@ -106,10 +102,17 @@ class VehicleModel extends DatabaseModel {
     } = query;
 
     const isDeleted = is_deleted || 0;
-    // let where = `ud.user_id = ? AND ud.is_deleted = ? AND ud.is_main = ? AND d.is_deleted = ?`;
     let where = `d.is_deleted = ? AND m.is_deleted = ? AND dv.is_deleted = ? AND v.is_deleted = ? AND sp.is_deleted = ?`;
-    // let conditions = [userId, isDeleted, 1, isDeleted];
-    let conditions = [isDeleted, isDeleted, isDeleted, isDeleted, isDeleted];
+    let conditions = [
+      userId,
+      1,
+      isDeleted,
+      isDeleted,
+      isDeleted,
+      isDeleted,
+      isDeleted,
+      isDeleted,
+    ];
 
     if (keyword) {
       where = `(d.imei LIKE ? OR d.dev_id LIKE ? OR v.name LIKE ?) AND ${where}`;
@@ -126,13 +129,18 @@ class VehicleModel extends DatabaseModel {
       conditions.unshift(start_activation_date, end_activation_date);
     }
 
-    const joinTable = `${tableDevice} d INNER JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id
+    const supQuery = `SELECT device_id
+            FROM ${tableUsersDevices} 
+            WHERE user_id = ? AND is_main = ? AND is_deleted = ?`;
+
+    const joinTable = `(${supQuery}) ud INNER JOIN ${tableDevice} d ON ud.device_id = d.id
+    INNER JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id
     INNER JOIN ${tableVehicle} v ON dv.vehicle_id = v.id
     INNER JOIN ${tableServicePackage} sp ON dv.service_package_id = sp.id
     INNER JOIN ${tableModel} m ON d.model_id = m.id
     LEFT JOIN ${tableTransmission} t ON v.id = t.vehicle_id AND d.id = t.device_id `;
 
-    const select = `d.id as device_id,d.dev_id,d.imei,dv.activation_date,dv.is_transmission_gps,dv.is_transmission_image,v.id as vehicle_id,
+    const select = `d.id as device_id,d.dev_id,d.imei,dv.activation_date,dv.is_req_transmission,dv.is_transmission_gps,dv.is_transmission_image,v.id as vehicle_id,
       v.name as vehicle_name,m.name as model_name,sp.name as service_package_name,t.first_time,t.last_time,t.location,t.quantity,t.time,t.note`;
 
     const [res_, count] = await Promise.all([
@@ -155,6 +163,7 @@ class VehicleModel extends DatabaseModel {
 
     return { data: res_, totalPage, totalRecord: count?.[0]?.total };
   }
+
   async getInfoTransmission({ conn, vehicleId, deviceId, isCheck }) {
     const joinTable = `${tableVehicle} v INNER JOIN ${tableDeviceVehicle} dv ON v.id = dv.vehicle_id
     INNER JOIN ${tableDevice} d ON dv.device_id = d.id
@@ -203,6 +212,7 @@ class VehicleModel extends DatabaseModel {
     INNER JOIN ${tableUsersCustomers} uc1 ON ud.user_id = uc1.user_id
     INNER JOIN ${tableCustomers} c0 ON uc1.customer_id = c0.id
     INNER JOIN ${tableUsers} u ON uc1.user_id = u.id
+    INNER JOIN ${tableServicePackage} sp ON dv.service_package_id = sp.id
     LEFT JOIN ${tableUsers} u1 ON u.parent_id = u1.id
     LEFT JOIN ${tableUsersCustomers} uc2 ON u1.id = uc2.user_id
     LEFT JOIN ${tableCustomers} c ON uc2.customer_id = c.id`;
@@ -212,7 +222,7 @@ class VehicleModel extends DatabaseModel {
       v.display_name,v.name as vehicle_name,v.id as vehicle_id,v.vehicle_type_id,vt.name as vehicle_type_name,vt.vehicle_icon_id,vt.max_speed,
       m.name as model_name,m.model_type_id,ds.title as device_status_name,COALESCE(c0.company,
       c0.name) as customer_name,COALESCE(c.company, c.name) as agency_name,c.phone as agency_phone,vi.name as vehicle_icon_name,
-      c0.id as customer_id,c0.tax_code as tax_code,c.id as agency_id,d.sv_cam_id`;
+      c0.id as customer_id,c0.tax_code as tax_code,c.id as agency_id,d.sv_cam_id,sp.is_require_transmission`;
 
     let where = `AND ud.is_moved = 0 AND ud.is_main = 1 AND ud.is_deleted = 0 AND d.is_deleted = 0 AND c0.is_deleted = 0 AND u.is_deleted = 0 AND dv.is_deleted = 0`;
     const condition = [];
@@ -242,7 +252,7 @@ class VehicleModel extends DatabaseModel {
       99999
     );
 
-    // console.log("data", imei, data);
+    // console.log("data", data.length);
 
     if (data.length) {
       await Promise.all(
@@ -689,7 +699,10 @@ class VehicleModel extends DatabaseModel {
     await this.update(
       conn,
       tableDeviceVehicle,
-      { quantity_channel, quantity_channel_lock },
+      {
+        quantity_channel,
+        quantity_channel_lock,
+      },
       "",
       [device_id, id],
       "id",
@@ -728,6 +741,75 @@ class VehicleModel extends DatabaseModel {
     return vehicle;
   }
 
+  //updateChnCapture
+  async updateChnCapture(
+    conn,
+    connPromise,
+    body,
+    params,
+    dataInfo,
+    { user_id, ip, os, gps }
+  ) {
+    const { device_id, chn_capture } = body;
+    const { id } = params;
+
+    await connPromise.beginTransaction();
+
+    await this.update(
+      conn,
+      tableDeviceVehicle,
+      {
+        chn_capture,
+      },
+      "",
+      [device_id, id],
+      "id",
+      true,
+      "device_id = ? AND vehicle_id = ?"
+    );
+
+    // console.log("dataInfo", dataInfo);
+    const des = `[Thay đổi kênh chụp qua trạm: kênh ${chn_capture}]`;
+    await deviceLoggingModel.postOrDelete(conn, {
+      user_id,
+      device_id,
+      vehicle_id: id,
+      ip,
+      os,
+      gps,
+      des,
+      action: EDIT_ACTION,
+      createdAt: Date.now(),
+    });
+
+    const listPromiseGetReidis = dataInfo.map(({ imei }) =>
+      this.getInfoDevice(conn, imei)
+    );
+
+    const listDataGetRedis = await Promise.all(listPromiseGetReidis);
+
+    // console.log("listDataGetRedis", listDataGetRedis);
+
+    let isRollback = false;
+
+    for (let i = 0; i < listDataGetRedis.length; i++) {
+      const result = listDataGetRedis[i];
+
+      if (!result?.length) {
+        isRollback = true;
+      }
+    }
+
+    if (isRollback)
+      throw {
+        msg: ERROR,
+        errors: [{ msg: NOT_UPDATE_REALTIME }],
+      };
+
+    await connPromise.commit();
+    return id;
+  }
+
   async handleUpdate({ conn, dataUpdate, device_id, vehicle_id }) {
     await this.update(
       conn,
@@ -741,7 +823,7 @@ class VehicleModel extends DatabaseModel {
     );
   }
 
-  async handleTransmission({ conn, vehicleId, deviceId }) {
+  async handleTransmission({ conn, vehicleId, deviceId, isReq }) {
     const vehicle = await this.getInfoTransmission({
       conn,
       vehicleId,
@@ -773,23 +855,25 @@ class VehicleModel extends DatabaseModel {
         ],
       };
 
-    const driverInfo = await cacheModel.hgetRedis(
-      REDIS_KEY_REALTIME_SOCKET,
-      imei
-    );
+    // const driverInfo = await cacheModel.hgetRedis(
+    //   REDIS_KEY_REALTIME_SOCKET,
+    //   imei
+    // );
 
-    // console.log("driverInfo", driverInfo);
-    const license_number = driverInfo?.license_number;
-    if (!license_number)
-      throw {
-        msg: ERROR,
-        errors: [{ msg: "Vui lòng đăng nhập thông tin tài xế" }],
-      };
+    // // console.log("driverInfo", driverInfo);
+    // const license_number = driverInfo?.license_number;
+    // if (!license_number)
+    //   throw {
+    //     msg: ERROR,
+    //     errors: [{ msg: "Vui lòng đăng nhập thông tin tài xế" }],
+    //   };
+
+    if (isReq) return null;
 
     const body = {
       vehicle_name,
       business_type: business_type_id,
-      license_number,
+      license_number: null,
       tax_code,
       compliance_device_number,
       model: model_name,
@@ -821,6 +905,7 @@ class VehicleModel extends DatabaseModel {
     const dataTranmission = {
       is_transmission_gps: { is_transmission_gps: value },
       is_transmission_image: { is_transmission_image: value },
+      is_req_transmission: { is_req_transmission: value },
     };
 
     const dataUpdate = dataTranmission[property];
@@ -832,15 +917,20 @@ class VehicleModel extends DatabaseModel {
 
     await this.handleUpdate({ conn, dataUpdate, device_id, vehicle_id });
 
+    const isReqTransmissoin = property === "is_req_transmission";
     if (value == 1) {
       await this.handleTransmission({
         conn,
         vehicleId: vehicle_id,
         deviceId: device_id,
+        isReq: isReqTransmissoin ? true : false,
       });
     }
 
-    const des = `[Trạng thái ${this.transmission[property]} ===> ${this.valueTransmission[value]}]`;
+    const des = isReqTransmissoin
+      ? "Yêu cầu tích truyền"
+      : `[Trạng thái ${this.transmission[property]} ===> ${this.valueTransmission[value]}]`;
+
     await deviceLoggingModel.postOrDelete(conn, {
       user_id,
       device_id,
@@ -853,13 +943,15 @@ class VehicleModel extends DatabaseModel {
       createdAt: Date.now(),
     });
 
-    const dataSaveRedis = await this.getInfoDevice(conn, null, device_id);
+    if (!isReqTransmissoin) {
+      const dataSaveRedis = await this.getInfoDevice(conn, null, device_id);
 
-    if (!dataSaveRedis?.length)
-      throw {
-        msg: ERROR,
-        errors: [{ msg: NOT_UPDATE_REALTIME }],
-      };
+      if (!dataSaveRedis?.length)
+        throw {
+          msg: ERROR,
+          errors: [{ msg: NOT_UPDATE_REALTIME }],
+        };
+    }
 
     await connPromise.commit();
     return [];

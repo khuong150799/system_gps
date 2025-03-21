@@ -100,35 +100,6 @@ class DeviceService {
     };
   }
 
-  // async getInfoDeviceLink(conn, vehicleId) {
-  //   const joinTable = `${tableDevice} d INNER JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id`;
-  //   const select = "d.imei";
-  //   const info = await databaseModel.select(
-  //     conn,
-  //     joinTable,
-  //     select,
-  //     "dv.vehicle_id = ?",
-  //     vehicleId,
-  //     "d.id",
-  //     "ASC",
-  //     0,
-  //     1
-  //   );
-  //   if (!info?.length)
-  //     throw {
-  //       msg: ERROR,
-  //       errors: [
-  //         {
-  //           msg: `Phương tiện ${NOT_EXITS}`,
-  //           value: vehicleId,
-  //           param: "vehicle_id",
-  //         },
-  //       ],
-  //     };
-
-  //   return info[0];
-  // }
-
   //getallrow
   async getallrows(query, customerId, chosseUserId) {
     try {
