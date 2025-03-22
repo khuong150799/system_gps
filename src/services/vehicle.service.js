@@ -463,28 +463,23 @@ class vehicleService {
     }
   }
 
-  async updateById(body, params) {
+  async updateById(body, params, infoUser) {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
         const { id } = params;
-        const joinTable = `${tableVehicle} v INNER JOIN ${tableDeviceVehicle} dv ON v.id = dv.vehicle_id
-        INNER JOIN ${tableDevice} d ON dv.device_id = d.id`;
 
-        const dataInfo = await dataBaseModel.select(
-          conn,
-          joinTable,
-          "d.imei",
-          "v.id = ? AND v.is_deleted = ? AND dv.is_deleted = ?",
-          [id, 0, 0],
-          "d.id"
-        );
+        const select =
+          "d.id as device_id,d.imei,v.display_name,v.vehicle_type_id,v.weight,v.warning_speed,v.chassis_number,v.business_type_id,quantity_channel,quantity_channel_lock";
+        const dataInfo = await vehicleModel.getInfoVehicle(conn, select, id);
+
         const data = await vehicleModel.updateById(
           conn,
           connPromise,
           body,
           params,
-          dataInfo
+          dataInfo,
+          infoUser
         );
         return data;
       } catch (error) {
@@ -500,7 +495,7 @@ class vehicleService {
     }
   }
 
-  async updateChnCapture(body, params) {
+  async updateChnCapture(body, params, infoUser) {
     try {
       const { conn, connPromise } = await db.getConnection();
       try {
@@ -509,7 +504,7 @@ class vehicleService {
           connPromise,
           body,
           params,
-          dataInfo
+          infoUser
         );
         return data;
       } catch (error) {

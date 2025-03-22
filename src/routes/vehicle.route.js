@@ -242,23 +242,23 @@ module.exports = (app) => {
     vehicleController.updateWarrantyExpiredOn
   );
 
-  // router.put(
-  //   "/update-chn-capture/:id",
-  //   [
-  //     param("id", VALIDATE_DATA).isNumeric(),
-  //     body("device_id", NOT_EMPTY)
-  //       .notEmpty()
-  //       .isNumeric()
-  //       .withMessage(VALIDATE_DATA),
-  //     body("chn-capture", NOT_EMPTY)
-  //       .notEmpty()
-  //       .isNumeric()
-  //       .withMessage(VALIDATE_DATA),
-  //   ],
-  //   isAuth,
-  //   checkPermission,
-  //   vehicleController.updateChnCapture
-  // );
+  router.put(
+    "/update-chn-capture/:id",
+    [
+      param("id", VALIDATE_DATA).isNumeric(),
+      body("device_id", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA),
+      body("chn-capture", NOT_EMPTY)
+        .notEmpty()
+        .isNumeric()
+        .withMessage(VALIDATE_DATA),
+    ],
+    isAuth,
+    checkPermission,
+    vehicleController.updateChnCapture
+  );
 
   router.put(
     "/update/:id",

@@ -4,14 +4,16 @@ const vehicleService = require("../services/vehicle.service");
 
 class VehicleController {
   updateById = catchAsync(async (req, res) => {
-    const { body, params } = req;
-    const data = await vehicleService.updateById(body, params);
+    const { body, params, userId } = req;
+    const infoUser = { user_id: userId, ip: null, os: null, gps: null };
+    const data = await vehicleService.updateById(body, params, infoUser);
     UPDATE(res, [data]);
   });
 
   updateChnCapture = catchAsync(async (req, res) => {
     const { body, params } = req;
-    const data = await vehicleService.updateChnCapture(body, params);
+    const infoUser = { user_id: userId, ip: null, os: null, gps: null };
+    const data = await vehicleService.updateChnCapture(body, params, infoUser);
     UPDATE(res, [data]);
   });
 
@@ -29,6 +31,7 @@ class VehicleController {
 
   getTransmission = catchAsync(async (req, res) => {
     const { query, userId, isMain, parentId } = req;
+
     const chosseUserId = isMain == 1 ? userId : parentId;
     const { data, totalPage, totalRecord } =
       await vehicleService.getTransmission(query, chosseUserId);

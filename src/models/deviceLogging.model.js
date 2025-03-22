@@ -116,6 +116,7 @@ class DeviceLoggingModel extends DatabaseModel {
       os,
       gps,
       device_id,
+      vehicle_id,
     }
   ) {
     // console.log("{ dataOld, dataNew, user_id, ip, os, module }", {
@@ -164,6 +165,7 @@ class DeviceLoggingModel extends DatabaseModel {
     const logs = new DeviceLoggingSchema({
       user_id,
       device_id,
+      vehicle_id,
       ip: ip || null,
       os: os || null,
       des: JSON.stringify(arrChange),

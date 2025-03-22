@@ -1,4 +1,3 @@
-const configureEnvironment = require("../config/dotenv.config");
 const { ERROR, NOT_EXITS } = require("../constants/msg.constant");
 
 class DatabaseModel {
