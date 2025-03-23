@@ -1778,6 +1778,16 @@ class VehicleModel extends DatabaseModel {
     );
     // console.log("infoDeviceNew.imei", infoDeviceNew.imei);
 
+    const dataLog = {
+      ...infoUser,
+      device_id: device_id_old,
+      vehicle_id: id,
+      action: GUARANTEE_ACTION,
+      des: JSON.stringify(
+        `Bảo hành phương tiện ${vehicle_name}: ${imeiOld} ===> ${imeiNew}`
+      ),
+      createdAt: Date.now(),
+    };
     await deviceLoggingModel.postOrDelete(conn, dataLog);
 
     const [{ result: resultOld }, resultNew] = await Promise.all([
@@ -1795,16 +1805,6 @@ class VehicleModel extends DatabaseModel {
         msg: ERROR,
         errors: [{ msg: NOT_UPDATE_REALTIME }],
       };
-    const dataLog = {
-      ...infoUser,
-      device_id: device_id_old,
-      vehicle_id: id,
-      action: GUARANTEE_ACTION,
-      des: JSON.stringify(
-        `Bảo hành phương tiện ${vehicle_name}: ${imeiOld} ===> ${imeiNew}`
-      ),
-      createdAt: Date.now(),
-    };
 
     await connPromise.commit();
     return [];
