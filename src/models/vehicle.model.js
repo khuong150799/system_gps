@@ -214,7 +214,7 @@ class VehicleModel extends DatabaseModel {
     LEFT JOIN ${tableCustomers} c ON uc2.customer_id = c.id`;
 
     const select = `
-      d.id as device_id,d.imei,dv.expired_on,dv.activation_date,dv.warranty_expired_on,dv.is_use_gps,dv.quantity_channel,dv.quantity_channel_lock,dv.is_lock,dv.is_transmission_gps,dv.is_transmission_image,
+      d.id as device_id,d.imei,dv.expired_on,dv.activation_date,dv.warranty_expired_on,dv.is_use_gps,dv.chn_capture,dv.quantity_channel,dv.quantity_channel_lock,dv.is_lock,dv.is_transmission_gps,dv.is_transmission_image,
       v.display_name,v.name as vehicle_name,v.id as vehicle_id,v.vehicle_type_id,v.chassis_number,v.business_type_id,v.weight,vt.name as vehicle_type_name,vt.vehicle_icon_id,vt.max_speed,
       m.name as model_name,m.model_type_id,ds.title as device_status_name,COALESCE(c0.company,
       c0.name) as customer_name,COALESCE(c.company, c.name) as agency_name,c.phone as agency_phone,vi.name as vehicle_icon_name,
