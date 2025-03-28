@@ -70,6 +70,11 @@ class UsersModel extends DatabaseModel {
     }
   }
 
+  async delCacheInfo(id) {
+    await cacheModel.hdelOneKeyRedis(REDIS_KEY_LIST_USER_INFO, id, true);
+    // if (!resultDelCache) throw { msg: ERROR, errors: [{ code: 1 }] };
+  }
+
   async getInfoParent(conn, parentId, customerId) {
     const joinTable = `${tableUsers} u INNER JOIN ${tableUsersCustomers} uc ON u.id = uc.user_id`;
     let where = "AND u.is_deleted = ?";
@@ -914,11 +919,7 @@ class UsersModel extends DatabaseModel {
     // );
     // console.log(id);
 
-    const resultDelCache = await cacheModel.hdelOneKeyRedis(
-      REDIS_KEY_LIST_USER_INFO,
-      id
-    );
-    if (!resultDelCache) throw { msg: ERROR, errors: [{ code: 1 }] };
+    await this.delCacheInfo(id);
 
     await connPromise.commit();
     user.id = id;
@@ -981,12 +982,7 @@ class UsersModel extends DatabaseModel {
 
     await this.delToken(id);
 
-    const resultDelCache = await cacheModel.hdelOneKeyRedis(
-      REDIS_KEY_LIST_USER_INFO,
-      id
-    );
-
-    if (!resultDelCache) throw { msg: ERROR, errors: [{ code: 1 }] };
+    await this.delCacheInfo(id);
 
     await connPromise.commit();
     return [];
@@ -1045,6 +1041,7 @@ class UsersModel extends DatabaseModel {
       "Tài khoản"
     );
     await this.delToken(id);
+    await this.delCacheInfo(id);
 
     return [{ new_password: PASSWORD_DEFAULT }];
   }
@@ -1069,6 +1066,7 @@ class UsersModel extends DatabaseModel {
     await writeLogModel.post(conn, dataSaveLog);
 
     await this.delToken(userId);
+    await this.delCacheInfo(userId);
 
     await connPromise.commit();
     return [];
@@ -1288,12 +1286,7 @@ class UsersModel extends DatabaseModel {
 
     await this.delToken(userId);
 
-    const resultDelCache = await cacheModel.hdelOneKeyRedis(
-      REDIS_KEY_LIST_USER_INFO,
-      userId
-    );
-
-    if (!resultDelCache) throw { msg: ERROR, errors: [{ code: 1 }] };
+    await this.delCacheInfo(userId);
 
     return [];
   }

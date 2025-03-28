@@ -252,9 +252,7 @@ class CustomersModel extends DatabaseSchema {
       if (is_main == 1) {
         userMain = infoUser[i];
       }
-      listPromise.push(
-        cacheModel.hdelOneKeyRedis(REDIS_KEY_LIST_USER_INFO, user_id, true)
-      );
+      listPromise.push(usersModel.delCacheInfo(user_id));
     }
 
     await Promise.all(listPromise);
