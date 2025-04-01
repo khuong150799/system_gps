@@ -48,7 +48,7 @@ module.exports = (app) => {
         .notEmpty()
         .isNumeric()
         .withMessage(VALIDATE_DATA),
-      body("phone", NOT_EMPTY).notEmpty().isString().withMessage(VALIDATE_DATA),
+      // body("phone", NOT_EMPTY).notEmpty().isString().withMessage(VALIDATE_DATA),
     ],
 
     isAuth,
@@ -64,7 +64,7 @@ module.exports = (app) => {
         .notEmpty()
         .isNumeric()
         .withMessage(VALIDATE_DATA),
-      body("phone", NOT_EMPTY).notEmpty().isString().withMessage(VALIDATE_DATA),
+      // body("phone", NOT_EMPTY).notEmpty().isString().withMessage(VALIDATE_DATA),
     ],
     isAuth,
     checkPermission,
