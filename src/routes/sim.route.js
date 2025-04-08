@@ -40,33 +40,21 @@ module.exports = (app) => {
       body("type_id", NOT_EMPTY)
         .notEmpty()
         .isString()
-        .withMessage(VALIDATE_DATA)
-        .escape(),
+        .withMessage(VALIDATE_DATA),
       body("status_id", NOT_EMPTY)
         .notEmpty()
         .isString()
-        .withMessage(VALIDATE_DATA)
-        .escape(),
-      body("price", NOT_EMPTY)
-        .notEmpty()
-        .isString()
-        .withMessage(VALIDATE_DATA)
-        .escape(),
+        .withMessage(VALIDATE_DATA),
+      body("price", NOT_EMPTY).notEmpty().isString().withMessage(VALIDATE_DATA),
       body("activation_date", NOT_EMPTY)
         .notEmpty()
         .isString()
-        .withMessage(VALIDATE_DATA)
-        .escape(),
+        .withMessage(VALIDATE_DATA),
       body("expired_date", NOT_EMPTY)
         .notEmpty()
         .isString()
-        .withMessage(VALIDATE_DATA)
-        .escape(),
-      body("note", NOT_EMPTY)
-        .notEmpty()
-        .isString()
-        .withMessage(VALIDATE_DATA)
-        .escape(),
+        .withMessage(VALIDATE_DATA),
+      body("note", NOT_EMPTY).notEmpty().isString().withMessage(VALIDATE_DATA),
     ],
 
     isAuth,
