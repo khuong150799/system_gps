@@ -88,8 +88,7 @@ class SimModel extends DatabaseModel {
   async getById(conn, params) {
     const { id } = params || {};
 
-    const select = `id,seri_display,seri_sim,phone,price,activation_date,expired_date,s.type_id,s.status_id,
-      created_at,updated_at`;
+    const select = `id,seri_display,seri_sim,phone,price,activation_date,expired_date,type_id,status_id,created_at,updated_at`;
 
     const where = `id = ? AND is_deleted = 0`;
     const conditions = [id];
