@@ -62,4 +62,7 @@ module.exports = {
   tableCommandConfigurations: "tbl_command_configurations",
   tableDeviceGpsSample: "tbl_device_gps_sample",
   tableDeviceSpeedSample: "tbl_device_speed_sample",
+  tableSimType: "tbl_sim_type",
+  tableSim: "tbl_sim",
+  tableSimStatus: "tbl_sim_status",
 };

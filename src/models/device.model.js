@@ -30,6 +30,8 @@ const {
   tableDeviceInfo,
   tableDeviceGpsSample,
   tableDeviceSpeedSample,
+  tableSim,
+  tableSimType,
 } = require("../constants/tableName.constant");
 const { hSet: hsetRedis } = require("./redis.model");
 const {
@@ -319,6 +321,9 @@ class DeviceModel extends DatabaseModel {
     LEFT JOIN ${tableVehicle} v ON dv.vehicle_id = v.id AND v.is_deleted = 0
     LEFT JOIN ${tableVehicleType} vt ON v.vehicle_type_id = vt.id
     LEFT JOIN ${tableVehicleIcon} vi ON vt.vehicle_icon_id = vi.id
+    LEFT JOIN ${tableDeviceInfo} di ON d.imei = di.imei
+    LEFT JOIN ${tableSim} s ON di.sid = s.seri_display
+    LEFT JOIN ${tableSimType} st ON s.type_id = st.id
     INNER JOIN ${tableModel} m ON d.model_id = m.id
     INNER JOIN ${tableDeviceStatus} ds ON d.device_status_id = ds.id
     INNER JOIN ${tableUsersDevices} ud ON d.id = ud.device_id
@@ -334,7 +339,7 @@ class DeviceModel extends DatabaseModel {
       v.display_name,v.name as vehicle_name,v.id as vehicle_id,v.vehicle_type_id,v.chassis_number,v.business_type_id,vt.name as vehicle_type_name,dv.service_package_id,vt.vehicle_icon_id,vt.max_speed,v.weight,v.warning_speed,m.id as model_id,
       m.name as model_name,m.model_type_id,ds.id as device_status_id,ds.title as device_status_name,COALESCE(c0.company,
       c0.name) as customer_name,COALESCE(c.company, c.name) as agency_name,c.phone as agency_phone,vi.name as vehicle_icon_name,
-      c0.id as customer_id,c.id as agency_id,d.sv_cam_id`;
+      c0.id as customer_id,c.id as agency_id,d.sv_cam_id,s.seri_display,s.phone as device_phone,st.name as sim_type_name`;
 
     let where = `AND ud.user_id = ? AND d.is_deleted = 0 AND c0.is_deleted = 0 AND u.is_deleted = 0 AND ud.is_deleted = 0`;
     const conditions = [];

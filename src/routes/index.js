@@ -44,4 +44,7 @@ module.exports = (app) => {
   require("./businessType.route")(app);
   require("./camera.route")(app);
   require("./command.route")(app);
+  require("./sim.route")(app);
+  require("./simStatus.route")(app);
+  require("./simType.route")(app);
 };

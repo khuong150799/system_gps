@@ -55,11 +55,12 @@ class CustomersService {
     const dataCheck = await databaseModel.select(
       conn,
       tableCustomers,
-      "company,email,phone",
+      "id,company,email,phone",
       where,
       conditions
     );
     if (dataCheck.length <= 0) return;
+    // console.log("dataCheck", dataCheck);
 
     dataCheck.forEach((item) => {
       if (company && item.company === company) {
@@ -74,7 +75,7 @@ class CustomersService {
           msg: `Email ${ALREADY_EXITS}`,
           param: "email",
         });
-      } else if (phone && item.phone) {
+      } else if (phone && item.phone === phone) {
         errors.push({
           value: phone,
           msg: `Số điện thoại ${ALREADY_EXITS}`,
