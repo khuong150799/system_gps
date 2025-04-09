@@ -165,17 +165,17 @@ class SimService {
               },
             ],
           };
-        console.log(
-          listSeriDisplay,
-          listSeriSim,
-          listPhone,
-          listTypeId,
-          listPrice,
-          listStatus,
-          listActivationDate,
-          listExpired,
-          listNote
-        );
+        // console.log(
+        //   listSeriDisplay,
+        //   listSeriSim,
+        //   listPhone,
+        //   listTypeId,
+        //   listPrice,
+        //   listStatus,
+        //   listActivationDate,
+        //   listExpired,
+        //   listNote
+        // );
 
         await this.validate(conn, listSeriDisplay, listSeriSim, listPhone);
 
