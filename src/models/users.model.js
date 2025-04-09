@@ -1155,7 +1155,7 @@ class UsersModel extends DatabaseModel {
       await tokenFirebaseModel.register(conn, {
         user_id: id,
         client_id: clientId,
-        token: body?.device_token,
+        token: deviceToken,
       });
     }
 

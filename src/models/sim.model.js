@@ -52,15 +52,13 @@ class SimModel extends DatabaseModel {
       conditions.push(start_expired_date, end_expired_date);
     }
 
-    where = where
-      ? where + " AND s.is_deleted = ? AND d.is_deleted = ?"
-      : "s.is_deleted = ? AND d.is_deleted = ?";
+    where = where ? where + " AND s.is_deleted = ?" : "s.is_deleted = ?";
     conditions.push(isDeleted, isDeleted);
 
     const joinTable = `${tableSim} s INNER JOIN ${tableSimType} st ON s.type_id = st.id
     INNER JOIN ${tableSimStatus} ss ON s.status_id = ss.id
     LEFT JOIN ${tableDeviceInfo} di ON s.seri_display = di.sid
-    LEFT JOIN ${tableDevice} d ON di.imei = d.imei AND d.is_deleted = 0`;
+    LEFT JOIN ${tableDevice} d ON di.imei = d.imei`;
 
     const select = `s.id,s.seri_display,s.seri_sim,s.phone,s.price,s.activation_date,s.expired_date,st.name as type,ss.title as status,
       s.created_at,s.updated_at,d.id as device_id,d.imei`;
