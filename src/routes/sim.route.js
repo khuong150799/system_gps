@@ -50,10 +50,10 @@ module.exports = (app) => {
         .notEmpty()
         .isString()
         .withMessage(VALIDATE_DATA),
-      body("expired_date", NOT_EMPTY)
-        .notEmpty()
-        .isString()
-        .withMessage(VALIDATE_DATA),
+      // body("expired_date", NOT_EMPTY)
+      //   .notEmpty()
+      //   .isString()
+      //   .withMessage(VALIDATE_DATA),
       body("note", NOT_EMPTY).notEmpty().isString().withMessage(VALIDATE_DATA),
     ],
 

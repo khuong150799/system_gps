@@ -14,11 +14,15 @@ class ServerCameraModel extends DatabaseModel {
 
   //getallrow
   async getallrows(conn, query) {
-    const offset = query.offset || 0;
-    const limit = query.limit || 10;
-    const isDeleted = query.is_deleted || 0;
+    const {
+      offset = 0,
+      limit = 10,
+      is_deleted: isDeleted = 0,
+      type,
+      keyword,
+      publish,
+    } = query;
 
-    const { type, keyword, publish } = query;
     let where = `is_deleted = ?`;
     const conditions = [isDeleted];
     // let where = `1 = ?`;
@@ -40,7 +44,7 @@ class ServerCameraModel extends DatabaseModel {
     }
 
     const select = "id,ip,host,port,publish,created_at,updated_at";
-    const [res_, count] = await Promise.all([
+    const [rows, count] = await Promise.all([
       this.select(
         conn,
         tableServerCamera,
@@ -56,31 +60,42 @@ class ServerCameraModel extends DatabaseModel {
     ]);
 
     const totalPage = Math.ceil(count?.[0]?.total / limit);
-    // console.log("res_", res_);
+    // console.log("rows", rows);
 
-    let dataRes = res_;
+    if (!type || !rows?.length)
+      return { data: rows, totalPage, totalRecord: count?.[0]?.total };
 
-    if (type && res_?.length) {
-      // console.log(6543);
+    const loginPromises = rows.map(({ host, port }) => {
+      const baseUrl = `${host}:${port}`;
+      const token = global[baseUrl] || {};
+      const { session, exp } = token;
 
-      const dataToken = await Promise.all(
-        res_.map((item) =>
-          login({
-            account: ACCOUNT_CMS,
-            password: PASSWORD_CMS,
-            baseUrl: `${item.host}:${item.port}`,
-          })
-        )
-      );
+      if (!session || Date.now() > exp) {
+        return login({
+          account: ACCOUNT_CMS,
+          password: PASSWORD_CMS,
+          baseUrl,
+        });
+      }
 
-      dataRes = res_.map((item, i) => {
-        const { jsession } = dataToken[i];
-        if (jsession) {
-          item.token = jsession;
-        }
-        return item;
-      });
-    }
+      return Promise.resolve({ jsession: session, exp });
+    });
+
+    const loginResults = await Promise.all(loginPromises);
+
+    const dataRes = rows.map((item, index) => {
+      const { jsession, exp } = loginResults[index];
+      const baseUrl = `${item.host}:${item.port}`;
+
+      if (jsession) {
+        item.token = jsession;
+        global[baseUrl] = {
+          session: jsession,
+          exp: exp || Date.now() + 2 * 3600000,
+        };
+      }
+      return item;
+    });
 
     return { data: dataRes, totalPage, totalRecord: count?.[0]?.total };
   }

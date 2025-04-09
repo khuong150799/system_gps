@@ -248,13 +248,10 @@ class DeviceModel extends DatabaseModel {
     INNER JOIN ${tableUsersCustomers} uc ON u.id = uc.user_id
     INNER JOIN ${tableCustomers} c ON uc.customer_id = c.id
     INNER JOIN ${tableModel} m ON d.model_id = m.id
-    INNER JOIN ${tableDeviceStatus} ds ON d.device_status_id = ds.id
-    LEFT JOIN ${tableDeviceInfo} di ON d.imei = di.imei
-    LEFT JOIN ${tableServerCamera} ca ON d.sv_cam_id = ca.id
+    INNER JOIN ${tableDeviceStatus} ds ON d.device_status_id = ds.id  
     `;
 
-    let select = `d.id,d.dev_id,d.imei,m.name as model_name,di.sid as serial,di.hver as version_hardware,
-     di.sver as version_software,di.updated_at as time_update_version,ca.host`;
+    let select = `d.id,d.dev_id,d.imei,m.name as model_name`;
 
     if (type == 1) {
       joinTable += ` INNER JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id
@@ -280,7 +277,11 @@ class DeviceModel extends DatabaseModel {
 
       conditions = [0, ...conditions];
     } else {
-      joinTable += ` LEFT JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id AND dv.is_deleted = ?
+      joinTable += ` LEFT JOIN ${tableDeviceInfo} di ON d.imei = di.imei
+      LEFT JOIN ${tableSim} s ON di.sid = s.seri_display AND s.is_deleted = 0
+      LEFT JOIN ${tableSimType} st ON s.type_id = st.id AND st.is_deleted = 0
+      LEFT JOIN ${tableServerCamera} ca ON d.sv_cam_id = ca.id
+      LEFT JOIN ${tableDeviceVehicle} dv ON d.id = dv.device_id AND dv.is_deleted = ?
       LEFT JOIN ${tableVehicle} v ON dv.vehicle_id = v.id AND v.is_deleted = ?
       LEFT JOIN (
       SELECT od.device_id, o.code as orders_code,o.reciver
@@ -289,7 +290,8 @@ class DeviceModel extends DatabaseModel {
       WHERE od.is_deleted = ? AND o.creator_customer_id = ? AND o.is_deleted = ?
       ) latest_order ON ud.device_id = latest_order.device_id
       LEFT JOIN ${tableCustomers} c1 ON latest_order.orders_code IS NOT NULL AND latest_order.reciver = c1.id`;
-      select += ` ,d.expired_on,d.activation_date,d.warranty_expired_on,latest_order.orders_code,d.created_at,d.updated_at,
+      select += ` ,di.sid as serial,di.hver as version_hardware,
+        di.sver as version_software,di.updated_at as time_update_version,ca.host,st.name as sim_type_name,d.expired_on,d.activation_date,d.warranty_expired_on,latest_order.orders_code,d.created_at,d.updated_at,
         ds.title as device_status_name,MAX(COALESCE(c1.company,c1.name)) as customer_name,c1.id as customer_id,v.id as vehicle_id,v.name as vehicle_name`;
       conditions = [0, 0, 0, customer, 0, ...conditions];
     }

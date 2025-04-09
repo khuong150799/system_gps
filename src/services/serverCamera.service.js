@@ -26,52 +26,52 @@ class ServerCameraService {
         const url = error?.config?.url;
         // console.log("url", url);
 
-        if (url) {
-          try {
-            const arrUrl = url.split(":");
-            const domain = `${arrUrl[0]}:${arrUrl[1]}`;
-            if (SV_NOTIFY) {
-              const process = fork(`./src/process/notify.process.js`);
+        if (!url) throw new BusinessLogicError(error.msg);
 
-              process.send({
-                data: {
-                  dataUsers: [{ user_id: 1 }],
-                  keyword: "6_1_1",
-                  replaces: { sv_cam: domain, error_code: error.code },
-                  sv: SV_NOTIFY,
-                },
-              });
-            }
+        try {
+          const arrUrl = url.split(":");
+          const domain = `${arrUrl[0]}:${arrUrl[1]}`;
+          if (SV_NOTIFY) {
+            const process = fork(`./src/process/notify.process.js`);
 
-            // console.log("domain", domain);
-            const { data } = await serverCameraModel.getallrows(db.db, {
-              limit: 1,
-              keyword: domain,
-              publish: 1,
+            process.send({
+              data: {
+                dataUsers: [{ user_id: 1 }],
+                keyword: "6_1_1",
+                replaces: { sv_cam: domain, error_code: error.code },
+                sv: SV_NOTIFY,
+              },
             });
-            // console.log("data", data);
-
-            if (data?.length) {
-              await serverCameraModel.updatePublish(
-                db.db,
-                { publish: 0 },
-                { id: data[0]?.id }
-              );
-              const dataSvcam = await this.getallrows({
-                limit: 9999,
-                type: 1,
-              });
-
-              return dataSvcam;
-            }
-          } catch (error) {
-            console.log("error", error);
-
-            throw new BusinessLogicError(error.msg);
           }
+
+          // console.log("domain", domain);
+          const { data } = await serverCameraModel.getallrows(db.db, {
+            limit: 1,
+            keyword: domain,
+            publish: 1,
+          });
+          // console.log("data", data);
+
+          if (data?.length) {
+            await serverCameraModel.updatePublish(
+              db.db,
+              { publish: 0 },
+              { id: data[0]?.id }
+            );
+            const dataSvcam = await this.getallrows({
+              limit: 9999,
+              type: 1,
+            });
+
+            return dataSvcam;
+          }
+        } catch (error) {
+          console.log("error", error);
+
+          throw new BusinessLogicError(error.msg);
         }
       }
-      console.log(1111, error);
+      // console.log(1111, error);
 
       throw new BusinessLogicError(error.msg);
     }

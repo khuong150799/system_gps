@@ -75,7 +75,7 @@ const handleRequestCMS = async (config) => {
     }
     return config;
   } catch (error) {
-    console.log(error);
+    // console.log(error);
 
     throw error;
   }

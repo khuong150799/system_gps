@@ -8,7 +8,7 @@ const {
 } = require("../core/error.response");
 
 const logError = (err) => {
-  console.error("logErrorMiddleware::::", err);
+  console.error("logErrorMiddleware::::", err?.message || err?.msg);
 };
 
 const logErrorMiddleware = (err, req, res, next) => {

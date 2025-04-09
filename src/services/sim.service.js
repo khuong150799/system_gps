@@ -24,7 +24,6 @@ class SimService {
       where += ` AND id <> ?`;
       conditions.push(id);
     }
-    console.log(conditions);
 
     const dataCheck = await databaseModel.select(
       conn,
@@ -131,7 +130,7 @@ class SimService {
           price,
           status_id,
           activation_date,
-          expired_date,
+          // expired_date,
           note,
         } = body;
 
@@ -142,7 +141,7 @@ class SimService {
         const listPrice = safeJsonParse(price || "[]");
         const listStatus = safeJsonParse(status_id || "[]");
         const listActivationDate = safeJsonParse(activation_date || "[]");
-        const listExpired = safeJsonParse(expired_date || "[]");
+        // const listExpired = safeJsonParse(expired_date || "[]");
         const listNote = safeJsonParse(note || "[]");
 
         if (
@@ -151,7 +150,7 @@ class SimService {
           listSeriDisplay.length !== listPrice.length ||
           listSeriDisplay.length !== listStatus.length ||
           listSeriDisplay.length !== listActivationDate.length ||
-          listSeriDisplay.length !== listExpired.length ||
+          // listSeriDisplay.length !== listExpired.length ||
           listSeriDisplay.length !== listPhone.length ||
           listSeriDisplay.length !== listNote.length
         )
@@ -165,17 +164,6 @@ class SimService {
               },
             ],
           };
-        // console.log(
-        //   listSeriDisplay,
-        //   listSeriSim,
-        //   listPhone,
-        //   listTypeId,
-        //   listPrice,
-        //   listStatus,
-        //   listActivationDate,
-        //   listExpired,
-        //   listNote
-        // );
 
         await this.validate(conn, listSeriDisplay, listSeriSim, listPhone);
 
@@ -188,7 +176,7 @@ class SimService {
           listPrice,
           listStatus,
           listActivationDate,
-          listExpired,
+          // listExpired,
           listNote
         );
         return sim;

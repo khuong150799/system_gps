@@ -22,8 +22,8 @@ class SimModel extends DatabaseModel {
     const {
       is_deleted,
       keyword,
-      start_expired_date,
-      end_expired_date,
+      // start_expired_date,
+      // end_expired_date,
       start_activation_date,
       end_activation_date,
     } = query;
@@ -47,10 +47,10 @@ class SimModel extends DatabaseModel {
       conditions.push(start_activation_date, end_activation_date);
     }
 
-    if (start_expired_date && end_expired_date) {
-      where += ` AND s.expired_date BETWEEN ? AND ?`;
-      conditions.push(start_expired_date, end_expired_date);
-    }
+    // if (start_expired_date && end_expired_date) {
+    //   where += ` AND s.expired_date BETWEEN ? AND ?`;
+    //   conditions.push(start_expired_date, end_expired_date);
+    // }
 
     where = where ? where + " AND s.is_deleted = ?" : "s.is_deleted = ?";
     conditions.push(isDeleted, isDeleted);
@@ -60,7 +60,7 @@ class SimModel extends DatabaseModel {
     LEFT JOIN ${tableDeviceInfo} di ON s.seri_display = di.sid
     LEFT JOIN ${tableDevice} d ON di.imei = d.imei`;
 
-    const select = `s.id,s.seri_display,s.seri_sim,s.phone,s.price,s.activation_date,s.expired_date,st.name as type,ss.title as status,
+    const select = `s.id,s.seri_display,s.seri_sim,s.phone,s.price,s.activation_date,st.name as type,ss.title as status,
       s.created_at,s.updated_at,d.id as device_id,d.imei`;
 
     const [res_, count] = await Promise.all([
@@ -86,7 +86,7 @@ class SimModel extends DatabaseModel {
   async getById(conn, params) {
     const { id } = params || {};
 
-    const select = `id,seri_display,seri_sim,phone,price,activation_date,expired_date,type_id,status_id,created_at,updated_at`;
+    const select = `id,seri_display,seri_sim,phone,price,activation_date,type_id,status_id,created_at,updated_at`;
 
     const where = `id = ? AND is_deleted = 0`;
     const conditions = [id];
@@ -106,7 +106,7 @@ class SimModel extends DatabaseModel {
     listPrice,
     listStatus,
     listActivationDate,
-    listExpired,
+    // listExpired,
     listNote
   ) {
     const createdAt = Date.now();
@@ -122,7 +122,8 @@ class SimModel extends DatabaseModel {
         listPrice[i] || null,
         listStatus[i],
         listActivationDate[i] || null,
-        listExpired[i] || null,
+        // listExpired[i] || null,
+        null,
         listNote[i] || null,
         0,
         createdAt,
@@ -171,8 +172,8 @@ class SimModel extends DatabaseModel {
       type_id,
       price,
       status_id,
-      activation_date,
-      expired_date,
+      activation_date: activation_date || null,
+      expired_date: expired_date || null,
       note,
       updated_at: Date.now(),
     });
