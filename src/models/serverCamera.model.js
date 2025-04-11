@@ -67,32 +67,33 @@ class ServerCameraModel extends DatabaseModel {
 
     const loginPromises = rows.map(({ host, port }) => {
       const baseUrl = `${host}:${port}`;
-      const token = global[baseUrl] || {};
-      const { session, exp } = token;
+      // const token = global[baseUrl] || {};
+      // const { session, exp } = token;
 
-      if (!session || Date.now() > exp) {
-        return login({
-          account: ACCOUNT_CMS,
-          password: PASSWORD_CMS,
-          baseUrl,
-        });
-      }
+      // if (!session || Date.now() > exp) {
+      return login({
+        account: ACCOUNT_CMS,
+        password: PASSWORD_CMS,
+        baseUrl,
+      });
+      // }
 
-      return Promise.resolve({ jsession: session, exp });
+      // return Promise.resolve({ jsession: session, exp });
     });
 
     const loginResults = await Promise.all(loginPromises);
 
     const dataRes = rows.map((item, index) => {
-      const { jsession, exp } = loginResults[index];
-      const baseUrl = `${item.host}:${item.port}`;
+      const { jsession } = loginResults[index];
+      // const baseUrl = `${item.host}:${item.port}`;
+      // console.log(jsession, exp);
 
       if (jsession) {
         item.token = jsession;
-        global[baseUrl] = {
-          session: jsession,
-          exp: exp || Date.now() + 2 * 3600000,
-        };
+        // global[baseUrl] = {
+        //   session: jsession,
+        //   exp: exp || Date.now() + 2 * 3600000,
+        // };
       }
       return item;
     });

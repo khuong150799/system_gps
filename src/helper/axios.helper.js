@@ -39,40 +39,40 @@ const axiosNoConfig = axios.create({
 
 const handleRequestCMS = async (config) => {
   try {
-    const baseUrl = config.params.baseUrl;
+    const { baseUrl } = config.params;
 
-    const token = global[baseUrl] || {};
-    const { session, exp } = token;
+    // const token = global[baseUrl] || {};
+    // const { session, exp } = token;
 
-    let createSession = false;
-    if (session) {
-      if (Date.now() - exp > 0) {
-        createSession = true;
-      }
+    // let createSession = false;
+    // if (session) {
+    //   if (Date.now() - exp > 0) {
+    //     createSession = true;
+    //   }
+    // }
+    // if (!session || createSession) {
+    const params = {
+      account: ACCOUNT_CMS,
+      password: PASSWORD_CMS,
+    };
+
+    const { jsession } = await axiosCMS1NoAuth({
+      method: "GET",
+      url: `${baseUrl}/StandardApiAction_login.action`,
+      params,
+    });
+    // console.log("jsession", jsession);
+
+    if (jsession) {
+      // global[baseUrl] = {
+      //   session: jsession,
+      //   exp: Date.now() + 2 * 3600000,
+      // };
+      config.params.jsession = jsession;
     }
-    if (!session || createSession) {
-      const params = {
-        account: ACCOUNT_CMS,
-        password: PASSWORD_CMS,
-      };
-
-      const { jsession } = await axiosCMS1NoAuth({
-        method: "GET",
-        url: `${baseUrl}/StandardApiAction_login.action`,
-        params,
-      });
-      // console.log("jsession", jsession);
-
-      if (jsession) {
-        global[baseUrl] = {
-          session: jsession,
-          exp: Date.now() + 2 * 3600000,
-        };
-        config.params.jsession = jsession;
-      }
-    } else {
-      config.params.jsession = session;
-    }
+    // } else {
+    //   config.params.jsession = session;
+    // }
     return config;
   } catch (error) {
     // console.log(error);

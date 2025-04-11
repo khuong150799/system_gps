@@ -244,12 +244,11 @@ class DeviceModel extends DatabaseModel {
     }
 
     let joinTable = `${tableDevice} d INNER JOIN ${tableUsersDevices} ud ON d.id = ud.device_id
-    INNER JOIN ${tableUsers} u ON ud.user_id = u.id
-    INNER JOIN ${tableUsersCustomers} uc ON u.id = uc.user_id
-    INNER JOIN ${tableCustomers} c ON uc.customer_id = c.id
-    INNER JOIN ${tableModel} m ON d.model_id = m.id
-    INNER JOIN ${tableDeviceStatus} ds ON d.device_status_id = ds.id  
-    `;
+      INNER JOIN ${tableUsers} u ON ud.user_id = u.id
+      INNER JOIN ${tableUsersCustomers} uc ON u.id = uc.user_id
+      INNER JOIN ${tableCustomers} c ON uc.customer_id = c.id
+      INNER JOIN ${tableModel} m ON d.model_id = m.id
+      INNER JOIN ${tableDeviceStatus} ds ON d.device_status_id = ds.id`;
 
     let select = `d.id,d.dev_id,d.imei,m.name as model_name`;
 
