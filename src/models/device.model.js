@@ -336,7 +336,7 @@ class DeviceModel extends DatabaseModel {
     LEFT JOIN ${tableCustomers} c ON uc2.customer_id = c.id`;
 
     const select = `
-      d.id as device_id,d.dev_id,d.serial,d.imei,dv.expired_on,dv.activation_date,dv.warranty_expired_on,dv.is_use_gps,dv.sleep_time,dv.quantity_channel,dv.chn_capture,dv.quantity_channel_lock,dv.is_lock,dv.is_transmission_gps,dv.is_transmission_image,
+      d.id as device_id,d.dev_id,di.sid as serial,d.imei,dv.expired_on,dv.activation_date,dv.warranty_expired_on,dv.is_use_gps,dv.sleep_time,dv.quantity_channel,dv.chn_capture,dv.quantity_channel_lock,dv.is_lock,dv.is_transmission_gps,dv.is_transmission_image,
       v.display_name,v.name as vehicle_name,v.id as vehicle_id,v.vehicle_type_id,v.chassis_number,v.business_type_id,vt.name as vehicle_type_name,dv.service_package_id,vt.vehicle_icon_id,vt.max_speed,v.weight,v.warning_speed,m.id as model_id,
       m.name as model_name,m.model_type_id,ds.id as device_status_id,ds.title as device_status_name,COALESCE(c0.company,
       c0.name) as customer_name,COALESCE(c.company, c.name) as agency_name,c.phone as agency_phone,vi.name as vehicle_icon_name,
@@ -1027,15 +1027,15 @@ class DeviceModel extends DatabaseModel {
 
     await this.update(conn, tableDevice, device, "id", id);
 
-    if (sv_cam_id) {
-      await this.insertDuplicate(
-        conn,
-        tableDeviceInfo,
-        "imei,sid,updated_at",
-        [[imei, serial, Date.now()]],
-        "imei=VALUES(imei),sid=VALUES(sid),updated_at=VALUES(updated_at)"
-      );
-    }
+    // if (sv_cam_id) {
+    await this.insertDuplicate(
+      conn,
+      tableDeviceInfo,
+      "imei,sid,updated_at",
+      [[imei, serial, Date.now()]],
+      "imei=VALUES(imei),sid=VALUES(sid),updated_at=VALUES(updated_at)"
+    );
+    // }
 
     await vehicleModel.getInfoDevice(conn, imei);
     await deviceLoggingModel.update(conn, {
